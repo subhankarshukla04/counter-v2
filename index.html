@@ -95,6 +95,7 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 @keyframes slidein{from{transform:translateX(56px); opacity:0} to{transform:none; opacity:1}}
 .slide{animation:slidein 280ms ease-out}
 @media (prefers-reduced-motion:reduce){ .slide{animation:none} }
+@keyframes menuin{from{transform:translateY(-10px); opacity:0} to{transform:none; opacity:1}}
 .trail{display:flex; flex-wrap:wrap; gap:8px; margin:22px 0}
 .trail button{
   min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--line); background:var(--panel);
@@ -163,7 +164,8 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 /* ---------- the shell ---------- */
 .app{display:flex; min-height:100vh}
 .side{width:var(--side); flex:none; background:var(--panel); border-right:1px solid var(--line); padding:24px 10px}
-.side .who{padding:0 10px; margin:22px 0 20px}
+.side .side-mark{padding:0 10px}
+.side .who{padding:0 10px; margin:22px 0 0}
 .side .who .name{font-weight:700; color:var(--ink)}
 .side .who .area{font-size:13px; color:var(--muted)}
 .side .who a{display:inline-block; margin-top:6px; font-size:13px; font-weight:600}
@@ -176,8 +178,12 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .nav .line[aria-disabled]{color:var(--faint); cursor:default}
 .nav .navic{display:inline-flex; width:18px; height:18px; flex:none}
 .nav .soon{margin-left:auto; padding-left:6px; font-size:11px; color:var(--faint)}
-.nav .label{padding:12px 10px 4px; font-size:12px; font-weight:600; color:var(--muted)}
-.nav .divider{height:1px; background:var(--rule); margin:10px}
+/* A group label or the divider stands well clear of the group above it: the
+   same space each time, and much more than the space between two lines. */
+.side .label{margin:18px 0 0; padding:0 10px 4px; font-size:12px; font-weight:600; color:var(--muted)}
+.side .divider{height:1px; background:var(--rule); margin:18px 10px 8px}
+/* the phone's bar and menu button: not on a laptop */
+.mbar{display:none}
 .main{flex:1; min-width:0; padding:28px 32px 48px}
 .main > h1{margin-bottom:20px}
 .main > .sub{margin:-12px 0 20px}
@@ -203,7 +209,7 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 #savedpage .none p + p{margin-top:4px}
 .main > .sub .under{display:block; margin-top:4px}
 
-/* ---------- New at other cafes: one panel with tabs, two switches and a table ---------- */
+/* ---------- New items: one panel with tabs, two switches and a table ---------- */
 .newbar{display:flex; flex-wrap:wrap; align-items:flex-end; gap:4px 24px; border-bottom:1px solid var(--rule); margin-bottom:8px}
 .newbar .tabs{border-bottom:0; margin-bottom:0; flex-wrap:wrap}
 .tabs button:disabled{color:var(--faint); cursor:default}
@@ -301,7 +307,7 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .row .go, .row .now{justify-self:center; font-size:13px; font-weight:600; color:var(--ink)}
 .row .go{min-height:32px; height:32px; padding:0 12px; border-radius:8px; border-color:var(--ink)}
 .row .now{white-space:nowrap}
-/* Items you do not sell: no price column, and two buttons at the right */
+/* Items I do not sell: no price column, and two buttons at the right */
 .row.miss{grid-template-columns:minmax(0, 1fr) auto}
 .row .acts{display:grid; grid-template-columns:84px auto; column-gap:8px; align-items:center; justify-items:center}
 .row .go.quiet, .btn.quiet{border-color:var(--line); color:var(--body); font-weight:500}
@@ -416,8 +422,25 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 
 @media (max-width:899px){
   .app{flex-direction:column}
-  .side{width:100%; border-right:0; border-bottom:1px solid var(--line); padding:18px 14px}
-  .side .who{margin:14px 0 12px}
+  /* A bar that stays at the top, with the page's name and the menu button.
+     The sidebar is the menu panel here: out of sight until the button is pressed,
+     then over the whole page under the bar. */
+  .mbar{display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:1200; height:60px; padding:0 16px;
+        background:var(--panel); border-bottom:1px solid var(--line)}
+  .mbar .words{flex:1; min-width:0}
+  .mbar .wordmark{font-size:18px}
+  .mbar .where{margin-top:3px; font-size:13px; font-weight:600; color:var(--body); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .mbar .btn{min-height:44px; flex:none}
+  .side{display:none; position:fixed; left:0; right:0; top:60px; bottom:0; z-index:1150; width:auto; border-right:0;
+        padding:16px 14px 32px; overflow-y:auto; overscroll-behavior:contain}
+  .app.menu-open .side{display:block; animation:menuin 200ms ease-out}
+  .side .side-mark{display:none}
+  .side .who{margin-top:0}
+  .side .who a{display:inline-flex; align-items:center; min-height:44px; margin-top:0}
+  .side .nav .line{min-height:44px}
+  /* the page behind the open menu stays still. Only the root is held, so the bar keeps its place at the top. */
+  html.menu-locked{overflow:hidden}
+  @media (prefers-reduced-motion:reduce){ .app.menu-open .side{animation:none} }
   .main{padding:20px 16px 40px}
   .cols{grid-template-columns:minmax(0, 1fr); row-gap:20px}
   .handle{display:none}
@@ -472,29 +495,43 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 </div>
 
 <div class="app" id="app" hidden>
-  <aside class="side">
-    <p class="wordmark" style="padding:0 10px">Counter</p>
+  <!-- phone widths only: a bar that stays at the top, with the page's name and the menu button -->
+  <header class="mbar" id="mbar">
+    <div class="words"><p class="wordmark">Counter</p><p class="where" id="mbar-page"></p></div>
+    <button type="button" class="btn" id="menu-btn" aria-expanded="false" aria-controls="side"></button>
+  </header>
+  <!-- one set of links: the sidebar on a laptop, the menu panel on a phone -->
+  <aside class="side" id="side">
+    <p class="wordmark side-mark">Counter</p>
     <div class="who">
       <p class="name" id="who-name"></p>
       <p class="area" id="who-area"></p>
       <a href="./" data-act="change">Change shop</a>
     </div>
-    <nav aria-label="Counter">
-      <ul class="nav">
+    <nav aria-label="Counter" id="sidenav">
+      <p class="label" id="group-menu">My menu</p>
+      <ul class="nav" aria-labelledby="group-menu">
         <li><a class="line" href="./" id="nav-prices" data-nav="">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg>My prices</a></li>
-        <li class="label">My menu</li>
-        <li class="sub"><a class="line" href="./" id="nav-new" data-nav="">
-          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>New at other cafes</a></li>
-        <li class="sub"><a class="line" href="./" id="nav-missing" data-nav="">
-          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7M16 18h5"/></svg><span id="nav-missing-words">Items you do not sell</span></a></li>
+        <li><a class="line" href="./" id="nav-missing" data-nav="">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7M16 18h5"/></svg><span id="nav-missing-words">Items I do not sell</span></a></li>
+      </ul>
+      <p class="label" id="group-other">Other cafes</p>
+      <ul class="nav" aria-labelledby="group-other">
+        <li><a class="line" href="./" id="nav-new" data-nav="">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>New items</a></li>
         <li><a class="line" href="./" id="nav-offers" data-nav="">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>Offers</a></li>
+      </ul>
+      <div class="divider" role="presentation"></div>
+      <ul class="nav" aria-label="Saved and alerts">
         <li><a class="line" href="./" id="nav-saved" data-nav="">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S4 15.2 4 9.4a4.4 4.4 0 0 1 8-2.5 4.4 4.4 0 0 1 8 2.5c0 5.8-8 11.1-8 11.1z"/></svg><span id="nav-saved-words">Saved</span></a></li>
-        <li class="divider" role="presentation"></li>
         <li><span class="line" role="link" aria-disabled="true">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts<span class="soon">Soon</span></span></li>
+      </ul>
+      <p class="label" id="group-setup">Set-up</p>
+      <ul class="nav" aria-labelledby="group-setup">
         <li><a class="line" href="./" data-act="editrivals">
           <span class="navic" id="nav-target" aria-hidden="true"></span><span id="nav-rivals">My competitors</span></a></li>
         <li><span class="line" role="link" aria-disabled="true">
@@ -528,7 +565,7 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
         </div>
       </section>
     </div>
-    <section class="panel" id="newpage" aria-label="New at other cafes" hidden></section>
+    <section class="panel" id="newpage" aria-label="New items" hidden></section>
     <section class="panel" id="offerspage" aria-label="Offers" hidden></section>
     <section class="panel" id="savedpage" aria-label="Saved" hidden></section>
   </main>
@@ -559,6 +596,7 @@ const ICON = {
   minus: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>`,
   plus: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`,
   tick: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+  menu: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`,
   heart: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S4 15.2 4 9.4a4.4 4.4 0 0 1 8-2.5 4.4 4.4 0 0 1 8 2.5c0 5.8-8 11.1-8 11.1z"/></svg>`,
   heartFull: `<svg class="ic full" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S4 15.2 4 9.4a4.4 4.4 0 0 1 8-2.5 4.4 4.4 0 0 1 8 2.5c0 5.8-8 11.1-8 11.1z"/></svg>`
 };
@@ -593,8 +631,8 @@ let view = "list";
 let showAll = false;
 const trial = new Map();      // item -> trial price in cents, while it is being tried
 let C = null;                 // counter_data.json, or null when it did not load
-let page = "prices";          // "prices", "missing" for Items you do not sell, "new" for New at other cafes
-let newTab = "all";           // New at other cafes: the type tab and the two switches
+let page = "prices";          // "prices", "missing" for Items I do not sell, "new" for New items
+let newTab = "all";           // New items: the type tab and the two switches
 let onlyMine = false, chainsOn = false;
 let cafesAll = false;         // whether every cafe shows, or only the first few
 const cafesOpen = new Set();  // the cafes whose every item shows
@@ -806,6 +844,7 @@ function slideIn(el){
   el.classList.add("slide");
 }
 function route(){
+  setMenu(false);            // a new page or screen: the phone's menu is put away
   const q = new URLSearchParams(location.search);
   const s = SHOPS.get(q.get("shop")) || null;
   if(!s){ chooser = null; showFind(q); return; }
@@ -844,7 +883,7 @@ function openShop(s, ids, q){
 
   if(entering){
     view = "list"; showAll = false; showHidden = false; closed = false;
-    // New at other cafes starts on the competitors' items when there are any
+    // New items starts on the competitors' items when there are any
     newTab = "all"; chainsOn = false; foldNew(); onlyMine = page === "offers" ? anyMineOffer() : anyMine();
     // the Saved page asked for one item to be open
     if(wantOpen && pageItems().indexOf(wantOpen) !== -1){ tab = "all"; openItem = wantOpen; }
@@ -873,7 +912,7 @@ function openShop(s, ids, q){
   show("prices");
   paint(entering);
 }
-const PAGE_TITLE = {prices: "My prices", missing: "Items you do not sell", new: "New at other cafes", offers: "Offers", saved: "Saved"};
+const PAGE_TITLE = {prices: "My prices", missing: "Items I do not sell", new: "New items", offers: "Offers", saved: "Saved"};
 function categories(){
   const tally = new Map();
   pageItems().forEach(k => { const f = priceRow(k).format || ""; tally.set(f, (tally.get(f) || 0) + 1); });
@@ -895,7 +934,7 @@ function paint(fit){
 function paintFrame(){
   const miss = page === "missing", n = visMissing().length;
   byId("nav-rivals").textContent = `My competitors (${rivals.length})`;
-  byId("nav-missing-words").textContent = `Items you do not sell (${n})`;
+  byId("nav-missing-words").textContent = `Items I do not sell (${n})`;
   byId("nav-saved-words").textContent = `Saved (${savedCount()})`;
   [["nav-prices", "prices"], ["nav-new", "new"], ["nav-missing", "missing"], ["nav-offers", "offers"], ["nav-saved", "saved"]].forEach(pair => {
     const link = byId(pair[0]);
@@ -904,7 +943,8 @@ function paintFrame(){
   });
 
   byId("page-title").textContent = PAGE_TITLE[page];
-  // no item at all on Items you do not sell: one line, and no panels
+  byId("mbar-page").textContent = PAGE_TITLE[page];      // the phone's bar says which page this is
+  // no item at all on Items I do not sell: one line, and no panels
   const none = miss && !missing.length;
   const sub = byId("page-sub");
   sub.hidden = !miss || none;
@@ -1009,7 +1049,7 @@ function paintDetail(fit){
   if(view === "list") paintCafes(); else drawMap(fit);
 }
 
-/* ---------- New at other cafes ----------
+/* ---------- New items ----------
    New items from counter_data.json: the competitors' own first, then the newest. */
 const NEW_TYPES = [["drink", "Drinks"], ["pastry", "Pastries"], ["cake", "Cakes"], ["savoury", "Savoury"], ["other", "Other"]];
 const NEW_CAFES = 6;      // cafes shown before "Show <k> more cafes"
@@ -1217,8 +1257,8 @@ function paintSaved(){
       }).join("") + `</ul>`;
   } else {
     const lacking = ideas.filter(e => e.kind === "missing"), fresh = ideas.filter(e => e.kind === "new");
-    if(!ideas.length) html += none("To save one, press Save on Items you do not sell, New at other cafes or Offers.");
-    if(lacking.length) html += `<h3>Items you do not sell</h3><ul class="savedrows" id="saved-missing">` + lacking.map(e => {
+    if(!ideas.length) html += none("To save one, press Save on Items I do not sell, New items or Offers.");
+    if(lacking.length) html += `<h3>Items I do not sell</h3><ul class="savedrows" id="saved-missing">` + lacking.map(e => {
       const row = priceRow(e.item), name = itemName(e.item), known = D.named_prices[e.item];
       return `<li data-item="${esc(e.item)}"><div class="words"><p class="name">${esc(name)}</p>` +
         (row.low != null ? `<p data-range>Cafes charge ${money(row.low)} to ${money(row.high)}</p>` : "") +
@@ -1228,7 +1268,7 @@ function paintSaved(){
         acts((missing.indexOf(e.item) !== -1 ? act("openmissing", "Open", `data-item="${esc(e.item)}"`, name) : "") +
              act("dropmissing", "Remove", `data-item="${esc(e.item)}"`, name)) + `</li>`;
     }).join("") + `</ul>`;
-    if(fresh.length) html += `<h3>New at other cafes</h3><ul class="savedrows" id="saved-new">` + fresh.map(e => {
+    if(fresh.length) html += `<h3>New items</h3><ul class="savedrows" id="saved-new">` + fresh.map(e => {
       const r = C ? C.launches.find(x => newKey(x.shop, x.item_name) === newKey(e.shop, e.item_name)) : null;
       const link = r && /^https?:\/\//.test(r.source_url || "")
         ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener">${SOURCE_WORDS[r.source_type] || "See the source"}</a>` : "";
@@ -1719,7 +1759,7 @@ document.addEventListener("click", e => {
       focusOn("#d-name");
     }
   }
-  // New at other cafes: a type tab, a switch, and the rest of the rows
+  // New items: a type tab, a switch, and the rest of the rows
   else if(act === "ntab"){ newTab = el.dataset.tab; foldNew(); (page === "offers" ? paintOffers : paintNew)(); focusOn(`[data-act="ntab"][aria-selected="true"]`); }
   else if(act === "sw"){
     if(el.dataset.sw === "mine") onlyMine = !onlyMine; else chainsOn = !chainsOn;
@@ -1754,6 +1794,29 @@ window.addEventListener("popstate", route);
 // which way the reader is working, so the focus mark shows for keys only
 document.addEventListener("keydown", () => document.documentElement.classList.add("keys"), true);
 document.addEventListener("pointerdown", () => document.documentElement.classList.remove("keys"), true);
+
+/* ---------- the phone's menu ----------
+   Below the narrow breakpoint the sidebar is a panel under the top bar. The
+   button opens and closes it. While it is open the page behind stays still. */
+const NARROW = 900;      // the same width the layout stacks at
+const menuBtn = byId("menu-btn");
+function setMenu(open, backToButton){
+  const app = byId("app");
+  if(app.classList.contains("menu-open") !== open){
+    app.classList.toggle("menu-open", open);
+    document.documentElement.classList.toggle("menu-locked", open);
+    if(open){
+      const first = document.querySelector("#side .line[aria-current]") || document.querySelector("#side a");
+      if(first) first.focus();
+    } else if(backToButton) menuBtn.focus();
+  }
+  menuBtn.setAttribute("aria-expanded", String(open));
+  menuBtn.innerHTML = (open ? ICON.close : ICON.menu) + `<span>${open ? "Close" : "Menu"}</span>`;
+}
+menuBtn.addEventListener("click", () => setMenu(menuBtn.getAttribute("aria-expanded") !== "true", false));
+document.addEventListener("keydown", e => { if(e.key === "Escape" && menuBtn.getAttribute("aria-expanded") === "true") setMenu(false, true); });
+window.addEventListener("resize", () => { if(window.innerWidth >= NARROW) setMenu(false); });
+setMenu(false);
 
 /* ---------- the handle between the list and the details ----------
    The list's share of the row, in memory only. */
