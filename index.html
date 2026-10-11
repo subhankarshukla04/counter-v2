@@ -175,6 +175,8 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .nav .divider{height:1px; background:var(--rule); margin:10px}
 .main{flex:1; min-width:0; padding:28px 32px 48px}
 .main > h1{margin-bottom:20px}
+.main > .sub{margin:-12px 0 20px}
+.page-empty{color:var(--ink)}
 
 .band{
   display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px; margin-bottom:20px;
@@ -217,6 +219,16 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .row .go, .row .now{justify-self:center; font-size:13px; font-weight:600; color:var(--ink)}
 .row .go{min-height:32px; height:32px; padding:0 12px; border-radius:8px; border-color:var(--ink)}
 .row .now{white-space:nowrap}
+/* Items you do not sell: no price column, and two buttons at the right */
+.row.miss{grid-template-columns:minmax(0, 1fr) auto}
+.row .acts{display:grid; grid-template-columns:84px auto; column-gap:8px; align-items:center; justify-items:center}
+.row .go.quiet, .btn.quiet{border-color:var(--line); color:var(--body); font-weight:500}
+.hidden-box{margin:16px 4px 0}
+.hidden-box .btn{min-height:32px; height:32px; padding:0 12px; border-radius:8px; font-size:13px; margin-left:6px}
+.hidden-box h3{margin:14px 0 4px}
+.hidden-list li{display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--rule)}
+.hidden-list li span{flex:1; min-width:0; color:var(--ink); font-weight:600}
+.hidden-list .btn{margin-left:0}
 .note{margin:16px 4px 0}
 
 /* ---------- right panel: one item ---------- */
@@ -226,6 +238,8 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .d-head .label{font-weight:600; color:var(--muted)}
 .d-verdict{font:700 24px/1.2 var(--f-display); color:var(--ink)}
 .detail > .d-verdict{margin-top:8px}
+.askprice h3{font:700 17px/1.2 var(--f-display); color:var(--ink)}
+.askprice > * + *{margin-top:10px}
 .d-price{display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px}
 .bigprice{font:800 44px/1 var(--f-display); color:var(--ink); font-variant-numeric:tabular-nums}
 .stepper{display:flex; align-items:center; gap:12px}
@@ -385,13 +399,13 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
     </div>
     <nav aria-label="Counter">
       <ul class="nav">
-        <li><a class="line" href="#prices" aria-current="page" data-act="home">
+        <li><a class="line" href="./" id="nav-prices" data-nav="">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg>My prices</a></li>
         <li class="label">My menu</li>
         <li class="sub"><span class="line" role="link" aria-disabled="true">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>New at other cafes<span class="soon">Soon</span></span></li>
-        <li class="sub"><span class="line" role="link" aria-disabled="true">
-          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7M16 18h5"/></svg>Items you do not sell<span class="soon">Soon</span></span></li>
+        <li class="sub"><a class="line" href="./" id="nav-missing" data-nav="">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7M16 18h5"/></svg><span id="nav-missing-words">Items you do not sell</span></a></li>
         <li><span class="line" role="link" aria-disabled="true">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>Offers<span class="soon">Soon</span></span></li>
         <li><span class="line" role="link" aria-disabled="true">
@@ -408,8 +422,10 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
   </aside>
 
   <main class="main" id="prices">
-    <h1>My prices</h1>
+    <h1 id="page-title">My prices</h1>
+    <p class="sub" id="page-sub" hidden></p>
     <div class="band" id="band" hidden></div>
+    <p class="page-empty" id="page-empty" hidden></p>
     <div class="cols" id="cols">
       <section class="panel" id="list" aria-label="Your items"></section>
       <div class="handle" id="handle" role="separator" aria-orientation="vertical" tabindex="0"
@@ -489,6 +505,13 @@ let openItem = null;          // the item in the right panel, or null when close
 let view = "list";
 let showAll = false;
 const trial = new Map();      // item -> trial price in cents, while it is being tried
+let page = "prices";          // "prices", or "missing" for Items you do not sell
+let missing = [];             // items this shop does not sell and a competitor does, in list order
+let hide = [];                // items the reader hid from that page, kept in the address
+const test = new Map();       // item -> a price in cents tested for an item the shop does not sell
+let showHidden = false;       // whether the "Hidden items" list is open
+let closed = false;           // whether the reader closed the right panel
+let lastShop = "";            // the shop the trial and test prices belong to
 
 const priceRow = key => D.price_table.find(r => r.item_canonical === key) || {};
 const itemName = key => priceRow(key).display_name || key;
@@ -502,6 +525,18 @@ const diffWords = (p, v) => {
   return d > 0 ? `${money(d / 100)} more than you` : d < 0 ? `${money(-d / 100)} less than you` : "Same as you";
 };
 const dot = kind => `<span class="dot ${kind}" aria-hidden="true"></span>`;
+/* the price the open page compares with: this shop's price or the one being
+   tried on My prices; the price being tested, or none, for an item it does not sell */
+const priceNow = key => page === "missing" ? (test.has(key) ? test.get(key) / 100 : null) : cur(key);
+/* how many of the chosen competitors sell an item */
+const sellers = key => rivals.filter(o => D.named_prices[key].some(r => r.shop_id === o.shop_id)).length;
+const sellWords = (key, it) => rivals.length === 1 ? `Your competitor sells ${it}`
+  : `${sellers(key)} of your ${rivals.length} competitors sell ${it}`;
+const visMissing = () => missing.filter(k => hide.indexOf(k) === -1);
+const pageItems = () => page === "missing" ? visMissing() : myItems;
+/* this page's address, with any part changed */
+const here = over => Object.assign({shop: shop.shop_id, rivals: rivals.map(o => o.shop_id).join(","),
+                                    hide: hide.join(","), page: page === "missing" ? "missing" : ""}, over || {});
 
 /* ---------- copied from the live site, unchanged ---------- */
 /* The verdict comes from the other cafes with a counted price for the item. */
@@ -542,10 +577,11 @@ const shortVerdict = t => t.replace(/ cafes$/, "");
    one of the others. */
 function compare(key, v){
   const others = D.named_prices[key].filter(r => r.shop_id !== shop.shop_id);
-  const less = others.filter(r => r.price < v).length, more = others.filter(r => r.price > v).length;
+  // with no price to compare with, no cafe charges less or more
+  const less = v == null ? 0 : others.filter(r => r.price < v).length, more = v == null ? 0 : others.filter(r => r.price > v).length;
   const enough = others.length >= MIN_OTHERS;
   return {others: others, n: others.length, less: less, more: more, enough: enough,
-          verdict: enough ? verdictOf(v, priceRow(key).median, less, more, others.length) : ""};
+          verdict: enough && v != null ? verdictOf(v, priceRow(key).median, less, more, others.length) : ""};
 }
 
 /* "34% charge more than you", or "7 of 22 cafes charge more than you" */
@@ -612,48 +648,94 @@ function route(){
   if(!ids.length){ showChooser(s, null, q); return; }
   if(q.get("view") === "rivals"){ showChooser(s, ids, q); return; }
   chooser = null;
-  openShop(s, ids);
+  openShop(s, ids, q);
 }
-function openShop(s, ids){
+function openShop(s, ids, q){
+  const nextPage = q.get("page") === "missing" ? "missing" : "prices";
+  // a new shop, a new page, or a return from set-up starts the page afresh.
+  // A change to the hidden items alone leaves the open tab and item be.
+  const entering = screen !== "prices" || lastShop !== s.shop_id || page !== nextPage;
+  if(lastShop !== s.shop_id){ trial.clear(); test.clear(); }
+  lastShop = s.shop_id;
   shop = s;
-  trial.clear();
-  view = "list"; showAll = false;
+  page = nextPage;
   // list order: the headings in turn, then anything they do not name
+  const known = GROUPS.flatMap(g => g[1]);
   const have = Object.keys(D.named_prices).filter(k => D.named_prices[k].some(r => r.shop_id === s.shop_id));
-  const named = GROUPS.flatMap(g => g[1]).filter(k => have.indexOf(k) !== -1);
+  const named = known.filter(k => have.indexOf(k) !== -1);
   myItems = named.concat(have.filter(k => named.indexOf(k) === -1));
   // the competitors the reader chose, the same for every item
   rivals = nearestFirst(s, ids.map(id => SHOPS.get(id)));
-  // the category with the most items opens first
-  const cats = categories();
-  let best = null;
-  cats.forEach(c => { if(!best || c.n > best.n || (c.n === best.n && c.format === TIE_TAB)) best = c; });
-  tab = best ? best.format : "all";
-  openItem = inTab()[0] || null;
+  // items a competitor sells and this shop does not: under each heading, the
+  // item more competitors sell comes first, then the price table's order
+  const place = k => D.price_table.findIndex(r => r.item_canonical === k);
+  const lacking = Object.keys(D.named_prices).filter(k => have.indexOf(k) === -1 && sellers(k) > 0);
+  const bySellers = list => list.sort((a, b) => sellers(b) - sellers(a) || place(a) - place(b));
+  missing = GROUPS.flatMap(g => bySellers(lacking.filter(k => g[1].indexOf(k) !== -1)))
+    .concat(bySellers(lacking.filter(k => known.indexOf(k) === -1)));
+  // hidden items: real item names only, each once
+  hide = [...new Set(String(q.get("hide") || "").split(","))].filter(k => D.named_prices[k]);
 
-  document.title = `My prices, ${s.shop_name} | Counter`;
+  if(entering){
+    view = "list"; showAll = false; showHidden = false; closed = false;
+    // My prices opens on the category with the most items, this page on All
+    let best = null;
+    if(page === "prices") categories().forEach(c => { if(!best || c.n > best.n || (c.n === best.n && c.format === TIE_TAB)) best = c; });
+    tab = best ? best.format : "all";
+    openItem = inTab()[0] || null;
+  } else {
+    if(tab !== "all" && !inTab().length) tab = "all";
+    // an open item that has gone gives way to the first row; a panel the reader closed stays closed
+    const gone = openItem && pageItems().indexOf(openItem) === -1;
+    if(gone || (!openItem && !closed)) openItem = inTab()[0] || null;
+  }
+
+  document.title = `${page === "missing" ? "Items you do not sell" : "My prices"}, ${s.shop_name} | Counter`;
   byId("who-name").textContent = s.shop_name;
   byId("who-area").textContent = s.district;
-  byId("nav-rivals").textContent = `My competitors (${rivals.length})`;
   show("prices");
-  paint(true);
+  paint(entering);
 }
 function categories(){
   const tally = new Map();
-  myItems.forEach(k => { const f = priceRow(k).format || ""; tally.set(f, (tally.get(f) || 0) + 1); });
+  pageItems().forEach(k => { const f = priceRow(k).format || ""; tally.set(f, (tally.get(f) || 0) + 1); });
   return [...tally.entries()].map(e => ({format: e[0], n: e[1]}));
 }
-const inTab = () => myItems.filter(k => tab === "all" || (priceRow(k).format || "") === tab);
+const inTab = () => pageItems().filter(k => tab === "all" || (priceRow(k).format || "") === tab);
 
 /* ---------- painting ---------- */
 function paint(fit){
+  paintFrame();
   paintBand();
   paintList();
   paintDetail(fit);
 }
+/* the sidebar, the heading, and whether there is anything to show */
+function paintFrame(){
+  const miss = page === "missing", n = visMissing().length;
+  byId("nav-rivals").textContent = `My competitors (${rivals.length})`;
+  byId("nav-missing-words").textContent = `Items you do not sell (${n})`;
+  const prices = byId("nav-prices"), lack = byId("nav-missing");
+  prices.dataset.nav = address(here({page: ""}));
+  lack.dataset.nav = address(here({page: "missing"}));
+  if(miss){ prices.removeAttribute("aria-current"); lack.setAttribute("aria-current", "page"); }
+  else { lack.removeAttribute("aria-current"); prices.setAttribute("aria-current", "page"); }
+
+  byId("page-title").textContent = miss ? "Items you do not sell" : "My prices";
+  const sub = byId("page-sub");
+  sub.hidden = !miss;
+  sub.textContent = miss ? `Your competitors sell ${n === 1 ? "1 item" : n + " items"} we did not find on your menu.` : "";
+  // no item at all on this page: one line, and no panels
+  const none = miss && !missing.length;
+  const empty = byId("page-empty");
+  empty.hidden = !none;
+  empty.textContent = none ? "Your competitors do not sell any compared item that is missing from your menu." : "";
+  sub.hidden = !miss || none;
+  byId("cols").hidden = none;
+}
 
 function paintBand(){
-  const n = myItems.filter(changed).length;
+  const n = page === "missing" ? 0 : myItems.filter(changed).length;
   const band = byId("band");
   band.hidden = n === 0;
   band.innerHTML = n === 0 ? "" :
@@ -663,12 +745,13 @@ function paintBand(){
 }
 
 function paintList(){
-  const box = byId("list");
-  if(!myItems.length){
-    box.innerHTML = `<p>We have no prices to compare for this shop yet.</p>`;
+  const box = byId("list"), miss = page === "missing", items = pageItems();
+  if(!items.length){
+    box.innerHTML = miss ? `<p>You have hidden every item.</p>` + hiddenHtml()
+                         : `<p>We have no prices to compare for this shop yet.</p>`;
     return;
   }
-  const tabs = [{format: "all", n: myItems.length, words: "All"}]
+  const tabs = [{format: "all", n: items.length, words: "All"}]
     .concat(categories().map(c => ({format: c.format, n: c.n, words: tabWords(c.format)})));
   let html = `<div class="tabs" role="tablist" aria-label="Item types">` + tabs.map(t =>
     `<button type="button" role="tab" data-act="tab" data-tab="${esc(t.format)}" aria-selected="${t.format === tab}">` +
@@ -679,10 +762,36 @@ function paintList(){
   const known = GROUPS.flatMap(g => g[1]);
   groups.push([OTHER_GROUP, shown.filter(k => known.indexOf(k) === -1)]);
   groups.filter(g => g[1].length).forEach(g => {
-    html += `<div class="group"><h3>${esc(g[0])}</h3><ul class="rows">` + g[1].map(rowHtml).join("") + `</ul></div>`;
+    html += `<div class="group"><h3>${esc(g[0])}</h3><ul class="rows">` + g[1].map(miss ? missingRowHtml : rowHtml).join("") + `</ul></div>`;
   });
-  html += `<p class="note muted small">We compare the items most cafes sell. More are coming.</p>`;
+  html += miss ? hiddenHtml() + `<p class="note muted small">Not for me hides an item from this list.</p>`
+               : `<p class="note muted small">We compare the items most cafes sell. More are coming.</p>`;
   box.innerHTML = html;
+}
+/* A row for an item the shop does not sell: who sells it and what cafes
+   charge, the button that opens it, and the one that hides it. */
+function missingRowHtml(k){
+  const open = k === openItem, row = priceRow(k), name = esc(itemName(k));
+  return `<li><div class="row miss${open ? " open" : ""}" data-row="${esc(k)}"${open ? "" : ` data-act="open" data-item="${esc(k)}"`}>` +
+    `<span class="what"><span class="item">${name}</span>` +
+    `<span class="verdict usual" data-sell>${sellWords(k, "this")}</span>` +
+    `<span class="verdict usual" data-range>Cafes charge ${money(row.low)} to ${money(row.high)}</span>` +
+    (test.has(k) ? `<span class="tag">Testing ${money(test.get(k) / 100)}</span>` : "") + `</span>` +
+    `<span class="acts">` +
+    (open ? `<span class="now">Showing now</span>`
+          : `<button type="button" class="btn go" data-go="${esc(k)}" aria-label="Compare ${name}">Compare</button>`) +
+    `<button type="button" class="btn go quiet" data-act="hide" data-item="${esc(k)}" aria-label="Not for me: ${name}">Not for me</button>` +
+    `</span></div></li>`;
+}
+/* "2 hidden." with the way to see them, then each with the way to bring it back */
+function hiddenHtml(){
+  const gone = missing.filter(k => hide.indexOf(k) !== -1);
+  if(!gone.length) return "";
+  return `<div class="hidden-box" id="hidden-box"><p><span id="hidden-count">${gone.length} hidden.</span>` +
+    (showHidden ? "" : `<button type="button" class="btn quiet" data-act="showhidden">Show them</button>`) + `</p>` +
+    (showHidden ? `<h3>Hidden items</h3><ul class="hidden-list">` + gone.map(k =>
+      `<li><span>${esc(itemName(k))}</span><button type="button" class="btn quiet" data-act="unhide" data-item="${esc(k)}" ` +
+      `aria-label="Show again: ${esc(itemName(k))}">Show again</button></li>`).join("") + `</ul>` : "") + `</div>`;
 }
 /* One row: the item, its price and its verdict, and the button that opens it.
    A press anywhere on the row opens it too. The open row has no button. */
@@ -707,6 +816,17 @@ function paintDetail(fit){
   panel.hidden = !openItem;
   byId("handle").hidden = !openItem;
   if(!openItem) return;
+  if(page === "missing") paintMissingTop(); else paintPricesTop();
+  drawChart();
+
+  byId("d-seg").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+  byId("d-list").hidden = view !== "list";
+  byId("d-mapwrap").hidden = view !== "map";
+  if(view === "list") paintCafes(); else drawMap(fit);
+}
+
+/* the top of the right panel on My prices: the item, the verdict, the price, the chart's words */
+function paintPricesTop(){
   const k = openItem, rec = mine(k), real = rec.price, v = cur(k), trying = trial.has(k);
   const c = compare(k, v);
 
@@ -741,12 +861,39 @@ function paintDetail(fit){
       (would ? `<li class="real">${realLine(compare(k, real))}</li>` : "") +
     `</ul>` +
     `<p class="count muted small" id="d-count">${c.n} cafes</p>`;
-  drawChart();
+}
+/* the same place for an item the shop does not sell: who sells it, a price to
+   test, and what the cafes that sell it charge */
+function paintMissingTop(){
+  const k = openItem, v = priceNow(k), c = compare(k, v), usual = priceRow(k).median;
 
-  byId("d-seg").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
-  byId("d-list").hidden = view !== "list";
-  byId("d-mapwrap").hidden = view !== "map";
-  if(view === "list") paintCafes(); else drawMap(fit);
+  byId("d-head").innerHTML =
+    `<div class="title"><p class="label" id="d-name" tabindex="-1">${esc(itemName(k))}</p></div>` +
+    `<button type="button" class="btn" data-act="close">${ICON.close}Close</button>`;
+
+  const verdict = byId("d-verdict");
+  verdict.hidden = false;
+  verdict.textContent = c.verdict || "We did not find this on your menu.";
+
+  byId("d-price").innerHTML = `<p id="d-sell">${sellWords(k, "it")}.</p>` +
+    `<div class="askprice"><h3>What would you charge?</h3>` + (v == null
+      ? `<button type="button" class="btn primary" data-act="try"${usual == null ? " disabled" : ""}>Try a price</button>`
+      : `<div class="stepper">` +
+          `<button type="button" class="btn sq" data-act="minus" aria-label="Lower the price by ${STEP} cents"${cents(v) <= FLOOR ? " disabled" : ""}>${ICON.minus}</button>` +
+          `<span class="bigprice" id="d-big" aria-live="polite">${money(v)}</span>` +
+          `<button type="button" class="btn sq" data-act="plus" aria-label="Raise the price by ${STEP} cents">${ICON.plus}</button></div>` +
+        `<p>This is only a test. It does not add the item to your menu.</p>` +
+        `<button type="button" class="btn" data-act="reset">Clear the price</button>`) + `</div>`;
+
+  byId("d-compare").innerHTML = !c.enough ? `<p>Not enough cafes to compare.</p>` :
+    `<p class="title">What cafes charge. One dot is one cafe.</p>` +
+    `<div class="chart" id="chart" role="img"></div>` +
+    `<ul class="lines" id="d-lines">` + (v == null
+      ? `<li>The usual price is ${money(usual)}.</li>`
+      : `<li class="says">${dot("more")}<span>${shareLine(c.more, c.n, "more", true)}</span></li>` +
+        `<li class="says">${dot("less")}<span>${shareLine(c.less, c.n, "less", true)}</span></li>`) +
+    `</ul>` +
+    `<p class="count muted small" id="d-count">${c.n} cafes</p>`;
 }
 
 /* ---------- the dot chart ----------
@@ -763,15 +910,18 @@ function textWidth(text, bold){
 function drawChart(){
   const box = byId("chart");
   if(!box || !openItem) return;
-  const k = openItem, real = realPrice(k), v = cur(k), moved = changed(k);
+  // v is the price the dots are compared with. For an item the shop does not
+  // sell it is the price being tested, or nothing: then every dot is the same.
+  const k = openItem, miss = page === "missing", v = priceNow(k);
+  const real = miss ? null : realPrice(k), moved = !miss && changed(k);
   const c = compare(k, v);
   const W = box.clientWidth;
   if(!W) return;
 
   // the lines: this shop's price, and its real price while another is tried
-  const marks = [{p: v, label: moved ? "New price" : "You", cls: ""}];
+  const marks = v == null ? [] : [{p: v, label: moved ? "New price" : "You", cls: ""}];
   if(moved) marks.push({p: real, label: "Real price", cls: " real"});
-  const others = c.others.map(r => ({p: r.price, kind: kindOf(r.price, v)}));
+  const others = c.others.map(r => ({p: r.price, kind: v == null ? "same" : kindOf(r.price, v)}));
   const shown = marks.concat(others).map(m => m.p);
   const lo = Math.min(...shown), hi = Math.max(...shown);
   const x = p => hi > lo ? EDGE + (p - lo) / (hi - lo) * (W - 2 * EDGE) : W / 2;
@@ -779,7 +929,7 @@ function drawChart(){
   const stacks = new Map();
   others.forEach(m => { const key = cents(m.p); if(!stacks.has(key)) stacks.set(key, []); stacks.get(key).push(m); });
   // this shop's dot has the foot of its line to itself
-  const lift = key => key === cents(v) ? 1 : 0;
+  const lift = key => v != null && key === cents(v) ? 1 : 0;
   const tallest = Math.max(1, ...[...stacks.entries()].map(e => Math.ceil(e[1].length / 2) + lift(e[0]))) * (DOT + GAP);
 
   // each line's label stands at its top. Where two labels would run into
@@ -790,14 +940,14 @@ function drawChart(){
     m.row = 0;
   });
   if(marks.length > 1 && marks[0].left < marks[1].left + marks[1].w + 6 && marks[1].left < marks[0].left + marks[0].w + 6) marks[1].row = 1;
-  const height = tallest + 6 + (Math.max(...marks.map(m => m.row)) + 1) * LABEL_H;
+  const height = tallest + 6 + (marks.length ? Math.max(...marks.map(m => m.row)) + 1 : 0) * LABEL_H;
 
   let html = `<div class="plot" style="height:${height}px">`;
   marks.forEach(m => {
     html += `<span class="cline${m.cls}" style="left:${x(m.p).toFixed(1)}px;top:${(m.row + 1) * LABEL_H}px"></span>` +
             `<span class="clabel" style="left:${m.left.toFixed(1)}px;top:${m.row * LABEL_H}px">${m.label}</span>`;
   });
-  html += `<span class="cdot you" style="left:${(x(v) - DOT / 2).toFixed(1)}px;bottom:0"></span>`;
+  if(v != null) html += `<span class="cdot you" style="left:${(x(v) - DOT / 2).toFixed(1)}px;bottom:0"></span>`;
   stacks.forEach((stack, key) => {
     const mid = x(key / 100), two = stack.length > 1;
     stack.forEach((m, i) => {
@@ -810,9 +960,8 @@ function drawChart(){
   // Under the line: this shop's price, the lowest and the highest. The usual
   // price is added only where its label has room.
   const usual = priceRow(k).median;
-  const wanted = [{p: v, text: money(v), must: true, mine: true},
-                  {p: lo, text: money(lo), must: true},
-                  {p: hi, text: money(hi), must: true}];
+  const wanted = (v == null ? [] : [{p: v, text: money(v), must: true, mine: true}])
+    .concat([{p: lo, text: money(lo), must: true}, {p: hi, text: money(hi), must: true}]);
   if(usual != null && usual >= lo && usual <= hi) wanted.push({p: usual, text: `Usual ${money(usual)}`, must: false});
   const placed = [];
   wanted.forEach(a => {
@@ -833,14 +982,15 @@ function drawChart(){
     `<span${a.mine ? ` class="mine"` : ""} style="left:${a.left.toFixed(1)}px;top:${5 + a.row * LABEL_H}px">${a.text}</span>`).join("") + `</div>`;
 
   box.innerHTML = html;
-  box.setAttribute("aria-label",
-    `${itemName(k)}. ${moved ? "The price you are trying" : "Your price"} is ${money(v)}. ` +
-    `${c.less} of ${c.n} cafes charge less and ${c.more} charge more.`);
+  box.setAttribute("aria-label", v == null
+    ? `${itemName(k)}. ${c.n} cafes charge from ${money(lo)} to ${money(hi)}.`
+    : `${itemName(k)}. ${miss ? "The price you are testing" : moved ? "The price you are trying" : "Your price"} is ${money(v)}. ` +
+      `${c.less} of ${c.n} cafes charge less and ${c.more} charge more.`);
 }
 
 /* ---------- list view ---------- */
 function paintCafes(){
-  const k = openItem, v = cur(k);
+  const k = openItem, v = priceNow(k);     // with no price, a row shows no difference
   const priced = new Map(D.named_prices[k].map(r => [r.shop_id, r]));
   const isRival = id => rivals.some(o => o.shop_id === id);
   const byPrice = (a, b) => b.rec.price - a.rec.price || a.name.localeCompare(b.name);
@@ -862,7 +1012,7 @@ function paintCafes(){
         (r.rival ? `<span class="tag">Your competitor</span>` : "") + `</p>` +
         `<p class="sub">${when ? `Checked ${when}. ` : ""}${menuLink(r.rec)}</p></div>` +
         `<div class="side2"><p class="price">${money(r.rec.price)}</p>` +
-        `<p class="says">${dot(kindOf(r.rec.price, v))}<span>${diffWords(r.rec.price, v)}</span></p></div></li>`;
+        (v == null ? "" : `<p class="says">${dot(kindOf(r.rec.price, v))}<span>${diffWords(r.rec.price, v)}</span></p>`) + `</div></li>`;
     }).join("") + `</ul>` +
     `<button type="button" class="btn" data-act="all">${showAll ? "Show only my competitors" : "Show all cafes"}</button>`;
 }
@@ -946,14 +1096,18 @@ function placeLabels(el, from){
     placed.push(box);
   });
 }
+const legendLine = (shape, words) => `<li><span class="lg" aria-hidden="true">${shape}</span>${words}</li>`;
+const legendWho = () => legendLine(pinSvg(14, 18), "You") + legendLine(targetSvg(16), "Your competitor");
 function buildLegends(){
-  const line = (shape, words) => `<li><span class="lg" aria-hidden="true">${shape}</span>${words}</li>`;
-  const key = (kind, words) => `<li><span class="key${kind ? " " + kind : ""}" aria-hidden="true"></span>${words}</li>`;
-  const who = line(pinSvg(14, 18), "You") + line(targetSvg(16), "Your competitor");
-  byId("legend-pick").innerHTML = who + line(`<span class="mk-dot plain"></span>`, "Other cafe. Click it to add.");
-  byId("legend-prices").innerHTML = who + line(`<span class="mk-dot"></span>`, "Other cafe. Click it to see the price.") +
-    key("less", "Charges less than you") + key("", "Same price") + key("more", "Charges more than you");
+  byId("legend-pick").innerHTML = legendWho() + legendLine(`<span class="mk-dot plain"></span>`, "Other cafe. Click it to add.");
   byId("nav-target").innerHTML = targetSvg(18);
+}
+/* under the prices map: the three shapes, and the three colours when there is a price to compare with */
+function priceLegend(coloured){
+  const key = (kind, words) => `<li><span class="key${kind ? " " + kind : ""}" aria-hidden="true"></span>${words}</li>`;
+  byId("legend-prices").innerHTML = legendWho() +
+    legendLine(`<span class="mk-dot${coloured ? "" : " plain"}"></span>`, "Other cafe. Click it to see the price.") +
+    (coloured ? key("less", "Charges less than you") + key("", "Same price") + key("more", "Charges more than you") : "");
 }
 /* One way to make a map, for My prices and for the chooser: the same tiles,
    and a wheel that scrolls the page and never zooms the map. */
@@ -987,34 +1141,43 @@ function drawMap(fit){
   map.invalidateSize();
   map.closePopup();
   pins.clearLayers();
-  const k = openItem, v = cur(k);
-  const rows = D.named_prices[k].filter(r => r.lat != null && r.lng != null);
-  const offs = fanOffsets(rows.filter(r => r.shop_id !== shop.shop_id), rows.find(r => r.shop_id === shop.shop_id) || null);
+  // v is the price the marks are compared with. With none (an item the shop
+  // does not sell, and no price tested) the marks are plain, as in the chooser.
+  const k = openItem, v = priceNow(k), plain = v == null;
+  const pinned = shop.lat != null && shop.lng != null;
+  priceLegend(!plain);
+  if(pinned){
+    L.marker([shop.lat, shop.lng], {
+      icon: L.divIcon({className: "pinwrap", iconSize: [0, 0], html: markHtml("you", "", shop.shop_id, plain ? "You" : `You ${money(v)}`, 0)}),
+      title: `${shop.shop_name}, your shop` + (plain ? "" : `, ${money(v)}`), zIndexOffset: Z_YOU, riseOnHover: true
+    }).bindPopup(
+      `<span class="pop-name">${esc(shop.shop_name)}</span>` + (plain ? "" : `<span class="pop-price">${money(v)}</span>`) +
+      `<span class="pop-line">Your shop</span>`, {offset: [0, -PIN_TOP], maxWidth: 260}).addTo(pins);
+  }
+  const rows = D.named_prices[k].filter(r => r.lat != null && r.lng != null && r.shop_id !== shop.shop_id);
+  const offs = fanOffsets(rows, pinned ? shop : null);
   rows.forEach(r => {
-    const me = r.shop_id === shop.shop_id, rival = rivals.some(o => o.shop_id === r.shop_id);
-    const kind = kindOf(r.price, v), when = dayMonth(r.observed_date), link = menuLink(r);
-    const off = me ? 0 : offs.get(r.shop_id) || 0;
-    const cls = kind + (off ? " shift" : "");
+    const rival = rivals.some(o => o.shop_id === r.shop_id);
+    const when = dayMonth(r.observed_date), link = menuLink(r), off = offs.get(r.shop_id) || 0;
+    const cls = (plain ? (rival ? "" : "plain") : kindOf(r.price, v)) + (off ? " shift" : "");
     const marker = L.marker([r.lat, r.lng], {
       icon: L.divIcon({
         className: "pinwrap", iconSize: [0, 0],
-        html: me ? markHtml("you", "", r.shop_id, `You ${money(v)}`, 0)
-            : rival ? markHtml("rival", cls, r.shop_id, `${esc(pinName(r.shop_name))} ${money(r.price)}`, off)
-            : markHtml("other", cls, r.shop_id, "", off)
+        html: rival ? markHtml("rival", cls, r.shop_id, `${esc(pinName(r.shop_name))} ${money(r.price)}`, off)
+                    : markHtml("other", cls, r.shop_id, "", off)
       }),
       // the words carry what the colour says, for anyone who cannot see it
-      title: me ? `${r.shop_name}, your shop, ${money(v)}` : `${r.shop_name}, ${money(r.price)}, ${diffWords(r.price, v)}`,
-      zIndexOffset: me ? Z_YOU : rival ? Z_RIVAL : 0,
+      title: `${r.shop_name}, ${money(r.price)}` + (plain ? "" : `, ${diffWords(r.price, v)}`),
+      zIndexOffset: rival ? Z_RIVAL : 0,
       riseOnHover: true
     });
     marker.bindPopup(
       `<span class="pop-name">${esc(r.shop_name)}</span>` +
-      `<span class="pop-price">${money(me ? v : r.price)}</span>` +
-      (me ? `<span class="pop-line">Your shop</span>`
-          : `<span class="pop-line">${diffWords(r.price, v)}</span>` +
-            (when ? `<span class="pop-line">Checked ${when}</span>` : "") +
-            (link ? `<span class="pop-line">${link}</span>` : "")),
-      {offset: [0, me ? -PIN_TOP : -8], maxWidth: 260});
+      `<span class="pop-price">${money(r.price)}</span>` +
+      (plain ? "" : `<span class="pop-line">${diffWords(r.price, v)}</span>`) +
+      (when ? `<span class="pop-line">Checked ${when}</span>` : "") +
+      (link ? `<span class="pop-line">${link}</span>` : ""),
+      {offset: [0, -8], maxWidth: 260});
     marker.addTo(pins);
   });
   // the map opens on this shop and its competitors
@@ -1031,11 +1194,10 @@ document.addEventListener("click", e => {
   const el = e.target.closest("[data-act]");
   if(!el || el.disabled) return;
   const act = el.dataset.act;
-  if(act === "home"){ e.preventDefault(); return; }
   if(act === "soon"){ byId("soon").hidden = false; return; }
   if(act === "editrivals"){
     e.preventDefault();
-    go({shop: shop.shop_id, rivals: rivals.map(o => o.shop_id).join(","), view: "rivals"});
+    go(here({view: "rivals"}));
     return;
   }
   if(chooser && screen === "choose"){
@@ -1043,7 +1205,7 @@ document.addEventListener("click", e => {
     else if(act === "pview"){ chooser.view = el.dataset.view; chooser.fitted = false; paintChooser(); }
     else if(act === "done"){
       const ids = nearestFirst(chooser.shop, chooser.chosen.map(id => SHOPS.get(id))).map(o => o.shop_id);
-      if(ids.length) go({shop: chooser.shop.shop_id, rivals: ids.join(",")});
+      if(ids.length) go({shop: chooser.shop.shop_id, rivals: ids.join(","), hide: chooser.keep.hide, page: chooser.keep.page});
     }
     return;
   }
@@ -1054,18 +1216,28 @@ document.addEventListener("click", e => {
     return;
   }
   if(!shop) return;
-  const k = openItem;
+  const k = openItem, miss = page === "missing", bag = miss ? test : trial;
   if(act === "tab"){ tab = el.dataset.tab; paintList(); focusOn(`[data-act="tab"][aria-selected="true"]`); }
-  else if(act === "open"){ openItem = el.dataset.item; paint(true); focusOn("#d-name"); }
-  else if(act === "close"){ openItem = null; paint(); focusOn(`[data-go="${k}"]`); }
-  else if(act === "try"){ trial.set(k, cents(realPrice(k))); paint(); focusOn(`[data-act="plus"]`); }
+  else if(act === "open"){ openItem = el.dataset.item; closed = false; paint(true); focusOn("#d-name"); }
+  else if(act === "close"){ openItem = null; closed = true; paint(); focusOn(`[data-go="${k}"]`); }
+  // a price to try: the shop's own on My prices, the usual price for an item it does not sell
+  else if(act === "try"){ bag.set(k, cents(miss ? priceRow(k).median : realPrice(k))); paint(); focusOn(`[data-act="plus"]`); }
   else if(act === "plus" || act === "minus"){
-    trial.set(k, Math.max(FLOOR, trial.get(k) + (act === "plus" ? STEP : -STEP)));
+    bag.set(k, Math.max(FLOOR, bag.get(k) + (act === "plus" ? STEP : -STEP)));
     paint();
     focusOn(`[data-act="${act}"]:not([disabled])`);
   }
-  else if(act === "reset"){ trial.delete(k); paint(); focusOn(`[data-act="try"]`); }
+  else if(act === "reset"){ bag.delete(k); paint(); focusOn(`[data-act="try"]`); }
   else if(act === "resetall"){ trial.clear(); paint(); focusOn(`[data-act="try"]`); }
+  // "Not for me": the item goes into the address, and the next row opens in its place
+  else if(act === "hide"){
+    const item = el.dataset.item, list = inTab(), i = list.indexOf(item);
+    if(item === openItem){ openItem = list[i + 1] || list[i - 1] || null; closed = false; }
+    go(here({hide: hide.concat(item).join(",")}));
+    focusOn(openItem ? "#d-name" : "#hidden-box button");
+  }
+  else if(act === "unhide"){ go(here({hide: hide.filter(x => x !== el.dataset.item).join(",")})); focusOn("#hidden-box button, #d-name"); }
+  else if(act === "showhidden"){ showHidden = true; paintList(); focusOn("#hidden-box .hidden-list button"); }
   else if(act === "view"){ view = el.dataset.view; paintDetail(true); }
   else if(act === "all"){ showAll = !showAll; paintCafes(); focusOn(`[data-act="all"]`); }
 });
@@ -1074,7 +1246,9 @@ document.addEventListener("click", e => {
   const el = e.target.closest("[data-nav]");
   if(!el || el.disabled) return;
   e.preventDefault();
-  history.pushState(null, "", el.dataset.nav);
+  if(!el.dataset.nav) return;
+  // the page already showing is not a new step in the history
+  if(el.dataset.nav !== (location.search || location.pathname)) history.pushState(null, "", el.dataset.nav);
   route();
 });
 window.addEventListener("popstate", route);
@@ -1228,6 +1402,8 @@ function showChooser(s, ids, q){
     chooser = {key: key, shop: s, edit: !!ids, old: ids || [], others: others, view: "list", fitted: false, at: null,
                chosen: ids ? ids.slice() : others.slice(0, NEAR_START).map(o => o.shop_id)};
   }
+  // what to carry back to the page the reader came from
+  chooser.keep = {hide: q.get("hide") || "", page: q.get("page") || ""};
   const at = q.get("at") || "";
   const moved = chooser.at !== at;
   chooser.at = at;
@@ -1241,7 +1417,8 @@ function showChooser(s, ids, q){
 }
 function paintChooser(){
   const c = chooser, s = c.shop;
-  const here = at => address({shop: s.shop_id, rivals: c.edit ? c.old.join(",") : "", view: c.edit ? "rivals" : "", at: at});
+  const here = at => address({shop: s.shop_id, rivals: c.edit ? c.old.join(",") : "", view: c.edit ? "rivals" : "", at: at,
+                              hide: c.keep.hide, page: c.keep.page});
   const parts = partsOf(c.others);
   const place = c.at === "sg" ? {level: "parts"} : placeOf(c.at || "a:" + s.district, parts);
   const isOn = id => c.chosen.indexOf(id) !== -1;
@@ -1279,7 +1456,7 @@ function paintChooser(){
     `</ul><div class="after"><p class="muted small">You can change this later.</p>` +
     (picked.length ? "" : `<p class="need" id="need-one">Pick at least one cafe.</p>`) +
     `<button type="button" class="btn primary block" data-act="done"${picked.length ? "" : " disabled"}>Done. Show my prices</button>` +
-    `<button type="button" class="btn block" data-nav="${esc(c.edit ? address({shop: s.shop_id, rivals: c.old.join(",")})
+    `<button type="button" class="btn block" data-nav="${esc(c.edit ? address({shop: s.shop_id, rivals: c.old.join(","), hide: c.keep.hide, page: c.keep.page})
                                                                      : address({at: "a:" + s.district, pick: s.shop_id}))}">${c.edit ? "Cancel" : "Back"}</button></div>`;
 }
 function toggleRival(id, from){
