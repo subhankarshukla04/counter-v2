@@ -121,7 +121,47 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .tile .box svg{width:14px; height:14px; stroke-width:3; visibility:hidden}
 .tile[aria-pressed="true"] .box{background:var(--ink)}
 .tile[aria-pressed="true"] .box svg{visibility:visible}
-.soonline{margin-top:14px; color:var(--ink); font-weight:600}
+/* ---------- menu upload: Your menu, Check your menu ---------- */
+.up{margin-top:24px}
+.up > * + *{margin-top:18px}
+.up > .field, .up .choose{max-width:420px}
+.codeline{display:flex; gap:8px}
+.codeline input{flex:1; min-width:0}
+.hint{margin-top:6px; font-size:13px; color:var(--muted)}
+.say{color:var(--ink); font-weight:600}
+.say:empty, .hint:empty{display:none}
+/* the file field is out of sight; its label is the button */
+.offscreen{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
+html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-offset:2px}
+.upfiles{max-width:560px}
+.upfiles li{display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--rule)}
+.upfiles .words{flex:1; min-width:0; overflow-wrap:anywhere}
+.upfiles .name{font-weight:600; color:var(--ink)}
+.upfiles .btn, .erow .btn{min-height:36px; padding:0 12px; font-size:13px}
+.upacts{display:flex; flex-wrap:wrap; gap:10px}
+.up .panel > h2{font-size:20px}
+.up .panel > .btn{margin-top:14px}
+.cmp li, .erow{display:flex; flex-wrap:wrap; gap:10px 16px; padding:14px 4px; border-top:1px solid var(--rule)}
+.cmp li{align-items:flex-start}
+.erow{align-items:flex-end}
+.cmp .pick{flex:1 1 260px; min-width:0}
+.cmp select{
+  width:100%; min-height:44px; padding:0 10px; border:1px solid var(--line); border-radius:var(--r);
+  background:var(--panel); color:var(--ink); font:inherit;
+}
+.cmp select:focus{border-color:var(--ink)}
+.pricefield{flex:0 0 120px; width:120px}
+.pricefield input{font-variant-numeric:tabular-nums}
+.cmp .cmpnote, .erow .rowmsg{flex:1 1 100%}
+.cmpnote:empty, .rowmsg:empty{display:none}
+.cmpnote .tag{margin-right:8px}
+.erow .namefield{flex:1 1 200px; min-width:0}
+.erow .variant{flex:0 1 150px; min-height:44px; display:flex; align-items:center; font-size:13px; color:var(--muted); overflow-wrap:anywhere}
+.erow .tagbox{min-height:44px; display:flex; align-items:center}
+.erow .btn{margin-bottom:4px}
+.field.mini label{font-size:13px; margin-bottom:4px}
+.field input:disabled{background:var(--bg)}
+.field input[aria-invalid="true"]{border:2px solid var(--ink)}
 .card{max-width:480px}
 .card .big{font:800 28px/1.15 var(--f-display); color:var(--ink); margin:4px 0 8px}
 .card .btn{margin-top:18px}
@@ -462,11 +502,16 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
     <p class="wordmark">Counter</p>
     <ol class="steps" aria-label="Set-up steps">
       <li id="step-1"><span class="num">1</span>Your shop</li>
-      <li id="step-2"><span class="num">2</span>Your competitors</li>
+      <li id="step-m" hidden><span class="num">2</span>Your menu</li>
+      <li id="step-c" hidden><span class="num">3</span>Check your menu</li>
+      <li id="step-2"><span class="num" id="step-2-num">2</span>Your competitors</li>
     </ol>
   </header>
 
   <main class="stage" id="find" hidden><div id="find-body"></div></main>
+
+  <!-- a shop that is not in the list: its menu is read, then checked -->
+  <main class="stage" id="upload" hidden><div id="upload-body"></div></main>
 
   <main class="stage wide" id="choose" hidden>
     <h1>Choose your competitors</h1>
@@ -834,7 +879,14 @@ function show(name){
   byId("app").hidden = name !== "prices";
   byId("find").hidden = name !== "find";
   byId("choose").hidden = name !== "choose";
+  // a shop that is not in the list has two more steps: its menu, and the check of it
+  const flow = name === "menu" || name === "check" || name === "done";
+  byId("upload").hidden = !flow;
+  byId("step-m").hidden = byId("step-c").hidden = !flow;
+  byId("step-2-num").textContent = flow ? "4" : "2";
   byId("step-1").className = name === "find" ? "now" : "done";
+  byId("step-m").className = name === "menu" ? "now" : "done";
+  byId("step-c").className = name === "check" ? "now" : name === "done" ? "done" : "";
   byId("step-2").className = name === "choose" ? "now" : "";
   return fresh;
 }
@@ -847,6 +899,7 @@ function route(){
   setMenu(false);            // a new page or screen: the phone's menu is put away
   const q = new URLSearchParams(location.search);
   const s = SHOPS.get(q.get("shop")) || null;
+  if(!s && q.get("setup")){ chooser = null; showUpload(q.get("setup")); return; }
   if(!s){ chooser = null; showFind(q); return; }
   const ids = validRivals(q.get("rivals"), s);
   if(!ids.length){ showChooser(s, null, q); return; }
@@ -1670,7 +1723,6 @@ document.addEventListener("click", e => {
   const el = e.target.closest("[data-act]");
   if(!el || el.disabled) return;
   const act = el.dataset.act;
-  if(act === "soon"){ byId("soon").hidden = false; return; }
   if(act === "editrivals"){
     e.preventDefault();
     go(here({view: "rivals"}));
@@ -1931,14 +1983,13 @@ function showFind(q){
   } else if(place.level === "areas"){
     html += `<p class="ask" tabindex="-1">Which area?</p><div class="tiles" id="find-tiles">` +
       place.part.areas.map(a => tile(address({at: "a:" + a.district}), a.district, cafeWords(a))).join("") +
-      dashedTile(`data-act="soon"`, "My area is not here", "Add your area") + `</div>`;
+      dashedTile(`data-nav="${esc(address({setup: "menu"}))}"`, "My area is not here", "Add your area") + `</div>`;
   } else {
     const shops = place.area.shops.slice().sort((a, b) => a.shop_name.localeCompare(b.shop_name));
     html += `<p class="ask" tabindex="-1">Which shop is yours?</p><div class="tiles" id="find-tiles">` +
       shops.map(o => tile(address({at: "a:" + o.district, pick: o.shop_id}), o.shop_name, o.address || "")).join("") +
-      dashedTile(`data-act="soon"`, "My shop is not here", "Add your shop") + `</div>`;
+      dashedTile(`data-nav="${esc(address({setup: "menu"}))}"`, "My shop is not here", "Add your shop") + `</div>`;
   }
-  html += `<p class="soonline" id="soon" role="status" hidden>Adding a new shop comes with menu upload. That is coming soon.</p>`;
   const body = byId("find-body");
   body.innerHTML = html;
   show("find");
@@ -2130,6 +2181,563 @@ function buildSetup(){
     pick(opts[Number(li.dataset.i)]);
   });
 }
+
+/* ---------- which read row is which compared item ----------
+   The rule our own data uses, ported from wave3_lib.py: nine_tag(), the size
+   rule of make_row() with size_from_page(), and the drink test of
+   classify_format(), plus the "not single serve" names of clean_wave3_tail.py.
+   Hot and iced both count. A mini, box, bundle, set, pack, pieces or "with"
+   row never counts. Milk wording such as "oat latte" does not count. Pain au
+   chocolat and any flavoured or savoury croissant are croissant_filled. */
+const WORD = "[\\p{L}\\p{N}_]";
+/* a Python pattern as a JavaScript one: \b and \d mean the same as they do there */
+const pyre = (src, flags) => new RegExp(
+  src.replace(/\\b/g, `(?:(?<=${WORD})(?!${WORD})|(?<!${WORD})(?=${WORD}))`).replace(/\\d/g, "\\p{Nd}"), (flags || "") + "u");
+const DRINK_WORDS = pyre("latte|espresso|cappuccino|americano|long black|flat white|mocha|macchiato|piccolo|" +
+  "cortado|\\btea\\b|\\bteh\\b|\\bkopi\\b|coffee|cold brew|juice|smoothie|frappe|soda|\\bcoke\\b|" +
+  "chocolate$|babycino|kombucha|\\bbeer\\b|\\bwine\\b|prosecco|\\bade\\b|milkshake|affogato|" +
+  "matcha$|hojicha$|sparkling|water$", "i");
+const NOT_DRINK = pyre("cake|tart|cookie|croissant|bun|loaf|danish|slice|roll|scone|macaron|pie\\b|" +
+  "tiramisu|brownie|truffle|bread", "i");
+const NEVER_NINE = pyre("\\bmini\\b|box|bundle|\\bset\\b|\\bpcs?\\b|pieces|sandwich|platter|tetra|\\b\\d+l\\b|" +
+  "\\bw/|\\bwith\\b|&.*egg|crookie|cube");
+const NOT_SINGLE_NAME = pyre("\\bwhole\\b|\\bbox(?:es)?\\b|platter|bento|\\bsets?\\b|bundle|\\bcakes?\\b|\\bloaf\\b" +
+  "|\\b\\d+\\s?(?:pcs?|pieces)\\b|\\bdozen\\b|\\bparty\\b|\\btray\\b|\\bassorted\\b|\\b\\d+\\s?pax\\b", "i");
+const SIZE_PATTERNS = [
+  "(?:box|set|bundle|pack|bag|tub|jar|tin) of (\\d+)",
+  "\\bx\\s?(\\d+)\\b",
+  "(\\d+)\\s?(?:pcs?|pieces?|buns|tarts|cookies|slices)\\b",
+  "(\\d+)'s\\b",
+  "(\\d+(?:\\.\\d+)?)\\s?(?:\"|”|''|-?\\s?inch(?:es)?\\b)",
+  "serves (\\d+(?:\\s?-\\s?\\d+)?)",
+  "(\\d+(?:\\.\\d+)?)\\s?kg\\b",
+  "(\\d+)\\s?(?:g|gm|grams?)\\b",
+  "(\\d+(?:\\.\\d+)?)\\s?l\\b",
+  "(\\d+)\\s?ml\\b",
+  "(\\d+)\\s?oz\\b"
+].map(p => pyre(p));
+const BOX_OF_ONE = pyre("box of one\\b"), A_SLICE = pyre("\\bslice\\b"), A_WHOLE = pyre("\\bwhole\\b");
+const NOT_A_SIZE = /default|no add|no gift/i;
+const DRINK_VESSEL = pyre("\\bbot\\b|bottle|\\bcan\\b|\\bglass\\b|\\bpot\\b");
+const WHOLE_BAKE = pyre("sourdough|loaf|bread|baguette|ciabatta|brioche$|shokupan|\\bpie\\b|galette|" +
+  "log cake|whole cake|stollen|panettone");
+const SLICED = /slice|toast|sandwich/u;
+
+/* nine_tag(): a strict match to one of the 9 items, or null */
+function nineCore(wording, drink){
+  let w = wording.toLowerCase().replace(/\s+/gu, " ").trim();
+  w = w.replace(/\s*\((hot|iced?|cold)\)$/u, "");
+  const core = w.replace(/^(hot|iced?|cold)\s+/u, "");
+  if(NEVER_NINE.test(w)) return null;
+  if(drink){
+    if(/^(?:(single |double )?espresso)$/u.test(core)) return "espresso";
+    if(/^(?:(caff[eèé] |cafe |café )?latte)$/u.test(core)) return "latte";
+    if(core === "flat white") return "flat_white";
+    if(core === "cappuccino") return "cappuccino";
+    if(/^(?:long black|americano|caff[eèé] americano|black coffee|long black \(.*\)|black \(.*americano.*\)|black \(.*black coffee.*\))$/u.test(core)) return "americano";
+    if(/^(?:(uji |ceremonial |premium )?matcha latte)$/u.test(core)) return "matcha_latte";
+    return null;
+  }
+  if(/^(?:(le |the )?(plain |butter |french butter |classic |original |all[- ]butter |sourdough |artisan |traditional |french )*croissant( français)?)$/u.test(w)) return "croissant_plain";
+  if(w.indexOf("kouign") !== -1) return "kouign_amann";
+  if(/pain au chocolat|croissant/u.test(w)) return "croissant_filled";
+  return null;
+}
+/* size_from_page(), then make_row()'s rule: one of the 9 only when the size is
+   "single" or "regular", so a pack, a weight, a volume or a named size is out */
+function oneServing(drink, wording, variant){
+  const named = (wording + " " + variant).toLowerCase();
+  const own = variant !== "" && !NOT_A_SIZE.test(variant);
+  if(BOX_OF_ONE.test(named) || SIZE_PATTERNS.some(p => p.test(named))) return false;
+  if(A_SLICE.test(named)) return true;
+  if(A_WHOLE.test(named)) return false;
+  if(own){
+    const size = variant.toLowerCase().replace(/[^a-z0-9.]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+    return size === "single" || size === "regular";
+  }
+  if(drink) return !DRINK_VESSEL.test(named);
+  return !(WHOLE_BAKE.test(named) && !SLICED.test(named));
+}
+/* Our data reads hot or iced from the wording. A read row carries it in its
+   variant, so those words are taken out of the variant before the size rule. */
+const plainVariant = variant => String(variant || "").replace(/\b(hot|iced?|cold|or|and)\b/gi, " ")
+  .replace(/^[\s,;:|&()+·\/-]+|[\s,;:|&()+·\/-]+$/g, "").replace(/\s+/g, " ");
+function nineTag(name, variant){
+  const wording = String(name || ""), v = plainVariant(variant);
+  const drink = DRINK_WORDS.test(wording) && !NOT_DRINK.test(wording);
+  const key = nineCore(wording, drink);
+  if(!key || !oneServing(drink, wording, v) || NOT_SINGLE_NAME.test(wording)) return null;
+  return key;
+}
+
+/* ---------- a price as text ----------
+   A price is kept as the text the menu printed or the owner typed. It is
+   never rounded, filled in or changed. */
+const PRICE_TEXT = /^\d{1,3}(\.\d{1,2})?$/;
+const PRICE_LOW = 10, PRICE_HIGH = 99900;     // cents
+/* "5.5" -> 550. Empty, or not a price from 0.10 to 999 with at most 2 decimals: null. */
+function priceCents(text){
+  const t = String(text == null ? "" : text).trim();
+  if(!PRICE_TEXT.test(t)) return null;
+  const halves = t.split(".");
+  const c = Number(halves[0]) * 100 + Number(((halves[1] || "") + "00").slice(0, 2));
+  return c >= PRICE_LOW && c <= PRICE_HIGH ? c : null;
+}
+const badPrice = text => String(text == null ? "" : text).trim() !== "" && priceCents(text) === null;
+const centsText = c => (c / 100).toFixed(2);
+/* a price the reading gave as a number: its text when it is whole cents, else nothing */
+function readPrice(p){
+  if(typeof p !== "number" || !isFinite(p)) return "";
+  const c = Math.round(p * 100);
+  return Math.abs(p * 100 - c) < 1e-6 && c >= PRICE_LOW && c <= PRICE_HIGH ? centsText(c) : "";
+}
+/* Of the rows that are one compared item, the cheapest with a price, which is
+   how a shop's price is picked in our data. With no price among them, the first. */
+function pickRow(key, rows){
+  const hits = rows.filter(r => nineTag(r.name, r.variant) === key);
+  const priced = hits.filter(r => priceCents(r.price) !== null);
+  if(priced.length) return priced.reduce((a, b) => priceCents(b.price) < priceCents(a.price) ? b : a);
+  return hits[0] || null;
+}
+
+/* ---------- menu upload ----------
+   For a shop that is not in the list. The photos or the PDF go to this site's
+   own /api/read-menu once and are then let go. What comes back is checked by
+   the owner and kept in this browser only. */
+const CODE_KEY = "counter.code.v1";
+const MENU_KEY = "counter.mymenu.v1";
+const UP_FILES = 6;               // photos at most
+const UP_PDF = 3000000;           // bytes: a PDF of 3 MB is the most the request can carry
+const UP_TOTAL = 4000000;         // base64 characters, all files together: the server's own limit
+const UP_WAIT = 200000;           // milliseconds before the page stops waiting: longer than the server's own 180 seconds
+/* a photo's longest side and JPEG quality: the first that fits is sent. Never
+   smaller than the last, so small print stays readable. */
+const SHRINK = [[1800, 0.82], [1800, 0.7], [1800, 0.6], [1600, 0.7], [1600, 0.6], [1400, 0.6]];
+const UP_SAY = {
+  bad_code: "That access code is not right.",
+  too_large: "These files are too large together. Use fewer photos.",
+  bad_files: "We could not use these files. Use up to 6 photos, or one PDF.",
+  limit: "The daily limit for reading menus is used up. Try again tomorrow.",
+  not_set_up: "Menu reading is not switched on yet.",
+  busy: "Google's AI is busy right now. Wait a minute and try again.",
+  read_failed: "Something went wrong while reading. Nothing was saved. Try again.",
+  not_a_menu: "We could not find a menu in these files. Try clearer photos.",
+  photos_large: "These photos are too large together. Use fewer photos.",
+  photo_type: "This photo type cannot be opened here. Use a JPG or PNG.",
+  file_type: "This file type cannot be used. Use a JPG, PNG or WebP photo, or a PDF.",
+  pdf_large: "This PDF is too large. Take photos of the pages instead.",
+  too_many: "Use up to 6 photos, or one PDF.",
+  need_price: "Type a price for each item you chose, or set it to Not on my menu.",
+  price_form: "Use a price from 0.10 to 999, with at most 2 decimals.",
+  not_kept: "Your browser is not keeping your menu. It will be gone when you close this page."
+};
+const up = {code: null, files: [], busy: false, adding: false};
+let ed = null;                // the menu being checked: its rows, and which row is each compared item
+let myMenu = null;            // the saved menu, as it is written to the browser
+let menuLost = false;         // true when the browser would not keep it
+
+function loadCode(){ try { return localStorage.getItem(CODE_KEY) || ""; } catch(e){ return ""; } }
+function loadMenu(){
+  let kept = null;
+  try { kept = JSON.parse(localStorage.getItem(MENU_KEY) || "null"); } catch(e){ kept = null; }
+  return kept && typeof kept === "object" && Array.isArray(kept.rows) && kept.compared && typeof kept.compared === "object" ? kept : null;
+}
+const sizeWords = n => n < 1000000 ? `${Math.max(1, Math.round(n / 1000))} KB` : `${(n / 1000000).toFixed(1)} MB`;
+const base64Length = bytes => 4 * Math.ceil(bytes / 3);
+/* the compared items under the page's own headings, in the page's own order */
+function comparedGroups(){
+  const keys = Object.keys(D.named_prices), known = GROUPS.flatMap(g => g[1]);
+  return GROUPS.map(g => [g[0], g[1].filter(k => keys.indexOf(k) !== -1)])
+    .concat([[OTHER_GROUP, keys.filter(k => known.indexOf(k) === -1)]]).filter(g => g[1].length);
+}
+const comparedKeys = () => comparedGroups().flatMap(g => g[1]);
+
+/* ----- photos: opened the way the camera held them, and made smaller ----- */
+async function openPhoto(file){
+  if(window.createImageBitmap){
+    try { return await createImageBitmap(file, {imageOrientation: "from-image"}); } catch(e){ /* try the other way */ }
+  }
+  return await new Promise((ok, no) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); ok(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); no(new Error("photo")); };
+    img.src = url;
+  });
+}
+async function shrink(file, side, quality){
+  const pic = await openPhoto(file);
+  const w = pic.naturalWidth || pic.width, h = pic.naturalHeight || pic.height;
+  if(!w || !h) throw new Error("photo");
+  const k = Math.min(1, side / Math.max(w, h));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(w * k));
+  canvas.height = Math.max(1, Math.round(h * k));
+  const pen = canvas.getContext("2d");
+  pen.fillStyle = "#fff";                    // a see-through photo gets a white page behind it
+  pen.fillRect(0, 0, canvas.width, canvas.height);
+  pen.imageSmoothingQuality = "high";
+  pen.drawImage(pic, 0, 0, canvas.width, canvas.height);
+  if(pic.close) pic.close();
+  const blob = await new Promise(ok => canvas.toBlob(ok, "image/jpeg", quality));
+  if(!blob) throw new Error("photo");
+  return blob;
+}
+const asBase64 = blob => new Promise((ok, no) => {
+  const reader = new FileReader();
+  reader.onload = () => ok(String(reader.result).slice(String(reader.result).indexOf(",") + 1));
+  reader.onerror = () => no(new Error("file"));
+  reader.readAsDataURL(blob);
+});
+const isPdf = f => f.type === "application/pdf" || (!f.type && /\.pdf$/i.test(f.name || ""));
+/* the photo types that can be used. A file that does not say its type is judged by its name. */
+const UP_PHOTOS = ["image/jpeg", "image/png", "image/webp"];
+const isPhoto = f => UP_PHOTOS.indexOf(f.type) !== -1 || (!f.type && /\.(jpe?g|png|webp)$/i.test(f.name || ""));
+
+/* ----- the Your menu screen ----- */
+function upSay(id, words){
+  const el = byId(id);
+  if(el) el.textContent = words || "";
+}
+function paintUpState(){
+  const btn = byId("up-read");
+  if(btn) btn.disabled = up.busy || up.adding || !String(up.code || "").trim() || !up.files.length;
+  upSay("up-status", up.busy ? "Reading your menu. This usually takes under a minute. A long menu can take up to three minutes." : "");
+}
+function paintFiles(){
+  const list = byId("up-list");
+  if(!list) return;
+  list.innerHTML = up.files.map((f, i) =>
+    `<li><div class="words"><p class="name">${esc(f.name)}</p><p class="muted small">${sizeWords(f.size)}</p></div>` +
+    `<button type="button" class="btn quiet" data-up="dropfile" data-i="${i}" aria-label="Remove: ${esc(f.name)}">Remove</button></li>`).join("");
+  list.hidden = !up.files.length;
+  paintUpState();
+}
+function paintMenuScreen(){
+  if(up.code === null) up.code = loadCode();
+  byId("upload-body").innerHTML =
+    `<h1 tabindex="-1">Your menu</h1>` +
+    `<p class="sub">Add photos of your menu, or one PDF. We read the items and prices for you.</p>` +
+    `<div class="up">` +
+    `<div class="field"><label for="up-code">Access code</label><div class="codeline">` +
+      `<input id="up-code" type="password" autocomplete="off" spellcheck="false" value="${esc(up.code)}">` +
+      `<button type="button" class="btn" data-up="showcode" aria-controls="up-code" aria-pressed="false">Show</button></div>` +
+      `<p class="hint">Your team has this code.</p></div>` +
+    `<div class="choose"><input class="offscreen" type="file" id="up-file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple>` +
+      `<label class="btn" for="up-file">Choose photos or a PDF</label>` +
+      `<p class="hint">JPG, PNG or WebP photos, up to 6. Or one PDF up to 3 MB.</p></div>` +
+    `<p class="say" id="up-filemsg" role="alert"></p>` +
+    `<ul class="upfiles" id="up-list" aria-label="Chosen files"></ul>` +
+    `<p id="up-private">Your menu is read by Google's AI. Upload only your menu, nothing private.</p>` +
+    `<p class="say" id="up-msg" role="alert" tabindex="-1"></p>` +
+    `<p class="hint" id="up-ref"></p>` +
+    `<p class="say" id="up-status" role="status"></p>` +
+    `<div class="upacts"><button type="button" class="btn primary" id="up-read" data-up="read" disabled>Read my menu</button>` +
+      `<button type="button" class="btn" data-nav="${esc(address({}))}">Back</button></div></div>`;
+  paintFiles();
+}
+/* add what was chosen, one at a time, until the limit: 6 photos, or one PDF alone */
+async function addFiles(chosen){
+  up.adding = true;
+  paintUpState();
+  let said = "";
+  for(const file of chosen){
+    const pdf = isPdf(file), hasPdf = up.files.some(f => f.pdf);
+    if(!pdf && !isPhoto(file)){ said = UP_SAY.file_type; continue; }
+    if(hasPdf || (pdf && up.files.length) || up.files.length >= UP_FILES){ said = UP_SAY.too_many; continue; }
+    if(pdf){
+      if(file.size > UP_PDF){ said = UP_SAY.pdf_large; continue; }
+      up.files.push({name: file.name, size: file.size, pdf: true, file: file});
+      continue;
+    }
+    try {
+      const blob = await shrink(file, SHRINK[0][0], SHRINK[0][1]);
+      up.files.push({name: file.name, size: file.size, pdf: false, file: file, blob: blob, step: 0});
+    } catch(e){ said = UP_SAY.photo_type; }
+  }
+  up.adding = false;
+  upSay("up-filemsg", said);
+  paintFiles();
+}
+/* make the photos fit the request: each step is a little smaller, and the last step is the floor */
+async function fitPhotos(){
+  const photos = up.files.filter(f => !f.pdf);
+  for(let step = 0; step < SHRINK.length; step += 1){
+    for(const f of photos){
+      if(f.step !== step){ f.blob = await shrink(f.file, SHRINK[step][0], SHRINK[step][1]); f.step = step; }
+    }
+    const total = up.files.reduce((n, f) => n + base64Length(f.pdf ? f.file.size : f.blob.size), 0);
+    if(total <= UP_TOTAL) return true;
+    if(!photos.length) return false;
+  }
+  return false;
+}
+/* the one request that carries the menu. Gives the rows, or the name of what went wrong. */
+async function sendMenu(){
+  if(!(await fitPhotos())) return {error: up.files.some(f => f.pdf) ? "pdf_large" : "photos_large"};
+  const files = [];
+  for(const f of up.files) files.push({mime: f.pdf ? "application/pdf" : "image/jpeg", data: await asBase64(f.pdf ? f.file : f.blob)});
+  const stop = new AbortController(), timer = setTimeout(() => stop.abort(), UP_WAIT);
+  let res = null, data = null;
+  try {
+    res = await fetch("api/read-menu", {method: "POST", headers: {"Content-Type": "application/json"},
+                                        body: JSON.stringify({code: String(up.code).trim(), files: files}), signal: stop.signal});
+    data = await res.json();
+  } catch(e){ data = null; }
+  clearTimeout(timer);
+  if(!res) return {error: "read_failed"};
+  if(res.ok && data && Array.isArray(data.items)){
+    const items = data.items.filter(r => r && typeof r.name === "string" && r.name.trim() !== "");
+    return data.not_a_menu || !items.length ? {error: "not_a_menu"} : {items: items};
+  }
+  const error = data && Object.prototype.hasOwnProperty.call(UP_SAY, data.error) ? data.error : res.status === 413 ? "too_large" : "read_failed";
+  // the daily limit is said in the server's own words. A failed read may carry a short code that says where it stopped.
+  return {error: error, words: error === "limit" && data && typeof data.message === "string" ? data.message : "",
+          ref: data && typeof data.ref === "string" && /^[a-z0-9_]{1,40}$/.test(data.ref) ? data.ref : ""};
+}
+async function readMenu(){
+  if(up.busy || up.adding) return;
+  up.busy = true;
+  upSay("up-msg", "");
+  upSay("up-ref", "");
+  upSay("up-filemsg", "");
+  paintUpState();
+  let got = null;
+  try { got = await sendMenu(); } catch(e){ got = {error: "read_failed"}; }
+  up.busy = false;
+  if(got.items){
+    try { localStorage.setItem(CODE_KEY, String(up.code).trim()); } catch(e){ /* the code is asked for again next time */ }
+    up.files = [];                             // the files are not kept after the read
+    ed = fromRead(got.items);
+    go({setup: "check"});
+    return;
+  }
+  paintUpState();
+  if(screen !== "menu") return;
+  upSay("up-msg", got.words || UP_SAY[got.error]);
+  upSay("up-ref", got.ref ? `Error code: ${got.ref}` : "");
+  focusOn("#up-msg");
+}
+
+/* ----- the Check your menu screen ----- */
+const edRow = id => ed.rows.find(r => String(r.id) === String(id)) || null;
+const picked = key => ed.pick[key] == null ? null : edRow(ed.pick[key]);
+function fromRead(items){
+  const rows = items.map((r, i) => {
+    const price = readPrice(r.price);
+    return {id: i + 1, name: r.name.trim(), section: typeof r.section === "string" ? r.section.trim() : "",
+            variant: typeof r.variant === "string" ? r.variant.trim() : "", price: price,
+            unsure: r.unsure === true || price === "", looked: false, added: false};
+  });
+  const pick = {};
+  comparedKeys().forEach(k => { const r = pickRow(k, rows); pick[k] = r ? r.id : null; });
+  return {n: rows.length, k: rows.filter(r => r.unsure).length, rows: rows, pick: pick, next: rows.length + 1};
+}
+function fromSaved(menu){
+  const rows = menu.rows.filter(r => r && typeof r.name === "string").map((r, i) => (
+    {id: i + 1, name: r.name, section: String(r.section || ""), variant: String(r.variant || ""),
+     price: Number.isFinite(r.cents) ? centsText(r.cents) : "", unsure: false, looked: false, added: false}));
+  const pick = {};
+  comparedKeys().forEach(k => {
+    const c = menu.compared[k];
+    const r = c ? rows.find(x => x.name === c.name && x.variant === String(c.variant || "") && priceCents(x.price) === c.cents) : null;
+    pick[k] = r ? r.id : null;
+  });
+  return {n: rows.length, k: 0, rows: rows, pick: pick, next: rows.length + 1};
+}
+/* a row asks for a look while it is unsure and untouched, or was read without a price */
+const needsLook = r => (r.unsure && !r.looked) || (!r.added && priceCents(r.price) === null);
+const CHECK_TAG = `<span class="tag">Please check</span>`;
+const optionWords = r => r.name.trim() + (r.variant ? `, ${r.variant}` : "") + (priceCents(r.price) !== null ? ` ${money(priceCents(r.price) / 100)}` : "");
+function noteHtml(key){
+  const r = picked(key);
+  if(!r) return "";
+  if(badPrice(r.price)) return `<span class="say">${UP_SAY.price_form}</span>`;
+  return needsLook(r) || priceCents(r.price) === null ? CHECK_TAG + `<span>Type the price to compare this item.</span>` : "";
+}
+function paintCompare(){
+  const named = ed.rows.filter(r => r.name.trim() !== "");
+  byId("ck-cmp").innerHTML = comparedGroups().map(g =>
+    `<div class="group"><h3>${esc(g[0])}</h3><ul class="cmp">` + g[1].map(k => {
+      const r = picked(k), id = esc(k);
+      return `<li data-key="${id}">` +
+        `<div class="field pick"><label for="ck-sel-${id}">${esc(itemName(k))}</label>` +
+        `<select id="ck-sel-${id}" data-pick="${id}"><option value="">Not on my menu</option>` +
+        named.map(x => `<option value="${x.id}"${r && r.id === x.id ? " selected" : ""}>${esc(optionWords(x))}</option>`).join("") + `</select></div>` +
+        `<div class="field pricefield"><label for="ck-cp-${id}">Price</label>` +
+        `<input id="ck-cp-${id}" type="text" inputmode="decimal" autocomplete="off" data-cprice="${id}" value="${r ? esc(r.price) : ""}"` +
+        `${r ? "" : " disabled"}${r && badPrice(r.price) ? ` aria-invalid="true"` : ""}></div>` +
+        `<p class="cmpnote" data-note="${id}">${noteHtml(k)}</p></li>`;
+    }).join("") + `</ul></div>`).join("");
+}
+function paintRows(){
+  const heads = [];
+  ed.rows.forEach(r => { if(r.section && heads.indexOf(r.section) === -1) heads.push(r.section); });
+  const groups = heads.map(h => [h, ed.rows.filter(r => r.section === h)]).concat([["No heading", ed.rows.filter(r => !r.section)]]);
+  byId("ck-rows").innerHTML = groups.filter(g => g[1].length).map(g =>
+    `<div class="group"><h3>${esc(g[0])}</h3><ul>` + g[1].map(r =>
+      `<li class="erow" data-row="${r.id}">` +
+      `<div class="field mini namefield"><label for="ck-n-${r.id}">Item</label>` +
+        `<input id="ck-n-${r.id}" type="text" autocomplete="off" maxlength="200" data-name="${r.id}" value="${esc(r.name)}"></div>` +
+      (r.variant ? `<p class="variant">${esc(r.variant)}</p>` : "") +
+      `<div class="field mini pricefield"><label for="ck-p-${r.id}">Price</label>` +
+        `<input id="ck-p-${r.id}" type="text" inputmode="decimal" autocomplete="off" data-price="${r.id}" value="${esc(r.price)}"` +
+        `${badPrice(r.price) ? ` aria-invalid="true"` : ""}></div>` +
+      `<span class="tagbox" data-tag="${r.id}"${needsLook(r) ? "" : " hidden"}>${CHECK_TAG}</span>` +
+      `<button type="button" class="btn quiet" data-up="droprow" data-id="${r.id}" aria-label="Remove: ${esc(r.name)}">Remove</button>` +
+      `<p class="say rowmsg" data-bad="${r.id}">${badPrice(r.price) ? UP_SAY.price_form : ""}</p></li>`).join("") + `</ul></div>`).join("");
+}
+/* after a price or a name is typed: the marks round that row, here and in the compared items */
+function markRow(r, from){
+  const bad = badPrice(r.price);
+  document.querySelectorAll(`[data-price="${r.id}"]`).forEach(el => {
+    if(el !== from) el.value = r.price;
+    if(bad) el.setAttribute("aria-invalid", "true"); else el.removeAttribute("aria-invalid");
+  });
+  const tag = document.querySelector(`[data-tag="${r.id}"]`), said = document.querySelector(`[data-bad="${r.id}"]`);
+  if(tag) tag.hidden = !needsLook(r);
+  if(said) said.textContent = bad ? UP_SAY.price_form : "";
+  comparedKeys().filter(k => ed.pick[k] === r.id).forEach(k => {
+    const field = document.querySelector(`[data-cprice="${k}"]`), note = document.querySelector(`[data-note="${k}"]`);
+    if(field){
+      if(field !== from) field.value = r.price;
+      if(bad) field.setAttribute("aria-invalid", "true"); else field.removeAttribute("aria-invalid");
+    }
+    if(note) note.innerHTML = noteHtml(k);
+  });
+}
+function paintCheck(){
+  const items = ed.n === 1 ? "1 item" : `${ed.n} items`;
+  const look = ed.k === 0 ? "None need a look." : ed.k === 1 ? "1 needs a look." : `${ed.k} need a look.`;
+  byId("upload-body").innerHTML =
+    `<h1 tabindex="-1">Check your menu</h1><p class="sub" id="ck-count">We read ${items}. ${look}</p>` +
+    `<div class="up">` +
+    `<section class="panel" aria-labelledby="ck-h-cmp"><h2 id="ck-h-cmp">Items we can compare</h2><div id="ck-cmp"></div></section>` +
+    `<section class="panel" aria-labelledby="ck-h-all"><h2 id="ck-h-all">Everything we read</h2><div id="ck-rows"></div>` +
+      `<button type="button" class="btn" data-up="addrow">Add an item</button></section>` +
+    `<p class="say" id="ck-msg" role="alert" tabindex="-1"></p>` +
+    `<div class="upacts"><button type="button" class="btn primary" data-up="save">This is right. Save my menu</button>` +
+      `<button type="button" class="btn" data-nav="${esc(address({setup: "menu"}))}">Back</button></div></div>`;
+  paintCompare();
+  paintRows();
+}
+function saveMenu(){
+  const keys = comparedKeys();
+  const said = keys.some(k => picked(k) && priceCents(picked(k).price) === null) ? UP_SAY.need_price
+    : ed.rows.some(r => r.name.trim() !== "" && badPrice(r.price)) ? UP_SAY.price_form : "";
+  upSay("ck-msg", said);
+  if(said){ focusOn("#ck-msg"); return; }
+  const compared = {};
+  keys.forEach(k => { const r = picked(k); if(r) compared[k] = {name: r.name.trim(), variant: r.variant, cents: priceCents(r.price)}; });
+  myMenu = {saved_at: stamp(),
+            rows: ed.rows.filter(r => r.name.trim() !== "").map(r => ({name: r.name.trim(), section: r.section, variant: r.variant, cents: priceCents(r.price)})),
+            compared: compared};
+  try { localStorage.setItem(MENU_KEY, JSON.stringify(myMenu)); menuLost = false; } catch(e){ menuLost = true; }
+  go({setup: "done"});
+}
+
+/* ----- the last screen of this build ----- */
+function paintDone(){
+  const m = Object.keys(myMenu.compared).filter(k => D.named_prices[k]).length;
+  byId("upload-body").innerHTML =
+    `<h1 tabindex="-1">${menuLost ? "Your menu" : "Your menu is saved on this laptop."}</h1>` +
+    `<div class="up">` + (menuLost ? `<p class="say" id="dn-lost" role="alert">${UP_SAY.not_kept}</p>` : "") +
+    `<p id="dn-found">${m} of ${comparedKeys().length} compared items found on your menu.</p>` +
+    `<p>Next you place your shop on the map. That part is being built.</p>` +
+    `<div class="upacts"><button type="button" class="btn" data-nav="${esc(address({setup: "check"}))}">Check my menu again</button>` +
+      `<button type="button" class="btn" data-up="askclear">Start again</button></div>` +
+    `<div class="band" id="dn-confirm" role="alert" tabindex="-1" hidden><div class="words"><p>Start again?</p>` +
+      `<p>This removes your menu from this laptop.</p></div>` +
+      `<button type="button" class="btn" data-up="clear">Yes, start again</button>` +
+      `<button type="button" class="btn" data-up="keep">Keep my menu</button></div></div>`;
+}
+
+const UP_TITLE = {menu: "Your menu", check: "Check your menu", done: "Your menu is saved"};
+function showUpload(asked){
+  shop = null;
+  let name = Object.prototype.hasOwnProperty.call(UP_TITLE, asked) ? asked : "menu";
+  if(!myMenu) myMenu = loadMenu();
+  // "Check my menu again" after a reload: the saved menu is what there is to check
+  if(name === "check" && !ed && myMenu) ed = fromSaved(myMenu);
+  if((name === "check" && !ed) || (name === "done" && !myMenu)) name = "menu";
+  if(name !== asked) history.replaceState(null, "", address({setup: name}));
+  document.title = `${UP_TITLE[name]} | Counter`;
+  if(name === "menu") paintMenuScreen(); else if(name === "check") paintCheck(); else paintDone();
+  show(name);
+  slideIn(byId("upload-body"));
+  focusOn("#upload-body h1");
+}
+
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-up]");
+  if(!el || el.disabled) return;
+  const act = el.dataset.up;
+  if(act === "showcode"){
+    const field = byId("up-code"), hide = field.type === "text";
+    field.type = hide ? "password" : "text";
+    el.textContent = hide ? "Show" : "Hide";
+    el.setAttribute("aria-pressed", String(!hide));
+  }
+  else if(act === "dropfile"){
+    up.files.splice(Number(el.dataset.i), 1);
+    upSay("up-filemsg", "");
+    paintFiles();
+    focusOn(`#up-list [data-up="dropfile"], label[for="up-file"]`);
+  }
+  else if(act === "read") readMenu();
+  else if(act === "addrow"){
+    const id = ed.next;
+    ed.next += 1;
+    ed.rows.push({id: id, name: "", section: "", variant: "", price: "", unsure: false, looked: false, added: true});
+    paintRows();
+    focusOn(`#ck-n-${id}`);
+  }
+  else if(act === "droprow"){
+    const id = Number(el.dataset.id);
+    ed.rows = ed.rows.filter(r => r.id !== id);
+    comparedKeys().forEach(k => { if(ed.pick[k] === id) ed.pick[k] = null; });
+    paintCompare();
+    paintRows();
+    focusOn(`[data-up="addrow"]`);
+  }
+  else if(act === "save") saveMenu();
+  else if(act === "askclear"){ byId("dn-confirm").hidden = false; focusOn("#dn-confirm"); }
+  else if(act === "keep"){ byId("dn-confirm").hidden = true; focusOn(`[data-up="askclear"]`); }
+  else if(act === "clear"){
+    try { localStorage.removeItem(MENU_KEY); } catch(e){ /* nothing was kept */ }
+    myMenu = null; ed = null; menuLost = false; up.files = [];
+    go({setup: "menu"});
+  }
+});
+document.addEventListener("input", e => {
+  const el = e.target;
+  if(el.id === "up-code"){ up.code = el.value; paintUpState(); return; }
+  if(!ed || !el.dataset) return;
+  // a price is kept exactly as it is typed
+  const r = el.dataset.cprice ? picked(el.dataset.cprice) : el.dataset.price ? edRow(el.dataset.price) : el.dataset.name ? edRow(el.dataset.name) : null;
+  if(!r) return;
+  if(el.dataset.name) r.name = el.value; else r.price = el.value;
+  r.looked = true;
+  markRow(r, el);
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if(el.id === "up-file"){
+    const chosen = [...el.files];
+    el.value = "";
+    if(chosen.length) addFiles(chosen);
+    return;
+  }
+  if(!ed || !el.dataset) return;
+  if(el.dataset.pick){
+    const key = el.dataset.pick;
+    ed.pick[key] = el.value === "" ? null : Number(el.value);
+    paintCompare();
+    upSay("ck-msg", "");
+    focusOn(`[data-pick="${key}"]`);
+  }
+  // a changed name shows in the lists above; it does not change which row is which item
+  else if(el.dataset.name) paintCompare();
+});
 
 /* ---------- start ---------- */
 // The prices are needed by every page. The new items are needed by one, so

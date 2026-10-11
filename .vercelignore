@@ -5,3 +5,6 @@
 !site_data.json
 !counter_data.json
 !vercel.json
+# the one server function: the folder, then only this file inside it
+!api
+!api/read-menu.js

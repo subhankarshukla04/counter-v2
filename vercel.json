@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/read-menu.js": {
+      "maxDuration": 180
+    }
+  },
   "headers": [
     {
       "source": "/site_data.json",
