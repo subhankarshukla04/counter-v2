@@ -28,6 +28,11 @@
   --same:#C9C5BE;        /* charges the same */
   --same-line:#8F8A83;   /* the thin border round a "same" mark */
   --faint:#8F8A83;       /* lines of the menu that do not work yet */
+  /* rust, from the Counter logo: the "Limited time" tag and a switch that is on, and nothing else */
+  --rust:#C0531F;
+  --rust-soft:#FBEDE5;   /* the tag's background */
+  --rust-line:#EBC3AE;   /* the tag's border */
+  --rust-ink:#A8481B;    /* the tag's text: rust darkened until it reads on the soft tint */
   --f-display:"Bricolage Grotesque", system-ui, sans-serif;
   --f-text:"Archivo", system-ui, sans-serif;
   --r-panel:12px;
@@ -177,6 +182,49 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .main > h1{margin-bottom:20px}
 .main > .sub{margin:-12px 0 20px}
 .page-empty{color:var(--ink)}
+.main > .sub .under{display:block; margin-top:4px}
+
+/* ---------- New at other cafes: one panel with tabs, two switches and a table ---------- */
+.newbar{display:flex; flex-wrap:wrap; align-items:flex-end; gap:4px 24px; border-bottom:1px solid var(--rule); margin-bottom:8px}
+.newbar .tabs{border-bottom:0; margin-bottom:0; flex-wrap:wrap}
+.tabs button:disabled{color:var(--faint); cursor:default}
+.switches{margin-left:auto; display:flex; flex-wrap:wrap; gap:0 22px}
+.switch{display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0; background:none; border:0; color:var(--body); font-size:14px; font-weight:400; cursor:pointer}
+.switch[aria-checked="true"]{color:var(--ink); font-weight:700}
+/* the label keeps room for its bold form, so nothing moves when the switch turns on */
+.switch .words{display:inline-grid; text-align:left}
+.switch .words::after{content:attr(data-text); height:0; overflow:hidden; visibility:hidden; font-weight:700}
+.switch .track{position:relative; flex:none; width:36px; height:20px; border-radius:10px; background:var(--faint)}
+.switch .track::after{content:""; position:absolute; left:2px; top:2px; width:16px; height:16px; border-radius:50%; background:var(--panel)}
+.switch[aria-checked="true"] .track{background:var(--rust)}
+.switch[aria-checked="true"] .track::after{left:18px}
+.tablebox{overflow-x:auto}
+/* fixed widths, so a long name or a tag wraps inside its column and never widens the table */
+.newtable{width:100%; min-width:620px; border-collapse:collapse; table-layout:fixed; font-size:14px}
+/* The last three columns are as wide as their longest text needs, in pixels,
+   so they sit together at the right on any screen. The Item column, with no
+   width of its own, takes everything that is left. */
+.newtable .c-since{width:90px}     /* 10 + "September" + 10 */
+.newtable .c-price{width:112px}    /* 30 clear of the column before + the longest price + 30 */
+.newtable .c-source{width:114px}   /* 10 + the longest link text + 10 */
+.newtable thead th{padding:8px 10px; text-align:left; font-size:13px; font-weight:600; color:var(--muted); border-bottom:1px solid var(--line); white-space:nowrap}
+.newtable td{padding:10px; vertical-align:top; border-bottom:1px solid var(--rule); overflow-wrap:anywhere}
+.newtable .lead{font-weight:600; color:var(--ink)}
+/* a cafe's own row: its name, where it is, how many items, on the picked grey */
+.newtable .ghead th{padding:10px; text-align:left; font-weight:400; background:var(--picked); border-bottom:1px solid var(--line)}
+.newtable tbody + tbody .ghead th{border-top:10px solid var(--panel)}
+.newtable .ghead .cafe{font:700 17px/1.25 var(--f-display); color:var(--ink); margin-right:10px}
+.newtable .ghead .where{color:var(--muted); margin-right:10px}
+.newtable .ghead .howmany{color:var(--body); font-weight:600}
+.newtable .gfold td{padding:8px 10px 12px; border-bottom:0}
+.newtable .gfold .btn{min-height:36px; padding:0 12px; font-size:13px}
+.newtable .tag{margin-left:6px}
+.newtable .tag.limited{background:var(--rust-soft); border-color:var(--rust-line); color:var(--rust-ink)}
+/* the price ends well clear of the source link beside it */
+.newtable th.num, .newtable td.num{padding-right:30px}
+.newtable .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+.newtable .nowrap{white-space:nowrap}
+#newpage > .btn{margin-top:14px}
 
 .band{
   display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px; margin-bottom:20px;
@@ -402,8 +450,8 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
         <li><a class="line" href="./" id="nav-prices" data-nav="">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg>My prices</a></li>
         <li class="label">My menu</li>
-        <li class="sub"><span class="line" role="link" aria-disabled="true">
-          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>New at other cafes<span class="soon">Soon</span></span></li>
+        <li class="sub"><a class="line" href="./" id="nav-new" data-nav="">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>New at other cafes</a></li>
         <li class="sub"><a class="line" href="./" id="nav-missing" data-nav="">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7M16 18h5"/></svg><span id="nav-missing-words">Items you do not sell</span></a></li>
         <li><span class="line" role="link" aria-disabled="true">
@@ -446,6 +494,7 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
         </div>
       </section>
     </div>
+    <section class="panel" id="newpage" aria-label="New at other cafes" hidden></section>
   </main>
 </div>
 
@@ -505,7 +554,13 @@ let openItem = null;          // the item in the right panel, or null when close
 let view = "list";
 let showAll = false;
 const trial = new Map();      // item -> trial price in cents, while it is being tried
-let page = "prices";          // "prices", or "missing" for Items you do not sell
+let C = null;                 // counter_data.json, or null when it did not load
+let page = "prices";          // "prices", "missing" for Items you do not sell, "new" for New at other cafes
+let newTab = "all";           // New at other cafes: the type tab and the two switches
+let onlyMine = false, chainsOn = false;
+let cafesAll = false;         // whether every cafe shows, or only the first few
+const cafesOpen = new Set();  // the cafes whose every item shows
+const foldNew = () => { cafesAll = false; cafesOpen.clear(); };
 let missing = [];             // items this shop does not sell and a competitor does, in list order
 let hide = [];                // items the reader hid from that page, kept in the address
 const test = new Map();       // item -> a price in cents tested for an item the shop does not sell
@@ -536,7 +591,7 @@ const visMissing = () => missing.filter(k => hide.indexOf(k) === -1);
 const pageItems = () => page === "missing" ? visMissing() : myItems;
 /* this page's address, with any part changed */
 const here = over => Object.assign({shop: shop.shop_id, rivals: rivals.map(o => o.shop_id).join(","),
-                                    hide: hide.join(","), page: page === "missing" ? "missing" : ""}, over || {});
+                                    hide: hide.join(","), page: page === "prices" ? "" : page}, over || {});
 
 /* ---------- copied from the live site, unchanged ---------- */
 /* The verdict comes from the other cafes with a counted price for the item. */
@@ -568,6 +623,15 @@ const BASEMAP = {
                '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener noreferrer">OneMap</a> &copy; contributors | ' +
                '<a href="https://www.sla.gov.sg/" target="_blank" rel="noopener noreferrer">Singapore Land Authority</a>'
 };
+/* new items, also from the live site: when an item is new, and the words for it */
+const MONTH_NAMES = {"01":"January","02":"February","03":"March","04":"April","05":"May","06":"June",
+                     "07":"July","08":"August","09":"September","10":"October","11":"November","12":"December"};
+const monthLabel = m => (MONTH_NAMES[String(m).slice(5,7)] || m);
+/* The month a shop said an item was new, or the day we first saw it where the
+   shop gave none: "2026-09-00" for a month, "2026-10-04" for a first-seen day.
+   Both are the same length so they sort as text. */
+const launchWhen = r => r.launch_month ? r.launch_month + "-00" : (r.first_seen || "");
+const whenWords = w => /-00$/.test(w) ? `new in ${monthLabel(w)}` : w ? `first seen ${dayMonth(w)}` : "";
 /* ---------- end of copied logic ---------- */
 
 /* A row has room for one line, so it drops the verdict's last word. */
@@ -651,7 +715,8 @@ function route(){
   openShop(s, ids, q);
 }
 function openShop(s, ids, q){
-  const nextPage = q.get("page") === "missing" ? "missing" : "prices";
+  const asked = q.get("page");
+  const nextPage = asked === "missing" || asked === "new" ? asked : "prices";
   // a new shop, a new page, or a return from set-up starts the page afresh.
   // A change to the hidden items alone leaves the open tab and item be.
   const entering = screen !== "prices" || lastShop !== s.shop_id || page !== nextPage;
@@ -678,6 +743,8 @@ function openShop(s, ids, q){
 
   if(entering){
     view = "list"; showAll = false; showHidden = false; closed = false;
+    // New at other cafes starts on the competitors' items when there are any
+    newTab = "all"; chainsOn = false; foldNew(); onlyMine = anyMine();
     // My prices opens on the category with the most items, this page on All
     let best = null;
     if(page === "prices") categories().forEach(c => { if(!best || c.n > best.n || (c.n === best.n && c.format === TIE_TAB)) best = c; });
@@ -690,12 +757,13 @@ function openShop(s, ids, q){
     if(gone || (!openItem && !closed)) openItem = inTab()[0] || null;
   }
 
-  document.title = `${page === "missing" ? "Items you do not sell" : "My prices"}, ${s.shop_name} | Counter`;
+  document.title = `${PAGE_TITLE[page]}, ${s.shop_name} | Counter`;
   byId("who-name").textContent = s.shop_name;
   byId("who-area").textContent = s.district;
   show("prices");
   paint(entering);
 }
+const PAGE_TITLE = {prices: "My prices", missing: "Items you do not sell", new: "New at other cafes"};
 function categories(){
   const tally = new Map();
   pageItems().forEach(k => { const f = priceRow(k).format || ""; tally.set(f, (tally.get(f) || 0) + 1); });
@@ -707,35 +775,36 @@ const inTab = () => pageItems().filter(k => tab === "all" || (priceRow(k).format
 function paint(fit){
   paintFrame();
   paintBand();
+  if(page === "new"){ paintNew(); return; }
   paintList();
   paintDetail(fit);
 }
-/* the sidebar, the heading, and whether there is anything to show */
+/* the sidebar, the heading, and which panels show */
 function paintFrame(){
   const miss = page === "missing", n = visMissing().length;
   byId("nav-rivals").textContent = `My competitors (${rivals.length})`;
   byId("nav-missing-words").textContent = `Items you do not sell (${n})`;
-  const prices = byId("nav-prices"), lack = byId("nav-missing");
-  prices.dataset.nav = address(here({page: ""}));
-  lack.dataset.nav = address(here({page: "missing"}));
-  if(miss){ prices.removeAttribute("aria-current"); lack.setAttribute("aria-current", "page"); }
-  else { lack.removeAttribute("aria-current"); prices.setAttribute("aria-current", "page"); }
+  [["nav-prices", "prices"], ["nav-new", "new"], ["nav-missing", "missing"]].forEach(pair => {
+    const link = byId(pair[0]);
+    link.dataset.nav = address(here({page: pair[1] === "prices" ? "" : pair[1]}));
+    if(page === pair[1]) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
+  });
 
-  byId("page-title").textContent = miss ? "Items you do not sell" : "My prices";
-  const sub = byId("page-sub");
-  sub.hidden = !miss;
-  sub.textContent = miss ? `Your competitors sell ${n === 1 ? "1 item" : n + " items"} we did not find on your menu.` : "";
-  // no item at all on this page: one line, and no panels
+  byId("page-title").textContent = PAGE_TITLE[page];
+  // no item at all on Items you do not sell: one line, and no panels
   const none = miss && !missing.length;
+  const sub = byId("page-sub");
+  sub.hidden = !miss || none;
+  sub.textContent = miss ? `Your competitors sell ${n === 1 ? "1 item" : n + " items"} we did not find on your menu.` : "";
   const empty = byId("page-empty");
   empty.hidden = !none;
   empty.textContent = none ? "Your competitors do not sell any compared item that is missing from your menu." : "";
-  sub.hidden = !miss || none;
-  byId("cols").hidden = none;
+  byId("cols").hidden = none || page === "new";
+  byId("newpage").hidden = page !== "new";
 }
 
 function paintBand(){
-  const n = page === "missing" ? 0 : myItems.filter(changed).length;
+  const n = page === "prices" ? myItems.filter(changed).length : 0;
   const band = byId("band");
   band.hidden = n === 0;
   band.innerHTML = n === 0 ? "" :
@@ -823,6 +892,103 @@ function paintDetail(fit){
   byId("d-list").hidden = view !== "list";
   byId("d-mapwrap").hidden = view !== "map";
   if(view === "list") paintCafes(); else drawMap(fit);
+}
+
+/* ---------- New at other cafes ----------
+   New items from counter_data.json: the competitors' own first, then the newest. */
+const NEW_TYPES = [["drink", "Drinks"], ["pastry", "Pastries"], ["cake", "Cakes"], ["savoury", "Savoury"], ["other", "Other"]];
+const NEW_CAFES = 6;      // cafes shown before "Show <k> more cafes"
+const NEW_ITEMS = 5;      // items shown for a cafe before "Show all <n>"
+const SOURCE_WORDS = {brand_website: "See their site", media: "See the article"};
+const isMine = r => (r.shop_ids || []).some(id => rivals.some(o => o.shop_id === id));
+const anyMine = () => !!C && C.launches.some(isMine);
+const sameText = (a, b) => String(a).localeCompare(String(b), "en");
+/* The rows the two switches leave, before the type tab. A big chain is hidden
+   unless switched on, but a chosen competitor's items always show. One cafe
+   can list an item under several outlets: it is counted once, the newest kept. */
+function newScope(){
+  const seen = new Set();
+  return C.launches.map(r => Object.assign({}, r, {when: launchWhen(r), mine: isMine(r)}))
+    .sort((a, b) => b.when.localeCompare(a.when))
+    .filter(r => {
+      if(onlyMine && !r.mine) return false;
+      if(!chainsOn && r.is_chain && !r.mine) return false;
+      const key = r.shop + "|" + r.item_name;
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    // competitors' items first, then the newest, then by cafe and by item
+    .sort((a, b) => (b.mine - a.mine) || b.when.localeCompare(a.when) || sameText(a.shop, b.shop) || sameText(a.item_name, b.item_name));
+}
+function paintNew(){
+  const box = byId("newpage"), sub = byId("page-sub");
+  if(!C){
+    sub.hidden = true;
+    box.innerHTML = `<p id="new-failed">New items could not be loaded.</p>`;
+    return;
+  }
+  const scope = newScope(), n = scope.length;
+  // "since" is the earliest month or day any new item carries
+  const dated = C.launches.map(launchWhen).filter(Boolean).sort();
+  const since = dated.length ? ` since ${monthLabel(dated[0])}` : "";
+  const items = n === 1 ? "1 new item" : `${n} new items`;
+  sub.hidden = false;
+  sub.innerHTML = `<span id="new-count">${onlyMine ? `Your competitors added ${items}${since}.` : `${items}${since}.`}</span>` +
+    (anyMine() ? "" : `<span class="under muted" id="new-note">None of your competitors has new items on file yet. Showing all cafes.</span>`);
+
+  const tally = f => scope.filter(r => r.format === f).length;
+  const tabs = [["all", "All", n]].concat(NEW_TYPES.map(t => [t[0], t[1], tally(t[0])]));
+  const sw = (key, on, words) => `<button type="button" class="switch" role="switch" aria-checked="${on}" data-act="sw" data-sw="${key}">` +
+    `<span class="track" aria-hidden="true"></span><span class="words" data-text="${words}">${words}</span></button>`;
+  let html = `<div class="newbar"><div class="tabs" role="tablist" aria-label="Item types">` + tabs.map(t =>
+      `<button type="button" role="tab" data-act="ntab" data-tab="${t[0]}" aria-selected="${t[0] === newTab}"${t[2] ? "" : " disabled"}>` +
+      `${t[1]} (${t[2]})</button>`).join("") + `</div>` +
+    `<div class="switches">${sw("mine", onlyMine, "Only my competitors")}${sw("chains", chainsOn, "Include big chains")}</div></div>`;
+
+  const rows = scope.filter(r => newTab === "all" || r.format === newTab);
+  if(!rows.length){
+    box.innerHTML = html + `<p id="new-empty">Nothing to show here.</p>`;
+    return;
+  }
+  // One group for each cafe name, in the order its first row comes, so the
+  // competitors' cafes stay first and each cafe's items keep their order.
+  const groups = [];
+  rows.forEach(r => {
+    let g = groups.find(x => x.cafe === r.shop);
+    if(!g){ g = {cafe: r.shop, mine: r.mine, items: []}; groups.push(g); }
+    g.items.push(r);
+  });
+  const shownGroups = cafesAll ? groups : groups.slice(0, NEW_CAFES);
+  html += `<div class="tablebox"><table class="newtable"><thead><tr>` +
+    `<th scope="col" class="c-item">Item</th><th scope="col" class="c-since">New since</th>` +
+    `<th scope="col" class="num c-price">Price</th><th scope="col" class="c-source">Source</th></tr></thead>` +
+    shownGroups.map(g => {
+      const n = g.items.length, open = cafesOpen.has(g.cafe), cafe = esc(g.cafe);
+      // the district shows only when every item of the cafe here names the same one
+      const where = g.items[0].district && g.items.every(r => r.district === g.items[0].district) ? g.items[0].district : "";
+      return `<tbody data-cafe="${cafe}"><tr class="ghead"><th colspan="4" scope="colgroup">` +
+        `<span class="cafe">${cafe}</span>` + (where ? `<span class="where">${esc(where)}</span>` : "") +
+        `<span class="howmany">${n === 1 ? "1 new item" : n + " new items"}</span>` +
+        // with only competitors showing, every cafe is one, so the tag says nothing
+        (g.mine && !onlyMine ? `<span class="tag">Your competitor</span>` : "") + `</th></tr>` +
+        (open ? g.items : g.items.slice(0, NEW_ITEMS)).map(r => {
+          const link = /^https?:\/\//.test(r.source_url || "")
+            ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener">${SOURCE_WORDS[r.source_type] || "See the source"}</a>` : "";
+          return `<tr class="irow" data-format="${esc(r.format)}">` +
+            `<td><span class="lead">${esc(r.item_name)}</span>` + (r.is_limited_time ? `<span class="tag limited">Limited time</span>` : "") + `</td>` +
+            // the header says "New since", so the cell keeps only the month or the day
+            `<td class="nowrap">${esc(whenWords(r.when).replace(/^(new in|first seen) /, ""))}</td>` +
+            `<td class="num">${r.price == null ? "No price" : money(r.price)}</td>` +
+            `<td class="nowrap">${link}</td></tr>`;
+        }).join("") +
+        (n > NEW_ITEMS ? `<tr class="gfold"><td colspan="4"><button type="button" class="btn" data-act="gfold" data-cafe="${cafe}" ` +
+          `aria-expanded="${open}" aria-label="${open ? "Show fewer" : `Show all ${n}`} from ${cafe}">${open ? "Show fewer" : `Show all ${n}`}</button></td></tr>` : "") +
+        `</tbody>`;
+    }).join("") + `</table></div>` +
+    (groups.length > shownGroups.length
+      ? `<button type="button" class="btn" data-act="nmore">Show ${groups.length - shownGroups.length} more cafes</button>` : "");
+  box.innerHTML = html;
 }
 
 /* the top of the right panel on My prices: the item, the verdict, the price, the chart's words */
@@ -1237,6 +1403,23 @@ document.addEventListener("click", e => {
     focusOn(openItem ? "#d-name" : "#hidden-box button");
   }
   else if(act === "unhide"){ go(here({hide: hide.filter(x => x !== el.dataset.item).join(",")})); focusOn("#hidden-box button, #d-name"); }
+  // New at other cafes: a type tab, a switch, and the rest of the rows
+  else if(act === "ntab"){ newTab = el.dataset.tab; foldNew(); paintNew(); focusOn(`[data-act="ntab"][aria-selected="true"]`); }
+  else if(act === "sw"){
+    if(el.dataset.sw === "mine") onlyMine = !onlyMine; else chainsOn = !chainsOn;
+    foldNew();
+    paintNew();
+    focusOn(`[data-sw="${el.dataset.sw}"]`);
+  }
+  else if(act === "nmore"){ cafesAll = true; paintNew(); focusOn(`#newpage tbody:nth-of-type(${NEW_CAFES + 1}) a, #newpage tbody:nth-of-type(${NEW_CAFES + 1}) button`); }
+  // one cafe's items: all of them, or the first few again
+  else if(act === "gfold"){
+    const cafe = el.dataset.cafe;
+    if(cafesOpen.has(cafe)) cafesOpen.delete(cafe); else cafesOpen.add(cafe);
+    paintNew();
+    const again = [...document.querySelectorAll('[data-act="gfold"]')].find(b => b.dataset.cafe === cafe);
+    if(again) again.focus();
+  }
   else if(act === "showhidden"){ showHidden = true; paintList(); focusOn("#hidden-box .hidden-list button"); }
   else if(act === "view"){ view = el.dataset.view; paintDetail(true); }
   else if(act === "all"){ showAll = !showAll; paintCafes(); focusOn(`[data-act="all"]`); }
@@ -1570,12 +1753,18 @@ function buildSetup(){
 }
 
 /* ---------- start ---------- */
-fetch("site_data.json").then(r => {
-  if(!r.ok) throw new Error("site_data.json " + r.status);
-  return r.json();
-}).then(d => {
-  D = d;
-  d.shop_items.forEach(s => SHOPS.set(s.shop_id, s));
+// The prices are needed by every page. The new items are needed by one, so
+// when they fail to load that page says so and the others carry on.
+Promise.all([
+  fetch("site_data.json").then(r => {
+    if(!r.ok) throw new Error("site_data.json " + r.status);
+    return r.json();
+  }),
+  fetch("counter_data.json").then(r => r.ok ? r.json() : null).catch(() => null)
+]).then(both => {
+  D = both[0];
+  C = both[1] && Array.isArray(both[1].launches) ? both[1] : null;
+  D.shop_items.forEach(s => SHOPS.set(s.shop_id, s));
   buildSetup();
   buildLegends();
   route();
