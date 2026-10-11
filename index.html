@@ -73,11 +73,71 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .says{display:flex; align-items:baseline; gap:8px}
 .says .dot{transform:translateY(1px)}
 
-/* ---------- start screen ---------- */
-.start{min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:12vh 16px 40px}
-.start .panel{width:100%; max-width:460px}
+/* ---------- set-up: find your shop, choose your competitors ---------- */
+.setup{min-height:100vh; overflow-x:clip}
+.topbar{display:flex; flex-wrap:wrap; align-items:center; gap:12px 28px; padding:14px 24px; background:var(--panel); border-bottom:1px solid var(--line)}
+.steps{display:flex; flex-wrap:wrap; gap:8px}
+.steps li{
+  display:flex; align-items:center; gap:8px; min-height:36px; padding:0 14px 0 6px; border-radius:18px;
+  font-size:14px; font-weight:600; background:var(--panel); color:var(--muted); border:1px solid var(--faint);
+}
+.steps .num{width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:13px; border:1px solid currentColor}
+.steps li.now{background:var(--ink); border-color:var(--ink); color:#fff}
+.steps li.done{background:var(--picked); border-color:var(--ink); color:var(--ink)}
+.stage{max-width:1040px; margin:0 auto; padding:32px 24px 56px}
+.stage.wide{max-width:1200px}
+.stage .sub{margin-top:6px}
+@keyframes slidein{from{transform:translateX(56px); opacity:0} to{transform:none; opacity:1}}
+.slide{animation:slidein 280ms ease-out}
+@media (prefers-reduced-motion:reduce){ .slide{animation:none} }
+.trail{display:flex; flex-wrap:wrap; gap:8px; margin:22px 0}
+.trail button{
+  min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--line); background:var(--panel);
+  color:var(--ink); font-weight:600; cursor:pointer;
+}
+.trail button:hover{border-color:var(--ink)}
+.trail button.last{background:var(--picked); border-color:var(--ink)}
+.ask{font:700 20px/1.2 var(--f-display); color:var(--ink); margin-bottom:14px}
+.tiles{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(200px, 100%), 1fr)); gap:12px}
+.tile{
+  min-height:96px; padding:14px 16px; display:flex; flex-direction:column; justify-content:center; gap:3px;
+  text-align:left; background:var(--panel); border:2px solid var(--ink); border-radius:12px; cursor:pointer;
+}
+.tile:hover{background:var(--bg)}
+.tile.dashed{border-style:dashed}
+.tile .t1{font-size:16px; font-weight:700; color:var(--ink); overflow-wrap:anywhere}
+.tile .t2{font-size:13px; color:var(--muted)}
+.tile .t3{font-size:13px; font-weight:600; color:var(--ink); margin-top:4px}
+.tile.tick{flex-direction:row; justify-content:flex-start; align-items:flex-start; gap:12px}
+.tile.tick .words{display:flex; flex-direction:column; gap:3px; min-width:0}
+.tile[aria-pressed="true"]{background:var(--picked)}
+.tile .box{width:22px; height:22px; flex:none; margin-top:1px; border:2px solid var(--ink); border-radius:6px; background:var(--panel); color:#fff; display:inline-flex; align-items:center; justify-content:center}
+.tile .box svg{width:14px; height:14px; stroke-width:3; visibility:hidden}
+.tile[aria-pressed="true"] .box{background:var(--ink)}
+.tile[aria-pressed="true"] .box svg{visibility:visible}
+.soonline{margin-top:14px; color:var(--ink); font-weight:600}
+.card{max-width:480px}
+.card .big{font:800 28px/1.15 var(--f-display); color:var(--ink); margin:4px 0 8px}
+.card .btn{margin-top:18px}
+.choose-cols{display:grid; grid-template-columns:minmax(0, 2fr) minmax(0, 1fr); gap:24px; align-items:start; margin-top:24px}
+#picker .trail{margin:0 0 16px}
+#pick-tiles, #pick-mapwrap{margin-top:16px}
+#pmap{height:460px}
+#picker .field{margin-top:22px; max-width:420px}
+#chosen h2{font-size:20px; margin-bottom:10px}
+.chosen-rows li{display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--rule)}
+.chosen-rows .words{flex:1; min-width:0}
+.chosen-rows .name{font-weight:600; color:var(--ink)}
+.chosen-rows .btn{min-height:36px; padding:0 12px; font-size:13px}
+#chosen .after{border-top:1px solid var(--rule); padding-top:12px}
+#chosen .after > * + *{margin-top:10px}
+#chosen .need{color:var(--ink); font-weight:600}
+.btn.block{width:100%}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.btn:disabled:hover{border-color:var(--butter)}
+.pop-btn{margin-top:8px; min-height:40px; font-size:13px}
+
 .wordmark{font:800 22px/1 var(--f-display); color:var(--ink)}
-.start h1{margin:20px 0 16px}
 .field label{display:block; font-weight:600; color:var(--ink); margin-bottom:6px}
 .field input{
   width:100%; min-height:44px; padding:0 12px; border:1px solid var(--line); border-radius:var(--r);
@@ -109,6 +169,7 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 }
 .nav .line[aria-current]{background:var(--ink); color:#fff; font-weight:600}
 .nav .line[aria-disabled]{color:var(--faint); cursor:default}
+.nav .navic{display:inline-flex; width:18px; height:18px; flex:none}
 .nav .soon{margin-left:auto; padding-left:6px; font-size:11px; color:var(--faint)}
 .nav .label{padding:12px 10px 4px; font-size:12px; font-weight:600; color:var(--muted)}
 .nav .divider{height:1px; background:var(--rule); margin:10px}
@@ -209,37 +270,51 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .d-list .btn{margin-top:8px}
 
 /* ---------- map ---------- */
-#map{height:420px; border:1px solid var(--line); border-radius:var(--r); background:var(--bg); z-index:0}
-#map.leaflet-container{font-family:var(--f-text); font-size:13px}
-#map .leaflet-bar{box-shadow:none; border:1px solid var(--line)}
-#map .leaflet-popup-content-wrapper{border-radius:var(--r); box-shadow:none; border:1px solid var(--line)}
-#map .leaflet-popup-tip{box-shadow:none; border:1px solid var(--line)}
-#map .leaflet-popup-content{margin:12px 14px; line-height:1.45; color:var(--body)}
+.lmap{height:420px; border:1px solid var(--line); border-radius:var(--r); background:var(--bg); z-index:0}
+.lmap.leaflet-container{font-family:var(--f-text); font-size:13px}
+.lmap .leaflet-bar{box-shadow:none; border:1px solid var(--line)}
+.lmap .leaflet-popup-content-wrapper{border-radius:var(--r); box-shadow:none; border:1px solid var(--line)}
+.lmap .leaflet-popup-tip{box-shadow:none; border:1px solid var(--line)}
+.lmap .leaflet-popup-content{margin:12px 14px; line-height:1.45; color:var(--body)}
 .pop-name{display:block; font-weight:700; color:var(--ink)}
 .pop-price{display:block; font-weight:700; color:var(--ink)}
 .pop-line{display:block}
-.pin{
-  position:absolute; left:0; top:0; white-space:nowrap; --off:0;
-  transform:translate(-50%, calc(-50% + var(--off) * 24px));
-  font:600 11px/1 var(--f-text); font-variant-numeric:tabular-nums; padding:3px 5px; border-radius:6px;
-  background:var(--same); color:var(--ink); border:1px solid var(--same-line);
+/* Map marks. Shape says who: a pin is this shop, a target is a competitor,
+   a dot is any other cafe. Colour says price compared with this shop: it fills
+   a dot and the centre of a target, never the ring and never a label. The
+   label beside a pin or target is a white pill, put where it hides nothing. */
+.mk{position:absolute; left:0; top:0; width:0; height:0; color:var(--ink); --off:0}
+.mk.less{color:var(--less)}
+.mk.more{color:var(--more)}
+.mk.same{color:var(--same)}
+/* cafes in one building stand side by side, so no mark hides another */
+.mk.shift{transform:translateX(calc(var(--off) * 14px))}
+.mk-pin{position:absolute; left:-14px; top:-36px; display:block}
+.mk-pin path{fill:var(--ink)}
+.mk-pin circle{fill:var(--panel)}
+.tg{display:block; flex:none}
+.mk .tg{position:absolute; left:-11px; top:-11px}
+.tg .tg-ring{fill:var(--panel); stroke:var(--ink); stroke-width:2.5}
+.tg .tg-core{fill:currentColor}
+.same .tg .tg-core{stroke:var(--same-line); stroke-width:1}
+.mk-dot{position:absolute; left:-6px; top:-6px; width:12px; height:12px; border-radius:50%; background:currentColor; border:1px solid var(--panel)}
+.mk .mk-dot::after{content:""; position:absolute; inset:-8px}
+.mk.same .mk-dot{outline:1px solid var(--same-line)}
+.plain .mk-dot, .mk-dot.plain{background:var(--panel); border:2px solid var(--ink)}
+/* placeLabels() sets each label's place; this is only where it starts */
+.mk-label{
+  position:absolute; left:16px; top:-11px; white-space:nowrap;
+  background:var(--panel); border:1px solid var(--line); border-radius:999px; color:var(--ink);
+  font:700 13px/1 var(--f-text); font-variant-numeric:tabular-nums; padding:4px 8px;
 }
-.pin.less{background:var(--less); border-color:var(--less); color:#fff}
-.pin.more{background:var(--more); border-color:var(--more); color:#fff}
-/* a competitor: larger, with its name */
-.pin.rival{font-size:12px; padding:5px 7px; border-radius:8px}
-/* this shop: the largest label, standing on a pointer whose tip is the shop */
-.pin.me{
-  transform:translate(-50%, calc(-100% - 8px)); font-size:15px; font-weight:700; padding:8px 11px; border-radius:10px;
-  background:var(--ink); border-color:var(--ink); color:#fff;
-}
-.pin.me::after{content:""; position:absolute; left:50%; top:100%; margin-left:-7px; border:7px solid transparent; border-top-color:var(--ink); border-bottom:0}
 .legend{display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:12px; font-size:13px}
 .legend li{display:flex; align-items:center; gap:7px}
+.legend .lg{display:inline-flex; align-items:center; justify-content:center; color:var(--ink)}
+.legend .lg .mk-pin, .legend .lg .mk-dot{position:static}
 .legend .key{width:22px; height:14px; border-radius:5px; border:1px solid var(--same-line); background:var(--same); flex:none}
 .legend .key.less{background:var(--less); border-color:var(--less)}
 .legend .key.more{background:var(--more); border-color:var(--more)}
-.legend .key.named{width:auto; height:auto; padding:2px 5px; background:var(--panel); font:600 10px/1 var(--f-text); color:var(--ink)}
+
 
 .problem{padding:40px 16px; text-align:center; color:var(--ink)}
 
@@ -250,29 +325,55 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
   .main{padding:20px 16px 40px}
   .cols{grid-template-columns:minmax(0, 1fr); row-gap:20px}
   .handle{display:none}
+  .topbar{padding:12px 16px}
+  .stage{padding:22px 16px 40px}
+  .choose-cols{grid-template-columns:minmax(0, 1fr)}
+  #pmap{height:360px}
   .panel{padding:16px}
   .bigprice{font-size:38px}
-  #map{height:360px}
+  .lmap{height:360px}
 }
 </style>
 </head>
 <body>
 
-<!-- no shop chosen yet -->
-<main class="start" id="start" hidden>
-  <div class="panel">
+<!-- set-up: step 1 finds the shop, step 2 chooses its competitors -->
+<div class="setup" id="setup" hidden>
+  <header class="topbar">
     <p class="wordmark">Counter</p>
-    <h1>Find your shop</h1>
-    <div class="field">
-      <label for="shop-input">Your shop</label>
-      <div class="combo">
-        <input id="shop-input" type="text" autocomplete="off" spellcheck="false" role="combobox"
-               aria-expanded="false" aria-controls="shop-list" aria-autocomplete="list">
-        <ul id="shop-list" role="listbox" aria-label="Shops" hidden></ul>
-      </div>
+    <ol class="steps" aria-label="Set-up steps">
+      <li id="step-1"><span class="num">1</span>Your shop</li>
+      <li id="step-2"><span class="num">2</span>Your competitors</li>
+    </ol>
+  </header>
+
+  <main class="stage" id="find" hidden><div id="find-body"></div></main>
+
+  <main class="stage wide" id="choose" hidden>
+    <h1>Choose your competitors</h1>
+    <p class="sub" id="choose-sub"></p>
+    <div class="choose-cols">
+      <section class="panel" id="picker" aria-label="Cafes to choose from">
+        <div class="trail" id="pick-trail"></div>
+        <div class="seg" role="group" aria-label="List or map" id="pick-seg">
+          <button type="button" class="btn" data-act="pview" data-view="list" aria-pressed="true">List</button>
+          <button type="button" class="btn" data-act="pview" data-view="map" aria-pressed="false">Map</button>
+        </div>
+        <div id="pick-tiles"></div>
+        <div id="pick-mapwrap" hidden><div id="pmap" class="lmap"></div><ul class="legend" id="legend-pick"></ul></div>
+        <div class="field">
+          <label for="find-input">Know the name? Find a cafe</label>
+          <div class="combo">
+            <input id="find-input" type="text" autocomplete="off" spellcheck="false" role="combobox"
+                   aria-expanded="false" aria-controls="find-list" aria-autocomplete="list">
+            <ul id="find-list" role="listbox" aria-label="Cafes" hidden></ul>
+          </div>
+        </div>
+      </section>
+      <section class="panel" id="chosen" aria-label="Your competitors"></section>
     </div>
-  </div>
-</main>
+  </main>
+</div>
 
 <div class="app" id="app" hidden>
   <aside class="side">
@@ -298,8 +399,8 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
         <li class="divider" role="presentation"></li>
         <li><span class="line" role="link" aria-disabled="true">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts<span class="soon">Soon</span></span></li>
-        <li><span class="line" role="link" aria-disabled="true">
-          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5a5 5 0 0 1 4.5 5"/></svg>My competitors<span class="soon">Soon</span></span></li>
+        <li><a class="line" href="./" data-act="editrivals">
+          <span class="navic" id="nav-target" aria-hidden="true"></span><span id="nav-rivals">My competitors</span></a></li>
         <li><span class="line" role="link" aria-disabled="true">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>Update my menu<span class="soon">Soon</span></span></li>
       </ul>
@@ -324,13 +425,8 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
         </div>
         <div class="d-list" id="d-list"></div>
         <div id="d-mapwrap" hidden>
-          <div id="map"></div>
-          <ul class="legend">
-            <li><span class="key less" aria-hidden="true"></span>Charges less than you</li>
-            <li><span class="key" aria-hidden="true"></span>Same price</li>
-            <li><span class="key more" aria-hidden="true"></span>Charges more than you</li>
-            <li><span class="key named" aria-hidden="true">Name</span>Pins with a name are your competitors</li>
-          </ul>
+          <div id="map" class="lmap"></div>
+          <ul class="legend" id="legend-prices">          </ul>
         </div>
       </section>
     </div>
@@ -360,7 +456,8 @@ const dayMonth = iso => {
 const ICON = {
   close: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
   minus: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>`,
-  plus: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`
+  plus: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`,
+  tick: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`
 };
 
 /* The one map typed by hand: which heading an item sits under. An item the
@@ -380,13 +477,13 @@ const STEP = 10;          // cents moved by one press of minus or plus
 const FLOOR = 10;         // a trial price never goes below this many cents
 const MIN_OTHERS = 5;     // fewer other cafes than this: nothing to compare
 const PERCENT_FROM = 30;  // this many other cafes or more: percentages, else counts
-const RIVALS = 4;
+const NEAR_START = 4;     // cafes ticked for a shop when it is first set up
 
 let D = null;                 // site_data.json
 const SHOPS = new Map();      // shop_id -> its shop_items row
 let shop = null;              // the reader's shop
 let myItems = [];             // item keys this shop has a price for, in list order
-let rivals = [];              // the nearest shops, the same for every item
+let rivals = [];              // the competitors the reader chose, nearest first
 let tab = "all";
 let openItem = null;          // the item in the right panel, or null when closed
 let view = "list";
@@ -466,24 +563,58 @@ function realLine(c){
   return `At your real price: ${part(c.more, "more", true)} and ${part(c.less, "less", false)}.`;
 }
 
-/* ---------- which screen ---------- */
+/* ---------- which screen ----------
+   The address says it all: no shop is step 1, a shop with no competitors is
+   step 2, and a shop with competitors is My prices. Each level and screen is
+   its own entry in the browser's history, so Back steps through them. */
+function address(parts){
+  const q = new URLSearchParams();
+  Object.keys(parts).forEach(k => { if(parts[k]) q.set(k, parts[k]); });
+  const text = q.toString();
+  return text ? "?" + text : location.pathname;
+}
+function go(parts){ history.pushState(null, "", address(parts)); route(); }
+/* the ids in the address that are real shops, each once, never the shop itself */
+function validRivals(text, s){
+  const seen = new Set();
+  return String(text || "").split(",").filter(id => {
+    if(!SHOPS.has(id) || id === s.shop_id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+const farFrom = (s, o) => s.lat == null || s.lng == null || o.lat == null || o.lng == null
+  ? Infinity : distKm([s.lat, s.lng], [o.lat, o.lng]);
+const nearestFirst = (s, list) => list.map(o => ({o: o, far: farFrom(s, o)})).sort((a, b) => a.far - b.far).map(x => x.o);
+
+let screen = "";
+function show(name){
+  const fresh = screen !== name;
+  screen = name;
+  byId("setup").hidden = name === "prices";
+  byId("app").hidden = name !== "prices";
+  byId("find").hidden = name !== "find";
+  byId("choose").hidden = name !== "choose";
+  byId("step-1").className = name === "find" ? "now" : "done";
+  byId("step-2").className = name === "choose" ? "now" : "";
+  return fresh;
+}
+function slideIn(el){
+  el.classList.remove("slide");
+  void el.offsetWidth;
+  el.classList.add("slide");
+}
 function route(){
-  const id = new URLSearchParams(location.search).get("shop");
-  const found = id ? SHOPS.get(id) : null;
-  if(!found){ showStart(); return; }
-  openShop(found);
+  const q = new URLSearchParams(location.search);
+  const s = SHOPS.get(q.get("shop")) || null;
+  if(!s){ chooser = null; showFind(q); return; }
+  const ids = validRivals(q.get("rivals"), s);
+  if(!ids.length){ showChooser(s, null, q); return; }
+  if(q.get("view") === "rivals"){ showChooser(s, ids, q); return; }
+  chooser = null;
+  openShop(s, ids);
 }
-function showStart(){
-  shop = null;
-  document.title = "Counter";
-  byId("app").hidden = true;
-  byId("start").hidden = false;
-  const input = byId("shop-input");
-  input.value = "";
-  closeSuggest();
-  input.focus();
-}
-function openShop(s){
+function openShop(s, ids){
   shop = s;
   trial.clear();
   view = "list"; showAll = false;
@@ -491,12 +622,8 @@ function openShop(s){
   const have = Object.keys(D.named_prices).filter(k => D.named_prices[k].some(r => r.shop_id === s.shop_id));
   const named = GROUPS.flatMap(g => g[1]).filter(k => have.indexOf(k) !== -1);
   myItems = named.concat(have.filter(k => named.indexOf(k) === -1));
-  // the same nearest shops for every item
-  rivals = s.lat == null || s.lng == null ? [] : [...SHOPS.values()]
-    .filter(o => o.shop_id !== s.shop_id && o.lat != null && o.lng != null)
-    .map(o => ({o: o, far: distKm([s.lat, s.lng], [o.lat, o.lng])}))
-    .sort((a, b) => a.far - b.far)
-    .slice(0, RIVALS).map(x => x.o);
+  // the competitors the reader chose, the same for every item
+  rivals = nearestFirst(s, ids.map(id => SHOPS.get(id)));
   // the category with the most items opens first
   const cats = categories();
   let best = null;
@@ -507,8 +634,8 @@ function openShop(s){
   document.title = `My prices, ${s.shop_name} | Counter`;
   byId("who-name").textContent = s.shop_name;
   byId("who-area").textContent = s.district;
-  byId("start").hidden = true;
-  byId("app").hidden = false;
+  byId("nav-rivals").textContent = `My competitors (${rivals.length})`;
+  show("prices");
   paint(true);
 }
 function categories(){
@@ -752,25 +879,108 @@ const pinName = name => {
   return t.length > PIN_NAME ? t.slice(0, PIN_NAME - 1).trimEnd() + "\u2026" : t;
 };
 let map = null, pins = null;
+/* ---------- map marks ----------
+   One set of shapes for both maps: a pin for this shop, with its tip on the
+   shop; a target for a competitor and a dot for any other cafe, each with its
+   centre on the cafe. */
+const pinSvg = (w, h) => `<svg class="mk-pin" width="${w}" height="${h}" viewBox="0 0 28 36" aria-hidden="true">` +
+  `<path d="M14 35.5C14 35.5 2 22 2 13.5a12 12 0 1 1 24 0C26 22 14 35.5 14 35.5z"/><circle cx="14" cy="13.5" r="5"/></svg>`;
+const targetSvg = size => `<svg class="tg" width="${size}" height="${size}" viewBox="0 0 22 22" aria-hidden="true">` +
+  `<circle class="tg-ring" cx="11" cy="11" r="9.75"/><circle class="tg-core" cx="11" cy="11" r="4"/></svg>`;
+/* who: "you", "rival" or "other". more: any further classes, such as the compare colour. */
+function markHtml(who, more, id, label, off){
+  const shape = who === "you" ? pinSvg(28, 36) : who === "rival" ? targetSvg(22) : `<span class="mk-dot"></span>`;
+  return `<span class="mk ${who}${more ? " " + more : ""}" data-id="${esc(id)}" style="--off:${off || 0}">${shape}` +
+    (label ? `<span class="mk-label">${label}</span>` : "") + `</span>`;
+}
+const Z_YOU = 10000, Z_RIVAL = 5000;
+const PIN_TOP = 38;       // a popup from the pin opens above the pin's top
+/* Cafes in one building sit on one spot, or within a few metres of it. They
+   are spread along a line, 14px from one to the next, in their order from
+   west to east, so no mark hides another. This shop's pin never moves: the
+   cafes in its building stand to its west and east. */
+const SAME_BUILDING_KM = 0.015;
+function buildings(list){
+  const groups = [];
+  list.forEach(o => {
+    const g = groups.find(x => x.some(y => distKm([y.lat, y.lng], [o.lat, o.lng]) < SAME_BUILDING_KM));
+    if(g) g.push(o); else groups.push([o]);
+  });
+  return groups;
+}
+/* shop_id -> how many steps sideways. pin is this shop, when it is in the building. */
+function fanOffsets(list, pin){
+  const offs = new Map();
+  buildings(pin ? list.concat(pin) : list).forEach(group => {
+    const here = pin && group.indexOf(pin) !== -1;
+    const rest = group.filter(o => o !== pin).sort((a, b) => a.lng - b.lng);
+    if(!here){ rest.forEach((o, i) => offs.set(o.shop_id, i - (rest.length - 1) / 2)); return; }
+    rest.filter(o => o.lng < pin.lng).reverse().forEach((o, i) => offs.set(o.shop_id, -(i + 1)));
+    rest.filter(o => o.lng >= pin.lng).forEach((o, i) => offs.set(o.shop_id, i + 1));
+  });
+  return offs;
+}
+/* Put the "You" label and each competitor's label where it covers no label
+   placed before it and no pin or target: right of its mark, else left, else
+   above, else below. "You" goes first, then competitors from the nearest. */
+const LABEL_GAP = 4;
+function placeLabels(el, from){
+  const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  const marks = [...el.querySelectorAll(".mk.you, .mk.rival")].map(mk => {
+    const o = SHOPS.get(mk.dataset.id);
+    return {mk: mk, label: mk.querySelector(".mk-label"), you: mk.classList.contains("you"),
+            shape: mk.querySelector(".mk-pin, .tg").getBoundingClientRect(), far: from && o ? farFrom(from, o) : 0};
+  }).sort((a, b) => (b.you - a.you) || (a.far - b.far));
+  const placed = [];
+  marks.forEach(m => {
+    if(!m.label) return;
+    const w = m.label.offsetWidth, h = m.label.offsetHeight, s = m.shape;
+    const cx = s.left + s.width / 2, cy = s.top + s.height / 2;
+    const spots = [[s.right + LABEL_GAP, cy - h / 2], [s.left - LABEL_GAP - w, cy - h / 2],
+                   [cx - w / 2, s.top - LABEL_GAP - h], [cx - w / 2, s.bottom + LABEL_GAP]]
+      .map(p => ({left: p[0], top: p[1], right: p[0] + w, bottom: p[1] + h}));
+    const box = spots.find(b => !placed.some(x => hit(b, x)) && !marks.some(x => x !== m && hit(b, x.shape))) || spots[0];
+    const origin = m.mk.getBoundingClientRect();
+    m.label.style.left = (box.left - origin.left) + "px";
+    m.label.style.top = (box.top - origin.top) + "px";
+    placed.push(box);
+  });
+}
+function buildLegends(){
+  const line = (shape, words) => `<li><span class="lg" aria-hidden="true">${shape}</span>${words}</li>`;
+  const key = (kind, words) => `<li><span class="key${kind ? " " + kind : ""}" aria-hidden="true"></span>${words}</li>`;
+  const who = line(pinSvg(14, 18), "You") + line(targetSvg(16), "Your competitor");
+  byId("legend-pick").innerHTML = who + line(`<span class="mk-dot plain"></span>`, "Other cafe. Click it to add.");
+  byId("legend-prices").innerHTML = who + line(`<span class="mk-dot"></span>`, "Other cafe. Click it to see the price.") +
+    key("less", "Charges less than you") + key("", "Same price") + key("more", "Charges more than you");
+  byId("nav-target").innerHTML = targetSvg(18);
+}
+/* One way to make a map, for My prices and for the chooser: the same tiles,
+   and a wheel that scrolls the page and never zooms the map. */
+function makeMap(el, settled){
+  const m = L.map(el, {zoomSnap: 0.5, maxZoom: BASEMAP.maxZoom, scrollWheelZoom: false});
+  // a pinch on a trackpad arrives as a wheel with the control key held
+  let pinch = 0;
+  el.addEventListener("wheel", e => {
+    if(!e.ctrlKey) return;
+    e.preventDefault();
+    pinch -= e.deltaY / 60;
+    const by = Math.trunc(pinch * 2) / 2;
+    if(by){ pinch -= by; m.setZoomAround(m.mouseEventToContainerPoint(e), m.getZoom() + by); }
+  }, {passive: false});
+  m.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
+  L.tileLayer(BASEMAP.url, {
+    minNativeZoom: BASEMAP.minNativeZoom, maxZoom: BASEMAP.maxZoom, bounds: BASEMAP.bounds,
+    updateWhenZooming: false, updateWhenIdle: true, keepBuffer: 1,
+    attribution: BASEMAP.attribution
+  }).addTo(m);
+  // the labels are placed again each time the view comes to rest
+  m.on("zoomend moveend", settled);
+  return m;
+}
 function drawMap(fit){
   if(!map){
-    // the wheel and a two-finger scroll belong to the page, never to the map
-    map = L.map(byId("map"), {zoomSnap: 0.5, maxZoom: BASEMAP.maxZoom, scrollWheelZoom: false});
-    // a pinch on a trackpad arrives as a wheel with the control key held
-    let pinch = 0;
-    byId("map").addEventListener("wheel", e => {
-      if(!e.ctrlKey) return;
-      e.preventDefault();
-      pinch -= e.deltaY / 60;
-      const by = Math.trunc(pinch * 2) / 2;
-      if(by){ pinch -= by; map.setZoomAround(map.mouseEventToContainerPoint(e), map.getZoom() + by); }
-    }, {passive: false});
-    map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
-    L.tileLayer(BASEMAP.url, {
-      minNativeZoom: BASEMAP.minNativeZoom, maxZoom: BASEMAP.maxZoom, bounds: BASEMAP.bounds,
-      updateWhenZooming: false, updateWhenIdle: true, keepBuffer: 1,
-      attribution: BASEMAP.attribution
-    }).addTo(map);
+    map = makeMap(byId("map"), () => { if(shop) placeLabels(byId("map"), shop); });
     pins = L.layerGroup().addTo(map);
     fit = true;
   }
@@ -779,23 +989,22 @@ function drawMap(fit){
   pins.clearLayers();
   const k = openItem, v = cur(k);
   const rows = D.named_prices[k].filter(r => r.lat != null && r.lng != null);
-  // shops sharing a building share a coordinate, so their pins are fanned out
-  // on screen. The coordinate itself is never moved.
-  const spots = new Map();
-  rows.forEach(r => { const key = r.lat + "," + r.lng; if(!spots.has(key)) spots.set(key, []); spots.get(key).push(r); });
-  spots.forEach(group => group.forEach((r, i) => {
+  const offs = fanOffsets(rows.filter(r => r.shop_id !== shop.shop_id), rows.find(r => r.shop_id === shop.shop_id) || null);
+  rows.forEach(r => {
     const me = r.shop_id === shop.shop_id, rival = rivals.some(o => o.shop_id === r.shop_id);
     const kind = kindOf(r.price, v), when = dayMonth(r.observed_date), link = menuLink(r);
-    const off = i - (group.length - 1) / 2;
+    const off = me ? 0 : offs.get(r.shop_id) || 0;
+    const cls = kind + (off ? " shift" : "");
     const marker = L.marker([r.lat, r.lng], {
       icon: L.divIcon({
         className: "pinwrap", iconSize: [0, 0],
-        html: `<span class="pin ${me ? "me" : kind + (rival ? " rival" : "")}" style="--off:${off}">` +
-              (me ? `You ${money(v)}` : rival ? `${esc(pinName(r.shop_name))} ${money(r.price)}` : money(r.price)) + `</span>`
+        html: me ? markHtml("you", "", r.shop_id, `You ${money(v)}`, 0)
+            : rival ? markHtml("rival", cls, r.shop_id, `${esc(pinName(r.shop_name))} ${money(r.price)}`, off)
+            : markHtml("other", cls, r.shop_id, "", off)
       }),
       // the words carry what the colour says, for anyone who cannot see it
       title: me ? `${r.shop_name}, your shop, ${money(v)}` : `${r.shop_name}, ${money(r.price)}, ${diffWords(r.price, v)}`,
-      zIndexOffset: me ? 5000 : rival ? 500 : 0,
+      zIndexOffset: me ? Z_YOU : rival ? Z_RIVAL : 0,
       riseOnHover: true
     });
     marker.bindPopup(
@@ -805,14 +1014,15 @@ function drawMap(fit){
           : `<span class="pop-line">${diffWords(r.price, v)}</span>` +
             (when ? `<span class="pop-line">Checked ${when}</span>` : "") +
             (link ? `<span class="pop-line">${link}</span>` : "")),
-      {offset: [0, -8], maxWidth: 260});
+      {offset: [0, me ? -PIN_TOP : -8], maxWidth: 260});
     marker.addTo(pins);
-  }));
+  });
   // the map opens on this shop and its competitors
   if(fit){
     const pts = [shop].concat(rivals).filter(o => o.lat != null && o.lng != null).map(o => [o.lat, o.lng]);
     if(pts.length) map.fitBounds(L.latLngBounds(pts), {padding: [48, 48], maxZoom: 17, animate: false});
   }
+  placeLabels(byId("map"), shop);
 }
 
 /* ---------- what a press does ---------- */
@@ -822,6 +1032,21 @@ document.addEventListener("click", e => {
   if(!el || el.disabled) return;
   const act = el.dataset.act;
   if(act === "home"){ e.preventDefault(); return; }
+  if(act === "soon"){ byId("soon").hidden = false; return; }
+  if(act === "editrivals"){
+    e.preventDefault();
+    go({shop: shop.shop_id, rivals: rivals.map(o => o.shop_id).join(","), view: "rivals"});
+    return;
+  }
+  if(chooser && screen === "choose"){
+    if(act === "tick") toggleRival(el.dataset.id, el);
+    else if(act === "pview"){ chooser.view = el.dataset.view; chooser.fitted = false; paintChooser(); }
+    else if(act === "done"){
+      const ids = nearestFirst(chooser.shop, chooser.chosen.map(id => SHOPS.get(id))).map(o => o.shop_id);
+      if(ids.length) go({shop: chooser.shop.shop_id, rivals: ids.join(",")});
+    }
+    return;
+  }
   if(act === "change"){
     e.preventDefault();
     history.pushState(null, "", location.pathname);
@@ -843,6 +1068,14 @@ document.addEventListener("click", e => {
   else if(act === "resetall"){ trial.clear(); paint(); focusOn(`[data-act="try"]`); }
   else if(act === "view"){ view = el.dataset.view; paintDetail(true); }
   else if(act === "all"){ showAll = !showAll; paintCafes(); focusOn(`[data-act="all"]`); }
+});
+// a tile, a trail button or a step back: each is a new address
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-nav]");
+  if(!el || el.disabled) return;
+  e.preventDefault();
+  history.pushState(null, "", el.dataset.nav);
+  route();
 });
 window.addEventListener("popstate", route);
 // which way the reader is working, so the focus mark shows for keys only
@@ -892,54 +1125,259 @@ window.addEventListener("resize", () => {
   resizing = requestAnimationFrame(() => { if(shop && openItem) drawChart(); });
 });
 
-/* ---------- the start screen's field ---------- */
-let opts = [], active = -1;
-function closeSuggest(){
-  const input = byId("shop-input"), list = byId("shop-list");
-  list.hidden = true; active = -1; opts = [];
-  input.setAttribute("aria-expanded", "false");
-  input.removeAttribute("aria-activedescendant");
+/* ---------- set-up ----------
+   The one grouping typed by hand: which part of the island a district is in.
+   A district the data adds later, and this map does not know, goes under
+   "Other". Only shops with prices are offered. */
+const PARTS = [
+  ["City centre", ["Orchard / Somerset", "River Valley / Robertson Quay", "Bugis / Kampong Glam / Haji Lane", "Jalan Besar", "Tanjong Pagar / Duxton", "Telok Ayer / Amoy", "Tiong Bahru"]],
+  ["East", ["Katong / Joo Chiat", "East Coast / Siglap"]],
+  ["West", ["Bukit Timah / Sixth Avenue", "Holland Village / Dempsey", "Queenstown / Alexandra"]],
+  ["North", ["Novena / Balestier", "Upper Thomson", "Serangoon Gardens / Kovan"]]
+];
+const OTHER_PART = "Other";
+const WHOLE = "Singapore";
+const partOf = district => { const p = PARTS.find(x => x[1].indexOf(district) !== -1); return p ? p[0] : OTHER_PART; };
+const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+/* the parts that hold a shop, in the given order, each with its areas by name */
+function partsOf(shops){
+  return PARTS.map(p => p[0]).concat(OTHER_PART).map(name => {
+    const inPart = shops.filter(s => partOf(s.district) === name);
+    const areas = [...new Set(inPart.map(s => s.district))].sort((a, b) => a.localeCompare(b));
+    return {name: name, cafes: inPart.length,
+            areas: areas.map(d => ({district: d, shops: inPart.filter(s => s.district === d)}))};
+  }).filter(p => p.cafes > 0);
 }
-function setActive(i){
-  const input = byId("shop-input"), list = byId("shop-list");
-  active = i;
-  list.querySelectorAll("li[role=option]").forEach((li, n) => li.setAttribute("aria-selected", String(n === i)));
-  if(i < 0){ input.removeAttribute("aria-activedescendant"); return; }
-  const li = byId("shop-opt-" + i);
-  input.setAttribute("aria-activedescendant", li.id);
-  li.scrollIntoView({block: "nearest"});
+/* where an "at" in the address points: the parts, one part's areas, or one area's shops */
+function placeOf(at, parts){
+  const text = String(at || "");
+  if(text.indexOf("a:") === 0){
+    for(const p of parts){
+      const a = p.areas.find(x => x.district === text.slice(2));
+      if(a) return {level: "shops", part: p, area: a};
+    }
+  }
+  if(text.indexOf("p:") === 0){
+    const p = parts.find(x => x.name === text.slice(2));
+    if(p) return {level: "areas", part: p};
+  }
+  return {level: "parts"};
 }
-function pick(s){
-  closeSuggest();
-  history.pushState(null, "", "?shop=" + encodeURIComponent(s.shop_id));
-  route();
+const tile = (nav, t1, t2) => `<button type="button" class="tile" data-nav="${esc(nav)}">` +
+  `<span class="t1">${esc(t1)}</span><span class="t2">${esc(t2)}</span></button>`;
+const dashedTile = (attrs, t1, t2) => `<button type="button" class="tile dashed" ${attrs}>` +
+  `<span class="t1">${esc(t1)}</span><span class="t2">${esc(t2)}</span></button>`;
+const trailHtml = steps => steps.map((t, i) =>
+  `<button type="button" data-nav="${esc(t.nav)}"${i === steps.length - 1 ? ` class="last" aria-current="true"` : ""}>${esc(t.text)}</button>`).join("");
+const partWords = p => `${count(p.areas.length, "area", "areas")}, ${count(p.cafes, "cafe", "cafes")}`;
+const cafeWords = a => count(a.shops.length, "cafe", "cafes");
+
+/* ---------- step 1: find your shop ---------- */
+function showFind(q){
+  shop = null;
+  document.title = "Find your shop | Counter";
+  const parts = partsOf([...SHOPS.values()]);
+  const picked = SHOPS.get(q.get("pick")) || null;
+  const place = placeOf(picked ? "a:" + picked.district : q.get("at"), parts);
+  const steps = [{text: WHOLE, nav: address({})}];
+  if(place.part) steps.push({text: place.part.name, nav: address({at: "p:" + place.part.name})});
+  if(place.area) steps.push({text: place.area.district, nav: address({at: "a:" + place.area.district})});
+
+  let html = `<h1>Find your shop</h1><p class="sub">Three taps. No typing needed.</p>` +
+             `<div class="trail" id="find-trail">${trailHtml(steps)}</div>`;
+  if(picked){
+    html += `<div class="panel card" id="shop-card" tabindex="-1"><p class="muted">Your shop</p>` +
+      `<p class="big">${esc(picked.shop_name)}</p><p>${esc(picked.district)}</p><p>${esc(picked.address || "")}</p>` +
+      `<button type="button" class="btn primary" data-nav="${esc(address({shop: picked.shop_id}))}">Yes, this is my shop</button></div>`;
+  } else if(place.level === "parts"){
+    html += `<p class="ask" tabindex="-1">Which part of ${WHOLE} is your shop in?</p><div class="tiles" id="find-tiles">` +
+      parts.map(p => tile(address({at: "p:" + p.name}), p.name, partWords(p))).join("") + `</div>`;
+  } else if(place.level === "areas"){
+    html += `<p class="ask" tabindex="-1">Which area?</p><div class="tiles" id="find-tiles">` +
+      place.part.areas.map(a => tile(address({at: "a:" + a.district}), a.district, cafeWords(a))).join("") +
+      dashedTile(`data-act="soon"`, "My area is not here", "Add your area") + `</div>`;
+  } else {
+    const shops = place.area.shops.slice().sort((a, b) => a.shop_name.localeCompare(b.shop_name));
+    html += `<p class="ask" tabindex="-1">Which shop is yours?</p><div class="tiles" id="find-tiles">` +
+      shops.map(o => tile(address({at: "a:" + o.district, pick: o.shop_id}), o.shop_name, o.address || "")).join("") +
+      dashedTile(`data-act="soon"`, "My shop is not here", "Add your shop") + `</div>`;
+  }
+  html += `<p class="soonline" id="soon" role="status" hidden>Adding a new shop comes with menu upload. That is coming soon.</p>`;
+  const body = byId("find-body");
+  body.innerHTML = html;
+  show("find");
+  slideIn(body);
+  focusOn("#find-body .ask, #shop-card");
 }
-function buildStart(){
-  const input = byId("shop-input"), list = byId("shop-list");
+
+/* ---------- step 2: choose your competitors ----------
+   The ticks live in memory until Done writes them into the address. */
+let chooser = null;
+/* "350 m" to the nearest 50 m under a kilometre, "1.4 km" from there */
+function awayWords(km){
+  if(!isFinite(km)) return "";
+  const m = Math.round(km * 1000 / 50) * 50;
+  return m < 1000 ? `${m} m` : `${km.toFixed(1)} km`;
+}
+function showChooser(s, ids, q){
+  shop = null;
+  const key = s.shop_id + (ids ? "|edit|" + ids.join(",") : "|first");
+  const entering = !chooser || chooser.key !== key;
+  if(entering){
+    const others = nearestFirst(s, [...SHOPS.values()].filter(o => o.shop_id !== s.shop_id));
+    chooser = {key: key, shop: s, edit: !!ids, old: ids || [], others: others, view: "list", fitted: false, at: null,
+               chosen: ids ? ids.slice() : others.slice(0, NEAR_START).map(o => o.shop_id)};
+  }
+  const at = q.get("at") || "";
+  const moved = chooser.at !== at;
+  chooser.at = at;
+  document.title = "Choose your competitors | Counter";
+  byId("choose-sub").textContent = chooser.edit ? "Tap a cafe to add or remove it."
+    : `We picked the ${Math.min(NEAR_START, chooser.others.length)} cafes closest to you. Tap a cafe to add or remove it.`;
+  const fresh = show("choose");
+  paintChooser();
+  if(fresh || entering){ slideIn(byId("choose")); byId("find-input").value = ""; }
+  else if(moved) slideIn(byId("pick-tiles"));
+}
+function paintChooser(){
+  const c = chooser, s = c.shop;
+  const here = at => address({shop: s.shop_id, rivals: c.edit ? c.old.join(",") : "", view: c.edit ? "rivals" : "", at: at});
+  const parts = partsOf(c.others);
+  const place = c.at === "sg" ? {level: "parts"} : placeOf(c.at || "a:" + s.district, parts);
+  const isOn = id => c.chosen.indexOf(id) !== -1;
+
+  const steps = [{text: WHOLE, nav: here("sg")}];
+  if(place.part) steps.push({text: place.part.name, nav: here("p:" + place.part.name)});
+  if(place.area){
+    const home = place.area.district === s.district;
+    steps.push({text: place.area.district + (home ? ", near you" : ""), nav: here(home ? "" : "a:" + place.area.district)});
+  }
+  byId("pick-trail").innerHTML = trailHtml(steps);
+  byId("pick-seg").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === c.view)));
+
+  let html = "";
+  if(place.level === "parts") html = parts.map(p => tile(here("p:" + p.name), p.name, partWords(p))).join("");
+  else if(place.level === "areas") html = place.part.areas.map(a => tile(here("a:" + a.district), a.district, cafeWords(a))).join("");
+  else html = place.area.shops.map(o => {          // already nearest first
+    const on = isOn(o.shop_id), away = awayWords(farFrom(s, o));
+    return `<button type="button" class="tile tick" data-act="tick" data-id="${esc(o.shop_id)}" aria-pressed="${on}">` +
+      `<span class="box" aria-hidden="true">${ICON.tick}</span><span class="words">` +
+      `<span class="t1">${esc(o.shop_name)}</span>` + (away ? `<span class="t2">${away} away</span>` : "") +
+      `<span class="t3">${on ? "Your competitor" : "Tap to add"}</span></span></button>`;
+  }).join("") + dashedTile(`data-nav="${esc(here("sg"))}"`, "Look in another area", `Pick a part of ${WHOLE}, then an area`);
+  const tiles = byId("pick-tiles");
+  tiles.innerHTML = `<div class="tiles">${html}</div>`;
+  tiles.hidden = c.view !== "list";
+  byId("pick-mapwrap").hidden = c.view !== "map";
+  if(c.view === "map") drawPickMap();
+
+  const picked = nearestFirst(s, c.chosen.map(id => SHOPS.get(id)));
+  byId("chosen").innerHTML =
+    `<h2>Your competitors (${picked.length})</h2><ul class="chosen-rows">` + picked.map(o =>
+      `<li><div class="words"><p class="name">${esc(o.shop_name)}</p><p class="muted small">${esc(o.district)}</p></div>` +
+      `<button type="button" class="btn" data-act="tick" data-id="${esc(o.shop_id)}" aria-label="Remove ${esc(o.shop_name)}">Remove</button></li>`).join("") +
+    `</ul><div class="after"><p class="muted small">You can change this later.</p>` +
+    (picked.length ? "" : `<p class="need" id="need-one">Pick at least one cafe.</p>`) +
+    `<button type="button" class="btn primary block" data-act="done"${picked.length ? "" : " disabled"}>Done. Show my prices</button>` +
+    `<button type="button" class="btn block" data-nav="${esc(c.edit ? address({shop: s.shop_id, rivals: c.old.join(",")})
+                                                                     : address({at: "a:" + s.district, pick: s.shop_id}))}">${c.edit ? "Cancel" : "Back"}</button></div>`;
+}
+function toggleRival(id, from){
+  const c = chooser, i = c.chosen.indexOf(id);
+  if(!SHOPS.has(id) || id === c.shop.shop_id) return;
+  if(i === -1) c.chosen.push(id); else c.chosen.splice(i, 1);
+  const inPanel = from && from.closest("#chosen"), inTiles = from && from.closest("#pick-tiles");
+  paintChooser();
+  if(inTiles || inPanel) focusOn(`#pick-tiles [data-id="${id}"]`);
+}
+/* The chooser's map: this shop, a label for each chosen cafe, a dot for the rest. */
+let pmap = null, pmarks = null;
+function drawPickMap(){
+  const c = chooser, s = c.shop;
+  if(!pmap){ pmap = makeMap(byId("pmap"), () => { if(chooser) placeLabels(byId("pmap"), chooser.shop); }); pmarks = L.layerGroup().addTo(pmap); }
+  pmap.invalidateSize();
+  pmap.closePopup();
+  pmarks.clearLayers();
+  const isOn = id => c.chosen.indexOf(id) !== -1;
+  if(s.lat != null && s.lng != null){
+    L.marker([s.lat, s.lng], {
+      icon: L.divIcon({className: "pinwrap", iconSize: [0, 0], html: markHtml("you", "", s.shop_id, "You", 0)}),
+      title: `${s.shop_name}, your shop`, zIndexOffset: Z_YOU
+    }).bindPopup(`<span class="pop-name">${esc(s.shop_name)}</span><span class="pop-line">Your shop</span>`,
+                 {offset: [0, -PIN_TOP], maxWidth: 260}).addTo(pmarks);
+  }
+  const placed = c.others.filter(o => o.lat != null && o.lng != null);
+  const offs = fanOffsets(placed, s.lat != null && s.lng != null ? s : null);
+  placed.forEach(o => {
+    const on = isOn(o.shop_id), away = awayWords(farFrom(s, o)), off = offs.get(o.shop_id) || 0;
+    const marker = L.marker([o.lat, o.lng], {
+      icon: L.divIcon({className: "pinwrap", iconSize: [0, 0],
+        html: on ? markHtml("rival", off ? "shift" : "", o.shop_id, esc(pinName(o.shop_name)), off)
+                 : markHtml("other", off ? "plain shift" : "plain", o.shop_id, "", off)}),
+      title: o.shop_name, zIndexOffset: on ? Z_RIVAL : 0, riseOnHover: true
+    });
+    marker.bindPopup(
+      `<span class="pop-name">${esc(o.shop_name)}</span><span class="pop-line">${esc(o.district)}</span>` +
+      (away ? `<span class="pop-line">${away} away</span>` : "") +
+      `<button type="button" class="btn pop-btn" data-act="tick" data-id="${esc(o.shop_id)}">${on ? "Remove" : targetSvg(18) + "Add to my competitors"}</button>`,
+      {offset: [0, -8], maxWidth: 260});
+    marker.addTo(pmarks);
+  });
+  // the map opens on this shop and the chosen cafes
+  if(!c.fitted){
+    const pts = [s].concat(c.chosen.map(id => SHOPS.get(id))).filter(o => o.lat != null && o.lng != null).map(o => [o.lat, o.lng]);
+    if(pts.length) pmap.fitBounds(L.latLngBounds(pts), {padding: [56, 56], maxZoom: 17, animate: false});
+    c.fitted = true;
+  }
+  placeLabels(byId("pmap"), s);
+}
+/* "Know the name? Find a cafe": the same search as before, this shop left out */
+function buildSetup(){
+  const input = byId("find-input"), list = byId("find-list");
   const all = [...SHOPS.values()].sort((a, b) => a.shop_name.localeCompare(b.shop_name));
   // two outlets with one name in one area are told apart by their street
   const twins = new Map();
   const twinKey = s => fold(s.shop_name) + "|" + s.district;
   all.forEach(s => twins.set(twinKey(s), (twins.get(twinKey(s)) || 0) + 1));
   const subOf = s => twins.get(twinKey(s)) > 1 && s.address ? `${s.address}, ${s.district}` : s.district;
+  let opts = [], active = -1;
 
+  function close(){
+    list.hidden = true; active = -1; opts = [];
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+  }
+  function setActive(i){
+    active = i;
+    list.querySelectorAll("li[role=option]").forEach((li, n) => li.setAttribute("aria-selected", String(n === i)));
+    if(i < 0){ input.removeAttribute("aria-activedescendant"); return; }
+    const li = byId("find-opt-" + i);
+    input.setAttribute("aria-activedescendant", li.id);
+    li.scrollIntoView({block: "nearest"});
+  }
   function suggest(){
     const raw = input.value.trim(), q = fold(raw);
-    if(raw.length < 2 || !q){ closeSuggest(); return; }
-    opts = ranked(all, s => s.shop_name, q).slice(0, MAX_SUGGEST);
+    if(!chooser || raw.length < 2 || !q){ close(); return; }
+    opts = ranked(all.filter(s => s.shop_id !== chooser.shop.shop_id), s => s.shop_name, q).slice(0, MAX_SUGGEST);
     list.innerHTML = opts.length
-      ? opts.map((s, i) => `<li role="option" id="shop-opt-${i}" aria-selected="false" data-i="${i}">` +
+      ? opts.map((s, i) => `<li role="option" id="find-opt-${i}" aria-selected="false" data-i="${i}">` +
           `<span class="optname">${esc(s.shop_name)}</span><span class="optsub">${esc(subOf(s))}</span></li>`).join("")
-      : `<li class="none" role="presentation">No shop with that name.</li>`;
+      : `<li class="none" role="presentation">No cafe with that name.</li>`;
     list.hidden = false; list.scrollTop = 0; active = -1;
     input.setAttribute("aria-expanded", "true");
     input.removeAttribute("aria-activedescendant");
   }
+  function pick(s){
+    input.value = "";
+    close();
+    if(chooser.chosen.indexOf(s.shop_id) === -1) chooser.chosen.push(s.shop_id);
+    paintChooser();
+  }
   input.addEventListener("input", suggest);
   input.addEventListener("focus", suggest);
-  input.addEventListener("blur", () => setTimeout(closeSuggest, 150));
+  input.addEventListener("blur", () => setTimeout(close, 150));
   input.addEventListener("keydown", e => {
-    if(e.key === "Escape"){ closeSuggest(); return; }
+    if(e.key === "Escape"){ close(); return; }
     if(list.hidden || !opts.length) return;
     if(e.key === "ArrowDown"){ e.preventDefault(); setActive((active + 1) % opts.length); }
     else if(e.key === "ArrowUp"){ e.preventDefault(); setActive((active - 1 + opts.length) % opts.length); }
@@ -961,9 +1399,10 @@ fetch("site_data.json").then(r => {
 }).then(d => {
   D = d;
   d.shop_items.forEach(s => SHOPS.set(s.shop_id, s));
-  buildStart();
+  buildSetup();
+  buildLegends();
   route();
-}).catch(err => { console.error(err); byId("app").hidden = true; byId("start").hidden = true; byId("problem").hidden = false; });
+}).catch(err => { console.error(err); byId("app").hidden = true; byId("setup").hidden = true; byId("problem").hidden = false; });
 </script>
 </body>
 </html>
