@@ -28,7 +28,7 @@
   --same:#C9C5BE;        /* charges the same */
   --same-line:#8F8A83;   /* the thin border round a "same" mark */
   --faint:#8F8A83;       /* lines of the menu that do not work yet */
-  /* rust, from the Counter logo: the "Limited time" tag and a switch that is on, and nothing else */
+  /* rust, from the Counter logo: the "Limited time" tag, a switch that is on, and the filled heart of a saved item. Nothing else. */
   --rust:#C0531F;
   --rust-soft:#FBEDE5;   /* the tag's background */
   --rust-line:#EBC3AE;   /* the tag's border */
@@ -182,6 +182,25 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .main > h1{margin-bottom:20px}
 .main > .sub{margin:-12px 0 20px}
 .page-empty{color:var(--ink)}
+
+/* ---------- saving: a heart and a word ---------- */
+.ic.full{fill:var(--rust); stroke:var(--rust)}
+.btn.savebtn{gap:6px; color:var(--ink)}
+.savebtn .ic{width:16px; height:16px}
+.tag .ic{display:inline-block; width:11px; height:11px; margin-right:4px; vertical-align:-1px}
+.row .tag + .tag{margin-left:6px}
+/* the Saved page: one row for each saved thing, its words at the left and its buttons at the right */
+#savedpage .warn{margin-bottom:12px; padding:10px 12px; border:1px solid var(--ink); border-radius:var(--r); background:var(--picked); color:var(--ink); font-weight:600}
+#savedpage h3{margin:18px 0 2px}
+.savedrows li{display:flex; flex-wrap:wrap; align-items:flex-start; gap:10px 20px; padding:14px 0; border-bottom:1px solid var(--rule)}
+.savedrows .words{flex:1 1 260px; min-width:0}
+.savedrows .name{font-weight:700; color:var(--ink)}
+.savedrows .name .tag{margin-left:6px}
+.savedrows .words p + p{margin-top:2px}
+.savedrows .meaning{color:var(--ink); font-weight:600}
+.savedrows .acts{display:flex; flex-wrap:wrap; gap:8px}
+.savedrows .btn{min-height:36px; padding:0 14px; font-size:14px}
+#savedpage .none p + p{margin-top:4px}
 .main > .sub .under{display:block; margin-top:4px}
 
 /* ---------- New at other cafes: one panel with tabs, two switches and a table ---------- */
@@ -200,13 +219,17 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .switch[aria-checked="true"] .track::after{left:18px}
 .tablebox{overflow-x:auto}
 /* fixed widths, so a long name or a tag wraps inside its column and never widens the table */
-.newtable{width:100%; min-width:620px; border-collapse:collapse; table-layout:fixed; font-size:14px}
+.newtable{width:100%; min-width:744px; border-collapse:collapse; table-layout:fixed; font-size:14px}
 /* The last three columns are as wide as their longest text needs, in pixels,
    so they sit together at the right on any screen. The Item column, with no
    width of its own, takes everything that is left. */
 .newtable .c-since{width:90px}     /* 10 + "September" + 10 */
 .newtable .c-price{width:112px}    /* 30 clear of the column before + the longest price + 30 */
 .newtable .c-source{width:114px}   /* 10 + the longest link text + 10 */
+.newtable .c-save{width:124px}     /* 30 clear of the link before + the save button + 10 */
+.newtable th.c-save, .newtable td.save{padding-left:30px}
+.newtable .irow td{vertical-align:middle}
+.newtable .savebtn{min-width:84px; min-height:32px; height:32px; padding:0 8px; border-radius:8px; font-size:13px}
 .newtable thead th{padding:8px 10px; text-align:left; font-size:13px; font-weight:600; color:var(--muted); border-bottom:1px solid var(--line); white-space:nowrap}
 .newtable td{padding:10px; vertical-align:top; border-bottom:1px solid var(--rule); overflow-wrap:anywhere}
 .newtable .lead{font-weight:600; color:var(--ink)}
@@ -219,7 +242,7 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .newtable .gfold td{padding:8px 10px 12px; border-bottom:0}
 .newtable .gfold .btn{min-height:36px; padding:0 12px; font-size:13px}
 .newtable .tag{margin-left:6px}
-.newtable .tag.limited{background:var(--rust-soft); border-color:var(--rust-line); color:var(--rust-ink)}
+.tag.limited{background:var(--rust-soft); border-color:var(--rust-line); color:var(--rust-ink)}
 /* the price ends well clear of the source link beside it */
 .newtable th.num, .newtable td.num{padding-right:30px}
 .newtable .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
@@ -456,8 +479,8 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7M16 18h5"/></svg><span id="nav-missing-words">Items you do not sell</span></a></li>
         <li><span class="line" role="link" aria-disabled="true">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>Offers<span class="soon">Soon</span></span></li>
-        <li><span class="line" role="link" aria-disabled="true">
-          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Saved<span class="soon">Soon</span></span></li>
+        <li><a class="line" href="./" id="nav-saved" data-nav="">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S4 15.2 4 9.4a4.4 4.4 0 0 1 8-2.5 4.4 4.4 0 0 1 8 2.5c0 5.8-8 11.1-8 11.1z"/></svg><span id="nav-saved-words">Saved</span></a></li>
         <li class="divider" role="presentation"></li>
         <li><span class="line" role="link" aria-disabled="true">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts<span class="soon">Soon</span></span></li>
@@ -495,6 +518,7 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
       </section>
     </div>
     <section class="panel" id="newpage" aria-label="New at other cafes" hidden></section>
+    <section class="panel" id="savedpage" aria-label="Saved" hidden></section>
   </main>
 </div>
 
@@ -522,7 +546,9 @@ const ICON = {
   close: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
   minus: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>`,
   plus: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`,
-  tick: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`
+  tick: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
+  heart: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S4 15.2 4 9.4a4.4 4.4 0 0 1 8-2.5 4.4 4.4 0 0 1 8 2.5c0 5.8-8 11.1-8 11.1z"/></svg>`,
+  heartFull: `<svg class="ic full" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S4 15.2 4 9.4a4.4 4.4 0 0 1 8-2.5 4.4 4.4 0 0 1 8 2.5c0 5.8-8 11.1-8 11.1z"/></svg>`
 };
 
 /* The one map typed by hand: which heading an item sits under. An item the
@@ -567,6 +593,66 @@ const test = new Map();       // item -> a price in cents tested for an item the
 let showHidden = false;       // whether the "Hidden items" list is open
 let closed = false;           // whether the reader closed the right panel
 let lastShop = "";            // the shop the trial and test prices belong to
+
+/* ---------- saved things ----------
+   The one use of the browser's own storage in Counter, under one key: for
+   each shop, the prices it saved for items on its menu ("tests") and the
+   things not on its menu that it saved ("ideas"). Every read and write goes
+   through the two functions below. Nothing here is sent anywhere. */
+const SAVE_KEY = "counter.saved.v1";
+let saves = {};               // shop_id -> {tests: [{item, cents, at}], ideas: [{kind, ...}]}
+let savesLost = false;        // true when the browser would not keep a save
+function loadSaves(){
+  let kept = null;
+  try { kept = JSON.parse(localStorage.getItem(SAVE_KEY) || "{}"); } catch(e){ kept = null; }
+  saves = kept && typeof kept === "object" && !Array.isArray(kept) ? kept : {};
+}
+function storeSaves(){
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(saves)); }
+  catch(e){ savesLost = true; }     // the saves stay in memory for this visit
+}
+/* this shop's saves, cleaned of anything that is not a save. write: make room for a new one. */
+function shopSaves(write){
+  let mine = saves[shop.shop_id];
+  if(!mine || typeof mine !== "object"){
+    mine = {tests: [], ideas: []};
+    if(write) saves[shop.shop_id] = mine;
+  }
+  const text = v => typeof v === "string" && v !== "";
+  mine.tests = (Array.isArray(mine.tests) ? mine.tests : []).filter(e => e && text(e.item) && Number.isFinite(e.cents));
+  mine.ideas = (Array.isArray(mine.ideas) ? mine.ideas : []).filter(e => e &&
+    ((e.kind === "missing" && text(e.item) && (e.cents === null || Number.isFinite(e.cents))) ||
+     (e.kind === "new" && text(e.shop) && text(e.item_name))));
+  return mine;
+}
+const newKey = (cafe, name) => cafe + "|" + name;       // the same key newScope() uses
+const savedTest = item => shopSaves().tests.find(e => e.item === item);
+const savedMissing = item => shopSaves().ideas.find(e => e.kind === "missing" && e.item === item);
+const savedNew = (cafe, name) => shopSaves().ideas.find(e => e.kind === "new" && newKey(e.shop, e.item_name) === newKey(cafe, name));
+const savedCount = () => { const mine = shopSaves(); return mine.tests.length + mine.ideas.length; };
+const stamp = () => new Date().toISOString();
+/* one entry at most for each item or new item: the old one goes, the new one, if any, comes in */
+function putTest(item, entry){
+  const mine = shopSaves(true);
+  mine.tests = mine.tests.filter(e => e.item !== item);
+  if(entry) mine.tests.push(entry);
+  storeSaves();
+}
+function putIdea(same, entry){
+  const mine = shopSaves(true);
+  mine.ideas = mine.ideas.filter(e => !same(e));
+  if(entry) mine.ideas.push(entry);
+  storeSaves();
+}
+const putMissing = (item, entry) => putIdea(e => e.kind === "missing" && e.item === item, entry);
+const putNew = (cafe, name, entry) => putIdea(e => e.kind === "new" && newKey(e.shop, e.item_name) === newKey(cafe, name), entry);
+/* A save button: a heart and a word. Saved, the heart is filled and the word is "Saved". */
+const saveBtn = (attrs, on, words, name) => `<button type="button" class="btn quiet savebtn" ${attrs} aria-pressed="${on}" ` +
+  `aria-label="${on ? "Saved" : words}: ${esc(name)}">${on ? ICON.heartFull : ICON.heart}${on ? "Saved" : words}</button>`;
+const SAVED_TAG = `<span class="tag savedtag">${ICON.heartFull}Saved</span>`;
+
+let savedTab = "tests";       // the Saved page: "tests" for On my menu, "ideas" for Not on my menu
+let wantOpen = null;          // an item the Saved page asked the next page to open
 
 const priceRow = key => D.price_table.find(r => r.item_canonical === key) || {};
 const itemName = key => priceRow(key).display_name || key;
@@ -716,7 +802,7 @@ function route(){
 }
 function openShop(s, ids, q){
   const asked = q.get("page");
-  const nextPage = asked === "missing" || asked === "new" ? asked : "prices";
+  const nextPage = asked === "missing" || asked === "new" || asked === "saved" ? asked : "prices";
   // a new shop, a new page, or a return from set-up starts the page afresh.
   // A change to the hidden items alone leaves the open tab and item be.
   const entering = screen !== "prices" || lastShop !== s.shop_id || page !== nextPage;
@@ -745,6 +831,8 @@ function openShop(s, ids, q){
     view = "list"; showAll = false; showHidden = false; closed = false;
     // New at other cafes starts on the competitors' items when there are any
     newTab = "all"; chainsOn = false; foldNew(); onlyMine = anyMine();
+    // the Saved page asked for one item to be open
+    if(wantOpen && pageItems().indexOf(wantOpen) !== -1){ tab = "all"; openItem = wantOpen; }
     // My prices opens on the category with the most items, this page on All
     let best = null;
     if(page === "prices") categories().forEach(c => { if(!best || c.n > best.n || (c.n === best.n && c.format === TIE_TAB)) best = c; });
@@ -757,13 +845,20 @@ function openShop(s, ids, q){
     if(gone || (!openItem && !closed)) openItem = inTab()[0] || null;
   }
 
+  wantOpen = null;
+  // Saved: the address names the tab. With none, the first tab shows, unless
+  // it is empty and the second is not.
+  if(page === "saved"){
+    const named = q.get("tab"), mine = shopSaves();
+    savedTab = named === "ideas" ? "ideas" : named === "menu" ? "tests" : !mine.tests.length && mine.ideas.length ? "ideas" : "tests";
+  }
   document.title = `${PAGE_TITLE[page]}, ${s.shop_name} | Counter`;
   byId("who-name").textContent = s.shop_name;
   byId("who-area").textContent = s.district;
   show("prices");
   paint(entering);
 }
-const PAGE_TITLE = {prices: "My prices", missing: "Items you do not sell", new: "New at other cafes"};
+const PAGE_TITLE = {prices: "My prices", missing: "Items you do not sell", new: "New at other cafes", saved: "Saved"};
 function categories(){
   const tally = new Map();
   pageItems().forEach(k => { const f = priceRow(k).format || ""; tally.set(f, (tally.get(f) || 0) + 1); });
@@ -776,6 +871,7 @@ function paint(fit){
   paintFrame();
   paintBand();
   if(page === "new"){ paintNew(); return; }
+  if(page === "saved"){ paintSaved(); return; }
   paintList();
   paintDetail(fit);
 }
@@ -784,7 +880,8 @@ function paintFrame(){
   const miss = page === "missing", n = visMissing().length;
   byId("nav-rivals").textContent = `My competitors (${rivals.length})`;
   byId("nav-missing-words").textContent = `Items you do not sell (${n})`;
-  [["nav-prices", "prices"], ["nav-new", "new"], ["nav-missing", "missing"]].forEach(pair => {
+  byId("nav-saved-words").textContent = `Saved (${savedCount()})`;
+  [["nav-prices", "prices"], ["nav-new", "new"], ["nav-missing", "missing"], ["nav-saved", "saved"]].forEach(pair => {
     const link = byId(pair[0]);
     link.dataset.nav = address(here({page: pair[1] === "prices" ? "" : pair[1]}));
     if(page === pair[1]) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
@@ -799,8 +896,9 @@ function paintFrame(){
   const empty = byId("page-empty");
   empty.hidden = !none;
   empty.textContent = none ? "Your competitors do not sell any compared item that is missing from your menu." : "";
-  byId("cols").hidden = none || page === "new";
+  byId("cols").hidden = none || page === "new" || page === "saved";
   byId("newpage").hidden = page !== "new";
+  byId("savedpage").hidden = page !== "saved";
 }
 
 function paintBand(){
@@ -845,7 +943,7 @@ function missingRowHtml(k){
     `<span class="what"><span class="item">${name}</span>` +
     `<span class="verdict usual" data-sell>${sellWords(k, "this")}</span>` +
     `<span class="verdict usual" data-range>Cafes charge ${money(row.low)} to ${money(row.high)}</span>` +
-    (test.has(k) ? `<span class="tag">Testing ${money(test.get(k) / 100)}</span>` : "") + `</span>` +
+    (test.has(k) ? `<span class="tag">Testing ${money(test.get(k) / 100)}</span>` : "") + (savedMissing(k) ? SAVED_TAG : "") + `</span>` +
     `<span class="acts">` +
     (open ? `<span class="now">Showing now</span>`
           : `<button type="button" class="btn go" data-go="${esc(k)}" aria-label="Compare ${name}">Compare</button>`) +
@@ -872,7 +970,7 @@ function rowHtml(k){
   return `<li><div class="row${open ? " open" : ""}" data-row="${esc(k)}"${open ? "" : ` data-act="open" data-item="${esc(k)}"`}>` +
     `<span class="what"><span class="item">${esc(itemName(k))}</span>` +
     `<span class="verdict${usual ? " usual" : ""}" data-verdict>${esc(shortVerdict(words))}</span>` +
-    (tag ? `<span class="tag">${tag}</span>` : "") + `</span>` +
+    (tag ? `<span class="tag">${tag}</span>` : "") + (savedTest(k) ? SAVED_TAG : "") + `</span>` +
     `<span class="price">${money(v)}</span>` +
     (open ? `<span class="now">Showing now</span>`
           : `<button type="button" class="btn go" data-go="${esc(k)}" aria-label="Compare ${esc(itemName(k))}">Compare</button>`) +
@@ -962,12 +1060,13 @@ function paintNew(){
   const shownGroups = cafesAll ? groups : groups.slice(0, NEW_CAFES);
   html += `<div class="tablebox"><table class="newtable"><thead><tr>` +
     `<th scope="col" class="c-item">Item</th><th scope="col" class="c-since">New since</th>` +
-    `<th scope="col" class="num c-price">Price</th><th scope="col" class="c-source">Source</th></tr></thead>` +
+    `<th scope="col" class="num c-price">Price</th><th scope="col" class="c-source">Source</th>` +
+    `<th scope="col" class="c-save">Save</th></tr></thead>` +
     shownGroups.map(g => {
       const n = g.items.length, open = cafesOpen.has(g.cafe), cafe = esc(g.cafe);
       // the district shows only when every item of the cafe here names the same one
       const where = g.items[0].district && g.items.every(r => r.district === g.items[0].district) ? g.items[0].district : "";
-      return `<tbody data-cafe="${cafe}"><tr class="ghead"><th colspan="4" scope="colgroup">` +
+      return `<tbody data-cafe="${cafe}"><tr class="ghead"><th colspan="5" scope="colgroup">` +
         `<span class="cafe">${cafe}</span>` + (where ? `<span class="where">${esc(where)}</span>` : "") +
         `<span class="howmany">${n === 1 ? "1 new item" : n + " new items"}</span>` +
         // with only competitors showing, every cafe is one, so the tag says nothing
@@ -980,14 +1079,81 @@ function paintNew(){
             // the header says "New since", so the cell keeps only the month or the day
             `<td class="nowrap">${esc(whenWords(r.when).replace(/^(new in|first seen) /, ""))}</td>` +
             `<td class="num">${r.price == null ? "No price" : money(r.price)}</td>` +
-            `<td class="nowrap">${link}</td></tr>`;
+            `<td class="nowrap">${link}</td>` +
+            `<td class="save">` + saveBtn(`data-act="savenew" data-cafe="${esc(r.shop)}" data-name="${esc(r.item_name)}"`,
+                                          !!savedNew(r.shop, r.item_name), "Save", r.item_name) + `</td></tr>`;
         }).join("") +
-        (n > NEW_ITEMS ? `<tr class="gfold"><td colspan="4"><button type="button" class="btn" data-act="gfold" data-cafe="${cafe}" ` +
+        (n > NEW_ITEMS ? `<tr class="gfold"><td colspan="5"><button type="button" class="btn" data-act="gfold" data-cafe="${cafe}" ` +
           `aria-expanded="${open}" aria-label="${open ? "Show fewer" : `Show all ${n}`} from ${cafe}">${open ? "Show fewer" : `Show all ${n}`}</button></td></tr>` : "") +
         `</tbody>`;
     }).join("") + `</table></div>` +
     (groups.length > shownGroups.length
       ? `<button type="button" class="btn" data-act="nmore">Show ${groups.length - shownGroups.length} more cafes</button>` : "");
+  box.innerHTML = html;
+}
+
+/* ---------- Saved ----------
+   What this shop saved, read from the browser and drawn against today's data:
+   every price, range and verdict here is worked out now, not when it was saved. */
+const newestSaved = (a, b) => String(b.at || "").localeCompare(String(a.at || ""));
+/* "At <price>: <verdict>", from the same rule as the rest of Counter */
+function meaningLine(item, cents){
+  const c = compare(item, cents / 100);
+  return c.enough ? `At ${money(cents / 100)}: ${c.verdict}` : "Not enough cafes to compare.";
+}
+function paintSaved(){
+  const box = byId("savedpage"), sub = byId("page-sub"), mine = shopSaves();
+  const tests = mine.tests.slice().sort(newestSaved), ideas = mine.ideas.slice().sort(newestSaved);
+  const n = tests.length + ideas.length;
+  sub.hidden = false;
+  sub.textContent = n === 0 ? "Nothing saved yet." : n === 1 ? "1 saved for this shop." : `${n} saved for this shop.`;
+
+  const tabLink = (key, value, words, count) => `<button type="button" role="tab" aria-selected="${savedTab === key}" ` +
+    `data-nav="${esc(address(here({page: "saved", tab: value})))}">${words} (${count})</button>`;
+  let html = (savesLost ? `<p class="warn" id="saved-warn">Your browser is not keeping saved items. They will be gone when you close this page.</p>` : "") +
+    `<div class="tabs" role="tablist" aria-label="Saved">` +
+    tabLink("tests", "menu", "On my menu", tests.length) + tabLink("ideas", "ideas", "Not on my menu", ideas.length) + `</div>`;
+  const acts = buttons => `<div class="acts">${buttons}</div>`;
+  const act = (name, words, attrs, label) => `<button type="button" class="btn${name.indexOf("drop") === 0 ? " quiet" : ""}" data-act="${name}" ${attrs} aria-label="${words}: ${esc(label)}">${words}</button>`;
+  const none = how => `<div class="none" id="saved-none"><p>Nothing saved here yet.</p><p class="muted">${how}</p></div>`;
+
+  if(savedTab === "tests"){
+    html += !tests.length ? none("To save one, try a different price on My prices and press Save this test.") :
+      `<ul class="savedrows" id="saved-tests">` + tests.map(e => {
+        const known = D.named_prices[e.item], rec = known && known.find(r => r.shop_id === shop.shop_id), name = itemName(e.item);
+        return `<li data-item="${esc(e.item)}"><div class="words"><p class="name">${esc(name)}</p>` +
+          `<p data-real>${rec ? `Your price ${money(rec.price)}` : "No price on file now"}</p>` +
+          `<p data-tried>Price you tried ${money(e.cents / 100)}</p>` +
+          (rec ? `<p class="meaning" data-meaning>${meaningLine(e.item, e.cents)}</p>` : "") + `</div>` +
+          acts((rec ? act("opentest", "Open", `data-item="${esc(e.item)}"`, name) : "") + act("droptest", "Remove", `data-item="${esc(e.item)}"`, name)) + `</li>`;
+      }).join("") + `</ul>`;
+  } else {
+    const lacking = ideas.filter(e => e.kind === "missing"), fresh = ideas.filter(e => e.kind === "new");
+    if(!ideas.length) html += none("To save one, press Save on Items you do not sell or New at other cafes.");
+    if(lacking.length) html += `<h3>Items you do not sell</h3><ul class="savedrows" id="saved-missing">` + lacking.map(e => {
+      const row = priceRow(e.item), name = itemName(e.item), known = D.named_prices[e.item];
+      return `<li data-item="${esc(e.item)}"><div class="words"><p class="name">${esc(name)}</p>` +
+        (row.low != null ? `<p data-range>Cafes charge ${money(row.low)} to ${money(row.high)}</p>` : "") +
+        (e.cents != null ? `<p data-tried>Price you tried ${money(e.cents / 100)}</p>` +
+                           (known ? `<p class="meaning" data-meaning>${meaningLine(e.item, e.cents)}</p>` : "") : "") + `</div>` +
+        // it can be opened while it is still an item the shop does not sell and a competitor does
+        acts((missing.indexOf(e.item) !== -1 ? act("openmissing", "Open", `data-item="${esc(e.item)}"`, name) : "") +
+             act("dropmissing", "Remove", `data-item="${esc(e.item)}"`, name)) + `</li>`;
+    }).join("") + `</ul>`;
+    if(fresh.length) html += `<h3>New at other cafes</h3><ul class="savedrows" id="saved-new">` + fresh.map(e => {
+      const r = C ? C.launches.find(x => newKey(x.shop, x.item_name) === newKey(e.shop, e.item_name)) : null;
+      const link = r && /^https?:\/\//.test(r.source_url || "")
+        ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener">${SOURCE_WORDS[r.source_type] || "See the source"}</a>` : "";
+      const since = r ? whenWords(launchWhen(r)).replace(/^(new in|first seen) /, "") : "";
+      return `<li data-key="${esc(newKey(e.shop, e.item_name))}"><div class="words">` +
+        `<p class="name">${esc(e.item_name)}` + (r && r.is_limited_time ? `<span class="tag limited">Limited time</span>` : "") + `</p>` +
+        `<p data-cafe>${esc(e.shop)}</p>` +
+        (r ? `<p data-price>${r.price == null ? "No price" : money(r.price)}</p>` +
+             (since ? `<p data-since>New since ${esc(since)}</p>` : "") + (link ? `<p data-source>${link}</p>` : "")
+           : `<p data-gone>${C ? "No longer listed." : "New items could not be loaded."}</p>`) + `</div>` +
+        acts(act("dropnew", "Remove", `data-cafe="${esc(e.shop)}" data-name="${esc(e.item_name)}"`, e.item_name)) + `</li>`;
+    }).join("") + `</ul>`;
+  }
   box.innerHTML = html;
 }
 
@@ -1009,7 +1175,10 @@ function paintPricesTop(){
         `<span class="bigprice" id="d-big" aria-live="polite">${money(v)}</span>` +
         `<button type="button" class="btn sq" data-act="plus" aria-label="Raise the price by ${STEP} cents">${ICON.plus}</button></div>` +
       `<p>Your real price is ${money(real)}.</p>` +
-      `<button type="button" class="btn" data-act="reset">Go back to my real price</button>`
+      `<button type="button" class="btn" data-act="reset">Go back to my real price</button>` +
+      // a price that differs from the real one can be saved. The button reads
+      // "Saved" only while the saved price is the one on screen.
+      (changed(k) ? " " + saveBtn(`data-act="savetest"`, !!savedTest(k) && savedTest(k).cents === trial.get(k), "Save this test", itemName(k)) : "")
     : `<div class="d-price"><span class="bigprice" id="d-big">${money(v)}</span>` +
       `<button type="button" class="btn primary" data-act="try">Try a different price</button></div>` + listed;
 
@@ -1035,6 +1204,8 @@ function paintMissingTop(){
 
   byId("d-head").innerHTML =
     `<div class="title"><p class="label" id="d-name" tabindex="-1">${esc(itemName(k))}</p></div>` +
+    // "Saved" only while the save matches what is on screen: the same price, or none on both sides
+    saveBtn(`data-act="savemissing"`, !!savedMissing(k) && savedMissing(k).cents === (test.has(k) ? test.get(k) : null), "Save", itemName(k)) +
     `<button type="button" class="btn" data-act="close">${ICON.close}Close</button>`;
 
   const verdict = byId("d-verdict");
@@ -1403,6 +1574,44 @@ document.addEventListener("click", e => {
     focusOn(openItem ? "#d-name" : "#hidden-box button");
   }
   else if(act === "unhide"){ go(here({hide: hide.filter(x => x !== el.dataset.item).join(",")})); focusOn("#hidden-box button, #d-name"); }
+  // saving: a price being tried, an item the shop does not sell, a new item at another cafe
+  else if(act === "savetest"){
+    const now = trial.get(k), kept = savedTest(k);
+    putTest(k, kept && kept.cents === now ? null : {item: k, cents: now, at: stamp()});
+    paint();
+    focusOn(`[data-act="savetest"]`);
+  }
+  else if(act === "savemissing"){
+    const now = test.has(k) ? test.get(k) : null, kept = savedMissing(k);
+    putMissing(k, kept && kept.cents === now ? null : {kind: "missing", item: k, cents: now, at: stamp()});
+    paint();
+    focusOn(`[data-act="savemissing"]`);
+  }
+  else if(act === "savenew"){
+    const cafe = el.dataset.cafe, name = el.dataset.name;
+    putNew(cafe, name, savedNew(cafe, name) ? null : {kind: "new", shop: cafe, item_name: name, at: stamp()});
+    paint();
+    const again = [...document.querySelectorAll('[data-act="savenew"]')].find(b => b.dataset.cafe === cafe && b.dataset.name === name);
+    if(again) again.focus();
+  }
+  // the Saved page: take a save away, or open it where it came from with its price set
+  else if(act === "droptest"){ putTest(el.dataset.item, null); paint(); }
+  else if(act === "dropmissing"){ putMissing(el.dataset.item, null); paint(); }
+  else if(act === "dropnew"){ putNew(el.dataset.cafe, el.dataset.name, null); paint(); }
+  else if(act === "opentest"){
+    const kept = savedTest(el.dataset.item);
+    if(kept){ trial.set(kept.item, kept.cents); wantOpen = kept.item; go(here({page: ""})); focusOn("#d-name"); }
+  }
+  else if(act === "openmissing"){
+    const kept = savedMissing(el.dataset.item);
+    if(kept){
+      if(kept.cents == null) test.delete(kept.item); else test.set(kept.item, kept.cents);
+      wantOpen = kept.item;
+      // a hidden item is shown again, or there would be nothing to open
+      go(here({page: "missing", hide: hide.filter(x => x !== kept.item).join(",")}));
+      focusOn("#d-name");
+    }
+  }
   // New at other cafes: a type tab, a switch, and the rest of the rows
   else if(act === "ntab"){ newTab = el.dataset.tab; foldNew(); paintNew(); focusOn(`[data-act="ntab"][aria-selected="true"]`); }
   else if(act === "sw"){
@@ -1767,6 +1976,7 @@ Promise.all([
   D.shop_items.forEach(s => SHOPS.set(s.shop_id, s));
   buildSetup();
   buildLegends();
+  loadSaves();
   route();
 }).catch(err => { console.error(err); byId("app").hidden = true; byId("setup").hidden = true; byId("problem").hidden = false; });
 </script>
