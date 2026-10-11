@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Counter</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://www.onemap.gov.sg" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+<style>
+/* Every colour and typeface on the page is named here, so each changes in one place. */
+:root{
+  --bg:#F5F4F1;
+  --panel:#FFFFFF;
+  --line:#DEDBD5;
+  --rule:#E4E1DB;
+  --ink:#2A1810;
+  --body:#4A3F38;
+  --muted:#6F665E;
+  --butter:#FFC83D;      /* the one main button, and the line under the selected tab */
+  --picked:#F0EEEA;
+  /* another cafe compared with this shop, and nothing else */
+  --more:#D63A14;        /* charges more than this shop */
+  --less:#3E6FA3;        /* charges less than this shop */
+  --same:#C9C5BE;        /* charges the same */
+  --same-line:#8F8A83;   /* the thin border round a "same" mark */
+  --faint:#8F8A83;       /* lines of the menu that do not work yet */
+  --f-display:"Bricolage Grotesque", system-ui, sans-serif;
+  --f-text:"Archivo", system-ui, sans-serif;
+  --r-panel:12px;
+  --r:10px;
+  --side:240px;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0; background:var(--bg); color:var(--body); font:400 15px/1.45 var(--f-text)}
+h1,h2,h3,p,ul{margin:0}
+ul{padding:0; list-style:none}
+h1,h2{font-family:var(--f-display); color:var(--ink); line-height:1.15}
+h1{font-weight:800; font-size:30px}
+h2{font-weight:700; font-size:22px}
+h3{font:600 13px/1.3 var(--f-text); color:var(--muted)}
+a{color:var(--ink)}
+button{font:inherit; color:inherit}
+/* the focus mark is for the keyboard only: a mouse click leaves no box */
+:focus{outline:none}
+html.keys :focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round}
+
+.btn{
+  min-height:44px; padding:0 16px; border-radius:var(--r); border:1px solid var(--line);
+  background:var(--panel); color:var(--ink); font-weight:600; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px; white-space:nowrap;
+}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--butter); border-color:var(--butter)}
+.btn.primary:hover{border-color:var(--ink)}
+.btn.sq{width:44px; padding:0}
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--r-panel); padding:20px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.tag{display:inline-block; font-size:12px; font-weight:600; color:var(--ink); background:var(--picked); border:1px solid var(--line); border-radius:6px; padding:2px 7px}
+
+/* the dots: a colour always has words beside it */
+.dot{display:inline-block; width:10px; height:10px; border-radius:50%; flex:none}
+.dot.more{background:var(--more)}
+.dot.less{background:var(--less)}
+.dot.same{background:var(--same); border:1px solid var(--same-line)}
+.says{display:flex; align-items:baseline; gap:8px}
+.says .dot{transform:translateY(1px)}
+
+/* ---------- start screen ---------- */
+.start{min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:12vh 16px 40px}
+.start .panel{width:100%; max-width:460px}
+.wordmark{font:800 22px/1 var(--f-display); color:var(--ink)}
+.start h1{margin:20px 0 16px}
+.field label{display:block; font-weight:600; color:var(--ink); margin-bottom:6px}
+.field input{
+  width:100%; min-height:44px; padding:0 12px; border:1px solid var(--line); border-radius:var(--r);
+  background:var(--panel); color:var(--ink); font:inherit;
+}
+.combo{position:relative}
+.field input:focus{border-color:var(--ink)}
+.combo ul{
+  position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:5; max-height:320px; overflow:auto;
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:4px;
+}
+.combo li{padding:8px 10px; border-radius:8px; cursor:pointer; min-height:44px}
+.combo li[aria-selected="true"], .combo li[role=option]:hover{background:var(--picked)}
+.combo .optname{display:block; color:var(--ink); font-weight:600}
+.combo .optsub{display:block; font-size:13px; color:var(--muted)}
+.combo .none{cursor:default; color:var(--muted)}
+
+/* ---------- the shell ---------- */
+.app{display:flex; min-height:100vh}
+.side{width:var(--side); flex:none; background:var(--panel); border-right:1px solid var(--line); padding:24px 10px}
+.side .who{padding:0 10px; margin:22px 0 20px}
+.side .who .name{font-weight:700; color:var(--ink)}
+.side .who .area{font-size:13px; color:var(--muted)}
+.side .who a{display:inline-block; margin-top:6px; font-size:13px; font-weight:600}
+.nav li{margin:2px 0}
+.nav .line{
+  display:flex; align-items:center; gap:8px; min-height:40px; padding:0 10px; border-radius:var(--r);
+  color:var(--ink); font-weight:500; font-size:14px; text-decoration:none; white-space:nowrap;
+}
+.nav .line[aria-current]{background:var(--ink); color:#fff; font-weight:600}
+.nav .line[aria-disabled]{color:var(--faint); cursor:default}
+.nav .soon{margin-left:auto; padding-left:6px; font-size:11px; color:var(--faint)}
+.nav .label{padding:12px 10px 4px; font-size:12px; font-weight:600; color:var(--muted)}
+.nav .divider{height:1px; background:var(--rule); margin:10px}
+.main{flex:1; min-width:0; padding:28px 32px 48px}
+.main > h1{margin-bottom:20px}
+
+.band{
+  display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px; margin-bottom:20px;
+  background:var(--picked); border:1px solid var(--ink); border-radius:var(--r-panel); padding:14px 18px;
+}
+.band .words{flex:1 1 260px}
+.band .words p:first-child{font-weight:700; color:var(--ink)}
+
+.cols{--a:38fr; --b:62fr; display:grid; grid-template-columns:minmax(0, var(--a)) 12px minmax(0, var(--b)); align-items:start}
+.cols.wide{grid-template-columns:minmax(0, 1fr)}
+.handle{align-self:stretch; width:12px; min-height:120px; position:relative; cursor:col-resize; touch-action:none}
+.handle::before{content:""; position:absolute; left:5px; top:120px; width:2px; height:36px; border-radius:1px; background:var(--line)}
+.handle:hover::before, .handle:active::before{background:var(--muted)}
+
+/* ---------- left panel: the item list ---------- */
+.tabs{display:flex; gap:4px; border-bottom:1px solid var(--rule); margin-bottom:6px}
+#list{padding:16px 12px}
+.tabs button{
+  min-height:44px; padding:0 12px; background:none; border:0; border-bottom:3px solid transparent;
+  margin-bottom:-1px; font-weight:600; color:var(--muted); cursor:pointer;
+}
+.tabs button[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--butter)}
+.group h3{margin:16px 4px 8px}
+.rows{display:grid; grid-template-columns:minmax(0, 1fr); column-gap:24px}
+.cols.wide .rows{grid-template-columns:repeat(auto-fill, minmax(min(340px, 100%), 1fr))}
+.rows li{border-bottom:1px solid var(--rule)}
+/* a row: the name with its verdict, the price, and the button, on one centre line */
+.row{
+  display:grid; grid-template-columns:minmax(0, 1fr) 60px 92px; column-gap:12px; align-items:center;
+  padding:12px 4px; cursor:pointer;
+}
+.row:hover{background:var(--bg)}
+.row.open{background:var(--picked); cursor:default}
+.row .what{min-width:0; overflow-wrap:anywhere}
+.row .item{display:block; font-weight:700; color:var(--ink)}
+.row .verdict{display:block; font-size:14px; font-weight:600; color:var(--ink)}
+.row .verdict.usual{font-weight:400; color:var(--muted)}
+.row .tag{margin-top:5px}
+.row .price{text-align:right; font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums}
+.row .go, .row .now{justify-self:center; font-size:13px; font-weight:600; color:var(--ink)}
+.row .go{min-height:32px; height:32px; padding:0 12px; border-radius:8px; border-color:var(--ink)}
+.row .now{white-space:nowrap}
+.note{margin:16px 4px 0}
+
+/* ---------- right panel: one item ---------- */
+.detail > * + *{margin-top:16px}
+.d-head{display:flex; align-items:center; gap:12px}
+.d-head .title{flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px}
+.d-head .label{font-weight:600; color:var(--muted)}
+.d-verdict{font:700 24px/1.2 var(--f-display); color:var(--ink)}
+.detail > .d-verdict{margin-top:8px}
+.d-price{display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px}
+.bigprice{font:800 44px/1 var(--f-display); color:var(--ink); font-variant-numeric:tabular-nums}
+.stepper{display:flex; align-items:center; gap:12px}
+.d-priceinfo > * + *{margin-top:8px}
+.inner{background:var(--bg); border-radius:var(--r); padding:16px}
+.inner .title{font-weight:600; color:var(--ink); margin-bottom:14px}
+.chart{position:relative}
+.plot{position:relative}
+.cdot{position:absolute; width:9px; height:9px; border-radius:50%}
+.cdot.more{background:var(--more)}
+.cdot.less{background:var(--less)}
+.cdot.same{background:var(--same); border:1px solid var(--same-line)}
+.cdot.you{background:var(--ink); z-index:1}
+/* this shop's place: a line the full height of the chart */
+.cline{position:absolute; bottom:0; width:0; margin-left:-1px; border-left:2px solid var(--ink)}
+.cline.real{border-left-style:dashed}
+.clabel{position:absolute; font-size:12px; line-height:16px; font-weight:700; color:var(--ink); white-space:nowrap}
+.base{height:1px; background:var(--muted)}
+.axis{position:relative; font-size:12px; line-height:16px; color:var(--muted); font-variant-numeric:tabular-nums}
+.axis span{position:absolute; white-space:nowrap}
+.axis span.mine{color:var(--ink); font-weight:700}
+.axis i{position:absolute; top:0; width:1px; background:var(--muted)}
+.lines{margin-top:14px}
+.lines li{color:var(--ink)}
+.lines li + li{margin-top:4px}
+.lines li.real{color:var(--body)}
+.count{margin-top:8px}
+.seg{display:inline-flex}
+.seg .btn{border-radius:0; min-width:84px}
+.seg .btn:first-child{border-radius:var(--r) 0 0 var(--r)}
+.seg .btn:last-child{border-radius:0 var(--r) var(--r) 0; margin-left:-1px}
+.seg .btn[aria-pressed="true"]{background:var(--ink); border-color:var(--ink); color:#fff}
+.d-list h3{font:700 17px/1.2 var(--f-display); color:var(--ink); margin-bottom:10px}
+.cafes li{display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-top:1px solid var(--rule)}
+.cafes .what{flex:1; min-width:0}
+.cafes .name{font-weight:600; color:var(--ink)}
+.cafes .name .tag{margin-left:6px; font-weight:500}
+.cafes .sub{font-size:13px; color:var(--muted); margin-top:2px}
+.cafes .side2{text-align:right; flex:none; max-width:55%}
+.cafes .price{font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums}
+.cafes .says{font-size:13px; justify-content:flex-end}
+.d-list .btn{margin-top:8px}
+
+/* ---------- map ---------- */
+#map{height:420px; border:1px solid var(--line); border-radius:var(--r); background:var(--bg); z-index:0}
+#map.leaflet-container{font-family:var(--f-text); font-size:13px}
+#map .leaflet-bar{box-shadow:none; border:1px solid var(--line)}
+#map .leaflet-popup-content-wrapper{border-radius:var(--r); box-shadow:none; border:1px solid var(--line)}
+#map .leaflet-popup-tip{box-shadow:none; border:1px solid var(--line)}
+#map .leaflet-popup-content{margin:12px 14px; line-height:1.45; color:var(--body)}
+.pop-name{display:block; font-weight:700; color:var(--ink)}
+.pop-price{display:block; font-weight:700; color:var(--ink)}
+.pop-line{display:block}
+.pin{
+  position:absolute; left:0; top:0; white-space:nowrap; --off:0;
+  transform:translate(-50%, calc(-50% + var(--off) * 24px));
+  font:600 11px/1 var(--f-text); font-variant-numeric:tabular-nums; padding:3px 5px; border-radius:6px;
+  background:var(--same); color:var(--ink); border:1px solid var(--same-line);
+}
+.pin.less{background:var(--less); border-color:var(--less); color:#fff}
+.pin.more{background:var(--more); border-color:var(--more); color:#fff}
+/* a competitor: larger, with its name */
+.pin.rival{font-size:12px; padding:5px 7px; border-radius:8px}
+/* this shop: the largest label, standing on a pointer whose tip is the shop */
+.pin.me{
+  transform:translate(-50%, calc(-100% - 8px)); font-size:15px; font-weight:700; padding:8px 11px; border-radius:10px;
+  background:var(--ink); border-color:var(--ink); color:#fff;
+}
+.pin.me::after{content:""; position:absolute; left:50%; top:100%; margin-left:-7px; border:7px solid transparent; border-top-color:var(--ink); border-bottom:0}
+.legend{display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:12px; font-size:13px}
+.legend li{display:flex; align-items:center; gap:7px}
+.legend .key{width:22px; height:14px; border-radius:5px; border:1px solid var(--same-line); background:var(--same); flex:none}
+.legend .key.less{background:var(--less); border-color:var(--less)}
+.legend .key.more{background:var(--more); border-color:var(--more)}
+.legend .key.named{width:auto; height:auto; padding:2px 5px; background:var(--panel); font:600 10px/1 var(--f-text); color:var(--ink)}
+
+.problem{padding:40px 16px; text-align:center; color:var(--ink)}
+
+@media (max-width:899px){
+  .app{flex-direction:column}
+  .side{width:100%; border-right:0; border-bottom:1px solid var(--line); padding:18px 14px}
+  .side .who{margin:14px 0 12px}
+  .main{padding:20px 16px 40px}
+  .cols{grid-template-columns:minmax(0, 1fr); row-gap:20px}
+  .handle{display:none}
+  .panel{padding:16px}
+  .bigprice{font-size:38px}
+  #map{height:360px}
+}
+</style>
+</head>
+<body>
+
+<!-- no shop chosen yet -->
+<main class="start" id="start" hidden>
+  <div class="panel">
+    <p class="wordmark">Counter</p>
+    <h1>Find your shop</h1>
+    <div class="field">
+      <label for="shop-input">Your shop</label>
+      <div class="combo">
+        <input id="shop-input" type="text" autocomplete="off" spellcheck="false" role="combobox"
+               aria-expanded="false" aria-controls="shop-list" aria-autocomplete="list">
+        <ul id="shop-list" role="listbox" aria-label="Shops" hidden></ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="app" id="app" hidden>
+  <aside class="side">
+    <p class="wordmark" style="padding:0 10px">Counter</p>
+    <div class="who">
+      <p class="name" id="who-name"></p>
+      <p class="area" id="who-area"></p>
+      <a href="./" data-act="change">Change shop</a>
+    </div>
+    <nav aria-label="Counter">
+      <ul class="nav">
+        <li><a class="line" href="#prices" aria-current="page" data-act="home">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg>My prices</a></li>
+        <li class="label">My menu</li>
+        <li class="sub"><span class="line" role="link" aria-disabled="true">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>New at other cafes<span class="soon">Soon</span></span></li>
+        <li class="sub"><span class="line" role="link" aria-disabled="true">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7M16 18h5"/></svg>Items you do not sell<span class="soon">Soon</span></span></li>
+        <li><span class="line" role="link" aria-disabled="true">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>Offers<span class="soon">Soon</span></span></li>
+        <li><span class="line" role="link" aria-disabled="true">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Saved<span class="soon">Soon</span></span></li>
+        <li class="divider" role="presentation"></li>
+        <li><span class="line" role="link" aria-disabled="true">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alerts<span class="soon">Soon</span></span></li>
+        <li><span class="line" role="link" aria-disabled="true">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5a5 5 0 0 1 4.5 5"/></svg>My competitors<span class="soon">Soon</span></span></li>
+        <li><span class="line" role="link" aria-disabled="true">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>Update my menu<span class="soon">Soon</span></span></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="main" id="prices">
+    <h1>My prices</h1>
+    <div class="band" id="band" hidden></div>
+    <div class="cols" id="cols">
+      <section class="panel" id="list" aria-label="Your items"></section>
+      <div class="handle" id="handle" role="separator" aria-orientation="vertical" tabindex="0"
+           aria-label="Resize the list and the details" aria-valuemin="28" aria-valuemax="60" aria-valuenow="38" hidden></div>
+      <section class="panel detail" id="detail" aria-label="One item" hidden>
+        <div class="d-head" id="d-head"></div>
+        <h2 class="d-verdict" id="d-verdict"></h2>
+        <div class="d-priceinfo" id="d-price"></div>
+        <div class="inner" id="d-compare"></div>
+        <div class="seg" role="group" aria-label="List or map" id="d-seg">
+          <button type="button" class="btn" data-act="view" data-view="list" aria-pressed="true">List</button>
+          <button type="button" class="btn" data-act="view" data-view="map" aria-pressed="false">Map</button>
+        </div>
+        <div class="d-list" id="d-list"></div>
+        <div id="d-mapwrap" hidden>
+          <div id="map"></div>
+          <ul class="legend">
+            <li><span class="key less" aria-hidden="true"></span>Charges less than you</li>
+            <li><span class="key" aria-hidden="true"></span>Same price</li>
+            <li><span class="key more" aria-hidden="true"></span>Charges more than you</li>
+            <li><span class="key named" aria-hidden="true">Name</span>Pins with a name are your competitors</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<p class="problem" id="problem" hidden>The prices did not load. Reload the page.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+"use strict";
+/* Counter, slice 1: My prices. Every price, count, percentage, shop name and
+   item name on the page comes from site_data.json at run time. Nothing a
+   reader does here is stored: a trial price lives in memory and is gone on
+   reload. */
+
+const byId = id => document.getElementById(id);
+const money = n => "$" + Number(n).toFixed(2);
+const cents = n => Math.round(Number(n) * 100);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/* "2026-10-04" -> "4 Oct" */
+const dayMonth = iso => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+  return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]}` : "";
+};
+const ICON = {
+  close: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
+  minus: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>`,
+  plus: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`
+};
+
+/* The one map typed by hand: which heading an item sits under. An item the
+   data adds later, and this map does not know, goes under "Other". */
+const GROUPS = [
+  ["Coffee", ["flat_white", "latte", "cappuccino", "americano", "espresso"]],
+  ["Tea and matcha", ["matcha_latte"]],
+  ["Pastries", ["croissant_plain", "croissant_filled", "kouign_amann"]]
+];
+const OTHER_GROUP = "Other";
+const TAB_WORDS = {drink: "Drinks", pastry: "Pastries"};
+const TIE_TAB = "drink";
+const capital = s => s.charAt(0).toUpperCase() + s.slice(1);
+const tabWords = f => TAB_WORDS[f] || capital(String(f || OTHER_GROUP));
+
+const STEP = 10;          // cents moved by one press of minus or plus
+const FLOOR = 10;         // a trial price never goes below this many cents
+const MIN_OTHERS = 5;     // fewer other cafes than this: nothing to compare
+const PERCENT_FROM = 30;  // this many other cafes or more: percentages, else counts
+const RIVALS = 4;
+
+let D = null;                 // site_data.json
+const SHOPS = new Map();      // shop_id -> its shop_items row
+let shop = null;              // the reader's shop
+let myItems = [];             // item keys this shop has a price for, in list order
+let rivals = [];              // the nearest shops, the same for every item
+let tab = "all";
+let openItem = null;          // the item in the right panel, or null when closed
+let view = "list";
+let showAll = false;
+const trial = new Map();      // item -> trial price in cents, while it is being tried
+
+const priceRow = key => D.price_table.find(r => r.item_canonical === key) || {};
+const itemName = key => priceRow(key).display_name || key;
+const mine = key => D.named_prices[key].find(r => r.shop_id === shop.shop_id);
+const realPrice = key => mine(key).price;
+const cur = key => trial.has(key) ? trial.get(key) / 100 : realPrice(key);
+const changed = key => trial.has(key) && trial.get(key) !== cents(realPrice(key));
+const kindOf = (p, v) => cents(p) > cents(v) ? "more" : cents(p) < cents(v) ? "less" : "same";
+const diffWords = (p, v) => {
+  const d = cents(p) - cents(v);
+  return d > 0 ? `${money(d / 100)} more than you` : d < 0 ? `${money(-d / 100)} less than you` : "Same as you";
+};
+const dot = kind => `<span class="dot ${kind}" aria-hidden="true"></span>`;
+
+/* ---------- copied from the live site, unchanged ---------- */
+/* The verdict comes from the other cafes with a counted price for the item. */
+function verdictOf(v, usual, less, more, n){
+  if(usual != null && v > usual * 1.4) return "Much more expensive than most cafes";
+  if(less * 2 > n) return "More expensive than most cafes";
+  if(more * 2 > n) return "Cheaper than most cafes";
+  return "About the usual price";
+}
+// flat-earth distance: close enough to put the shops of one city in order
+function distKm(a, b){
+  const x = (b[1] - a[1]) * Math.cos((a[0] + b[0]) * Math.PI / 360), y = b[0] - a[0];
+  return Math.hypot(x, y) * 111.2;
+}
+const MAX_SUGGEST = 6;
+// a name typed without its accents, spaces or punctuation still finds the
+// shop: all three are dropped from both sides
+const fold = t => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+// names that start with what was typed come before names that only hold it
+const ranked = (arr, text, q) => {
+  const f = arr.map(x => [x, fold(text(x))]);
+  return f.filter(p => p[1].startsWith(q)).concat(f.filter(p => !p[1].startsWith(q) && p[1].includes(q))).map(p => p[0]);
+};
+const BASEMAP = {
+  url: "https://www.onemap.gov.sg/maps/tiles/Grey/{z}/{x}/{y}.png",
+  minNativeZoom: 13, maxZoom: 19,
+  bounds: [[1.144, 103.585], [1.494, 104.122]],
+  attribution: '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" alt="" style="height:16px;width:16px;vertical-align:-3px"> ' +
+               '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener noreferrer">OneMap</a> &copy; contributors | ' +
+               '<a href="https://www.sla.gov.sg/" target="_blank" rel="noopener noreferrer">Singapore Land Authority</a>'
+};
+/* ---------- end of copied logic ---------- */
+
+/* A row has room for one line, so it drops the verdict's last word. */
+const shortVerdict = t => t.replace(/ cafes$/, "");
+
+/* How the other cafes split around a price. The reader's own shop is never
+   one of the others. */
+function compare(key, v){
+  const others = D.named_prices[key].filter(r => r.shop_id !== shop.shop_id);
+  const less = others.filter(r => r.price < v).length, more = others.filter(r => r.price > v).length;
+  const enough = others.length >= MIN_OTHERS;
+  return {others: others, n: others.length, less: less, more: more, enough: enough,
+          verdict: enough ? verdictOf(v, priceRow(key).median, less, more, others.length) : ""};
+}
+
+/* "34% charge more than you", or "7 of 22 cafes charge more than you" */
+function shareLine(count, n, way, would){
+  const verb = would ? "would charge" : "charge";
+  if(count === 0) return `No cafe ${would ? "would charge" : "charges"} ${way} than you`;
+  return n >= PERCENT_FROM ? `${Math.round(100 * count / n)}% ${verb} ${way} than you`
+                           : `${count} of ${n} cafes ${verb} ${way} than you`;
+}
+function realLine(c){
+  const pct = c.n >= PERCENT_FROM;
+  const part = (count, way, first) => count === 0 ? `no cafe charges ${way}`
+    : pct ? `${Math.round(100 * count / c.n)}% charge ${way}`
+    : `${count} of ${c.n}${first ? " cafes" : ""} charge ${way}`;
+  return `At your real price: ${part(c.more, "more", true)} and ${part(c.less, "less", false)}.`;
+}
+
+/* ---------- which screen ---------- */
+function route(){
+  const id = new URLSearchParams(location.search).get("shop");
+  const found = id ? SHOPS.get(id) : null;
+  if(!found){ showStart(); return; }
+  openShop(found);
+}
+function showStart(){
+  shop = null;
+  document.title = "Counter";
+  byId("app").hidden = true;
+  byId("start").hidden = false;
+  const input = byId("shop-input");
+  input.value = "";
+  closeSuggest();
+  input.focus();
+}
+function openShop(s){
+  shop = s;
+  trial.clear();
+  view = "list"; showAll = false;
+  // list order: the headings in turn, then anything they do not name
+  const have = Object.keys(D.named_prices).filter(k => D.named_prices[k].some(r => r.shop_id === s.shop_id));
+  const named = GROUPS.flatMap(g => g[1]).filter(k => have.indexOf(k) !== -1);
+  myItems = named.concat(have.filter(k => named.indexOf(k) === -1));
+  // the same nearest shops for every item
+  rivals = s.lat == null || s.lng == null ? [] : [...SHOPS.values()]
+    .filter(o => o.shop_id !== s.shop_id && o.lat != null && o.lng != null)
+    .map(o => ({o: o, far: distKm([s.lat, s.lng], [o.lat, o.lng])}))
+    .sort((a, b) => a.far - b.far)
+    .slice(0, RIVALS).map(x => x.o);
+  // the category with the most items opens first
+  const cats = categories();
+  let best = null;
+  cats.forEach(c => { if(!best || c.n > best.n || (c.n === best.n && c.format === TIE_TAB)) best = c; });
+  tab = best ? best.format : "all";
+  openItem = inTab()[0] || null;
+
+  document.title = `My prices, ${s.shop_name} | Counter`;
+  byId("who-name").textContent = s.shop_name;
+  byId("who-area").textContent = s.district;
+  byId("start").hidden = true;
+  byId("app").hidden = false;
+  paint(true);
+}
+function categories(){
+  const tally = new Map();
+  myItems.forEach(k => { const f = priceRow(k).format || ""; tally.set(f, (tally.get(f) || 0) + 1); });
+  return [...tally.entries()].map(e => ({format: e[0], n: e[1]}));
+}
+const inTab = () => myItems.filter(k => tab === "all" || (priceRow(k).format || "") === tab);
+
+/* ---------- painting ---------- */
+function paint(fit){
+  paintBand();
+  paintList();
+  paintDetail(fit);
+}
+
+function paintBand(){
+  const n = myItems.filter(changed).length;
+  const band = byId("band");
+  band.hidden = n === 0;
+  band.innerHTML = n === 0 ? "" :
+    `<div class="words"><p>You are trying new prices on ${n === 1 ? "1 item" : n + " items"}.</p>` +
+    `<p>Your real menu has not changed. Only you can see this.</p></div>` +
+    `<button type="button" class="btn" data-act="resetall">Go back to my real prices</button>`;
+}
+
+function paintList(){
+  const box = byId("list");
+  if(!myItems.length){
+    box.innerHTML = `<p>We have no prices to compare for this shop yet.</p>`;
+    return;
+  }
+  const tabs = [{format: "all", n: myItems.length, words: "All"}]
+    .concat(categories().map(c => ({format: c.format, n: c.n, words: tabWords(c.format)})));
+  let html = `<div class="tabs" role="tablist" aria-label="Item types">` + tabs.map(t =>
+    `<button type="button" role="tab" data-act="tab" data-tab="${esc(t.format)}" aria-selected="${t.format === tab}">` +
+    `${esc(t.words)} (${t.n})</button>`).join("") + `</div>`;
+
+  const shown = inTab();
+  const groups = GROUPS.map(g => [g[0], shown.filter(k => g[1].indexOf(k) !== -1)]);
+  const known = GROUPS.flatMap(g => g[1]);
+  groups.push([OTHER_GROUP, shown.filter(k => known.indexOf(k) === -1)]);
+  groups.filter(g => g[1].length).forEach(g => {
+    html += `<div class="group"><h3>${esc(g[0])}</h3><ul class="rows">` + g[1].map(rowHtml).join("") + `</ul></div>`;
+  });
+  html += `<p class="note muted small">We compare the items most cafes sell. More are coming.</p>`;
+  box.innerHTML = html;
+}
+/* One row: the item, its price and its verdict, and the button that opens it.
+   A press anywhere on the row opens it too. The open row has no button. */
+function rowHtml(k){
+  const v = cur(k), c = compare(k, v), open = k === openItem;
+  const tag = changed(k) ? `Trying ${money(v)}. Real price ${money(realPrice(k))}` : "";
+  const words = c.enough ? c.verdict : "Not enough cafes to compare";
+  const usual = words === verdictOf(0, null, 0, 0, 0);
+  return `<li><div class="row${open ? " open" : ""}" data-row="${esc(k)}"${open ? "" : ` data-act="open" data-item="${esc(k)}"`}>` +
+    `<span class="what"><span class="item">${esc(itemName(k))}</span>` +
+    `<span class="verdict${usual ? " usual" : ""}" data-verdict>${esc(shortVerdict(words))}</span>` +
+    (tag ? `<span class="tag">${tag}</span>` : "") + `</span>` +
+    `<span class="price">${money(v)}</span>` +
+    (open ? `<span class="now">Showing now</span>`
+          : `<button type="button" class="btn go" data-go="${esc(k)}" aria-label="Compare ${esc(itemName(k))}">Compare</button>`) +
+    `</div></li>`;
+}
+
+function paintDetail(fit){
+  const panel = byId("detail");
+  byId("cols").classList.toggle("wide", !openItem);
+  panel.hidden = !openItem;
+  byId("handle").hidden = !openItem;
+  if(!openItem) return;
+  const k = openItem, rec = mine(k), real = rec.price, v = cur(k), trying = trial.has(k);
+  const c = compare(k, v);
+
+  byId("d-head").innerHTML =
+    `<div class="title"><p class="label" id="d-name" tabindex="-1">${esc(itemName(k))}</p>` +
+    (trying ? `<span class="tag">Trying a different price</span>` : "") + `</div>` +
+    `<button type="button" class="btn" data-act="close">${ICON.close}Close</button>`;
+
+  const listed = rec.listed_price != null && (rec.charges || []).length
+    ? `<p class="muted small">Listed ${money(rec.listed_price)}. Includes ${esc(rec.charges.join(" and "))}.</p>` : "";
+  byId("d-price").innerHTML = trying
+    ? `<div class="stepper">` +
+        `<button type="button" class="btn sq" data-act="minus" aria-label="Lower the price by ${STEP} cents"${cents(v) <= FLOOR ? " disabled" : ""}>${ICON.minus}</button>` +
+        `<span class="bigprice" id="d-big" aria-live="polite">${money(v)}</span>` +
+        `<button type="button" class="btn sq" data-act="plus" aria-label="Raise the price by ${STEP} cents">${ICON.plus}</button></div>` +
+      `<p>Your real price is ${money(real)}.</p>` +
+      `<button type="button" class="btn" data-act="reset">Go back to my real price</button>`
+    : `<div class="d-price"><span class="bigprice" id="d-big">${money(v)}</span>` +
+      `<button type="button" class="btn primary" data-act="try">Try a different price</button></div>` + listed;
+
+  const verdict = byId("d-verdict");
+  verdict.hidden = !c.enough;
+  verdict.textContent = c.enough ? c.verdict : "";
+
+  const would = changed(k);
+  byId("d-compare").innerHTML = !c.enough ? `<p>Not enough cafes to compare.</p>` :
+    `<p class="title">What cafes charge. One dot is one cafe.</p>` +
+    `<div class="chart" id="chart" role="img"></div>` +
+    `<ul class="lines" id="d-lines">` +
+      `<li class="says">${dot("more")}<span>${shareLine(c.more, c.n, "more", would)}</span></li>` +
+      `<li class="says">${dot("less")}<span>${shareLine(c.less, c.n, "less", would)}</span></li>` +
+      (would ? `<li class="real">${realLine(compare(k, real))}</li>` : "") +
+    `</ul>` +
+    `<p class="count muted small" id="d-count">${c.n} cafes</p>`;
+  drawChart();
+
+  byId("d-seg").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+  byId("d-list").hidden = view !== "list";
+  byId("d-mapwrap").hidden = view !== "map";
+  if(view === "list") paintCafes(); else drawMap(fit);
+}
+
+/* ---------- the dot chart ----------
+   One dot for each cafe, placed by price on a straight scale from the lowest
+   price shown to the highest. Cafes at one price stack upward, two dots wide.
+   This shop is a line the full height of the chart, with its dot at the foot. */
+const DOT = 9, GAP = 2, EDGE = 22, LABEL_H = 16;
+let ruler = null;
+function textWidth(text, bold){
+  if(!ruler) ruler = document.createElement("canvas").getContext("2d");
+  ruler.font = `${bold ? 700 : 400} 12px Archivo, system-ui, sans-serif`;
+  return Math.ceil(ruler.measureText(text).width) + 2;
+}
+function drawChart(){
+  const box = byId("chart");
+  if(!box || !openItem) return;
+  const k = openItem, real = realPrice(k), v = cur(k), moved = changed(k);
+  const c = compare(k, v);
+  const W = box.clientWidth;
+  if(!W) return;
+
+  // the lines: this shop's price, and its real price while another is tried
+  const marks = [{p: v, label: moved ? "New price" : "You", cls: ""}];
+  if(moved) marks.push({p: real, label: "Real price", cls: " real"});
+  const others = c.others.map(r => ({p: r.price, kind: kindOf(r.price, v)}));
+  const shown = marks.concat(others).map(m => m.p);
+  const lo = Math.min(...shown), hi = Math.max(...shown);
+  const x = p => hi > lo ? EDGE + (p - lo) / (hi - lo) * (W - 2 * EDGE) : W / 2;
+
+  const stacks = new Map();
+  others.forEach(m => { const key = cents(m.p); if(!stacks.has(key)) stacks.set(key, []); stacks.get(key).push(m); });
+  // this shop's dot has the foot of its line to itself
+  const lift = key => key === cents(v) ? 1 : 0;
+  const tallest = Math.max(1, ...[...stacks.entries()].map(e => Math.ceil(e[1].length / 2) + lift(e[0]))) * (DOT + GAP);
+
+  // each line's label stands at its top. Where two labels would run into
+  // each other, the second sits one line lower.
+  marks.forEach(m => {
+    m.w = textWidth(m.label, true);
+    m.left = Math.max(0, Math.min(W - m.w, x(m.p) - m.w / 2));
+    m.row = 0;
+  });
+  if(marks.length > 1 && marks[0].left < marks[1].left + marks[1].w + 6 && marks[1].left < marks[0].left + marks[0].w + 6) marks[1].row = 1;
+  const height = tallest + 6 + (Math.max(...marks.map(m => m.row)) + 1) * LABEL_H;
+
+  let html = `<div class="plot" style="height:${height}px">`;
+  marks.forEach(m => {
+    html += `<span class="cline${m.cls}" style="left:${x(m.p).toFixed(1)}px;top:${(m.row + 1) * LABEL_H}px"></span>` +
+            `<span class="clabel" style="left:${m.left.toFixed(1)}px;top:${m.row * LABEL_H}px">${m.label}</span>`;
+  });
+  html += `<span class="cdot you" style="left:${(x(v) - DOT / 2).toFixed(1)}px;bottom:0"></span>`;
+  stacks.forEach((stack, key) => {
+    const mid = x(key / 100), two = stack.length > 1;
+    stack.forEach((m, i) => {
+      const left = two ? mid + (i % 2 ? GAP / 2 : -DOT - GAP / 2) : mid - DOT / 2;
+      html += `<span class="cdot ${m.kind}" style="left:${left.toFixed(1)}px;bottom:${(Math.floor(i / 2) + lift(key)) * (DOT + GAP)}px"></span>`;
+    });
+  });
+  html += `</div><div class="base"></div>`;
+
+  // Under the line: this shop's price, the lowest and the highest. The usual
+  // price is added only where its label has room.
+  const usual = priceRow(k).median;
+  const wanted = [{p: v, text: money(v), must: true, mine: true},
+                  {p: lo, text: money(lo), must: true},
+                  {p: hi, text: money(hi), must: true}];
+  if(usual != null && usual >= lo && usual <= hi) wanted.push({p: usual, text: `Usual ${money(usual)}`, must: false});
+  const placed = [];
+  wanted.forEach(a => {
+    if(placed.some(b => cents(b.p) === cents(a.p))) return;
+    a.w = textWidth(a.text, a.mine);
+    a.left = Math.max(0, Math.min(W - a.w, x(a.p) - a.w / 2));
+    const hits = row => placed.some(b => b.row === row && a.left < b.left + b.w + 8 && b.left < a.left + a.w + 8);
+    a.row = 0;
+    if(hits(0)){
+      if(!a.must) return;
+      while(hits(a.row)) a.row += 1;
+    }
+    placed.push(a);
+  });
+  const rows = Math.max(...placed.map(a => a.row)) + 1;
+  html += `<div class="axis" style="height:${6 + rows * LABEL_H}px">` + placed.map(a =>
+    `<i style="left:${x(a.p).toFixed(1)}px;height:${4 + a.row * LABEL_H}px"></i>` +
+    `<span${a.mine ? ` class="mine"` : ""} style="left:${a.left.toFixed(1)}px;top:${5 + a.row * LABEL_H}px">${a.text}</span>`).join("") + `</div>`;
+
+  box.innerHTML = html;
+  box.setAttribute("aria-label",
+    `${itemName(k)}. ${moved ? "The price you are trying" : "Your price"} is ${money(v)}. ` +
+    `${c.less} of ${c.n} cafes charge less and ${c.more} charge more.`);
+}
+
+/* ---------- list view ---------- */
+function paintCafes(){
+  const k = openItem, v = cur(k);
+  const priced = new Map(D.named_prices[k].map(r => [r.shop_id, r]));
+  const isRival = id => rivals.some(o => o.shop_id === id);
+  const byPrice = (a, b) => b.rec.price - a.rec.price || a.name.localeCompare(b.name);
+  let rows;
+  if(showAll){
+    rows = D.named_prices[k].filter(r => r.shop_id !== shop.shop_id)
+      .map(r => ({name: r.shop_name, rec: r, rival: isRival(r.shop_id)})).sort(byPrice);
+  } else {
+    const all = rivals.map(o => ({name: o.shop_name, rec: priced.get(o.shop_id) || null, rival: false}));
+    rows = all.filter(r => r.rec).sort(byPrice).concat(all.filter(r => !r.rec));
+  }
+  byId("d-list").innerHTML =
+    `<h3>${showAll ? "All cafes" : "My competitors"}</h3>` +
+    `<ul class="cafes" id="cafes">` + rows.map(r => {
+      if(!r.rec) return `<li data-cafe><div class="what"><p class="name">${esc(r.name)}</p></div>` +
+                        `<div class="side2"><p class="muted small">No price on file</p></div></li>`;
+      const when = dayMonth(r.rec.observed_date);
+      return `<li data-cafe><div class="what"><p class="name">${esc(r.name)}` +
+        (r.rival ? `<span class="tag">Your competitor</span>` : "") + `</p>` +
+        `<p class="sub">${when ? `Checked ${when}. ` : ""}${menuLink(r.rec)}</p></div>` +
+        `<div class="side2"><p class="price">${money(r.rec.price)}</p>` +
+        `<p class="says">${dot(kindOf(r.rec.price, v))}<span>${diffWords(r.rec.price, v)}</span></p></div></li>`;
+    }).join("") + `</ul>` +
+    `<button type="button" class="btn" data-act="all">${showAll ? "Show only my competitors" : "Show all cafes"}</button>`;
+}
+function menuLink(r){
+  return /^https?:\/\//.test(r.source_url || "")
+    ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener">See their menu</a>` : "";
+}
+
+/* ---------- map view ---------- */
+/* a competitor's pin carries its name: no text in brackets, and not too long */
+const PIN_NAME = 18;
+const pinName = name => {
+  const t = String(name).replace(/\s*\(.*?\)/g, "").trim();
+  return t.length > PIN_NAME ? t.slice(0, PIN_NAME - 1).trimEnd() + "\u2026" : t;
+};
+let map = null, pins = null;
+function drawMap(fit){
+  if(!map){
+    // the wheel and a two-finger scroll belong to the page, never to the map
+    map = L.map(byId("map"), {zoomSnap: 0.5, maxZoom: BASEMAP.maxZoom, scrollWheelZoom: false});
+    // a pinch on a trackpad arrives as a wheel with the control key held
+    let pinch = 0;
+    byId("map").addEventListener("wheel", e => {
+      if(!e.ctrlKey) return;
+      e.preventDefault();
+      pinch -= e.deltaY / 60;
+      const by = Math.trunc(pinch * 2) / 2;
+      if(by){ pinch -= by; map.setZoomAround(map.mouseEventToContainerPoint(e), map.getZoom() + by); }
+    }, {passive: false});
+    map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
+    L.tileLayer(BASEMAP.url, {
+      minNativeZoom: BASEMAP.minNativeZoom, maxZoom: BASEMAP.maxZoom, bounds: BASEMAP.bounds,
+      updateWhenZooming: false, updateWhenIdle: true, keepBuffer: 1,
+      attribution: BASEMAP.attribution
+    }).addTo(map);
+    pins = L.layerGroup().addTo(map);
+    fit = true;
+  }
+  map.invalidateSize();
+  map.closePopup();
+  pins.clearLayers();
+  const k = openItem, v = cur(k);
+  const rows = D.named_prices[k].filter(r => r.lat != null && r.lng != null);
+  // shops sharing a building share a coordinate, so their pins are fanned out
+  // on screen. The coordinate itself is never moved.
+  const spots = new Map();
+  rows.forEach(r => { const key = r.lat + "," + r.lng; if(!spots.has(key)) spots.set(key, []); spots.get(key).push(r); });
+  spots.forEach(group => group.forEach((r, i) => {
+    const me = r.shop_id === shop.shop_id, rival = rivals.some(o => o.shop_id === r.shop_id);
+    const kind = kindOf(r.price, v), when = dayMonth(r.observed_date), link = menuLink(r);
+    const off = i - (group.length - 1) / 2;
+    const marker = L.marker([r.lat, r.lng], {
+      icon: L.divIcon({
+        className: "pinwrap", iconSize: [0, 0],
+        html: `<span class="pin ${me ? "me" : kind + (rival ? " rival" : "")}" style="--off:${off}">` +
+              (me ? `You ${money(v)}` : rival ? `${esc(pinName(r.shop_name))} ${money(r.price)}` : money(r.price)) + `</span>`
+      }),
+      // the words carry what the colour says, for anyone who cannot see it
+      title: me ? `${r.shop_name}, your shop, ${money(v)}` : `${r.shop_name}, ${money(r.price)}, ${diffWords(r.price, v)}`,
+      zIndexOffset: me ? 5000 : rival ? 500 : 0,
+      riseOnHover: true
+    });
+    marker.bindPopup(
+      `<span class="pop-name">${esc(r.shop_name)}</span>` +
+      `<span class="pop-price">${money(me ? v : r.price)}</span>` +
+      (me ? `<span class="pop-line">Your shop</span>`
+          : `<span class="pop-line">${diffWords(r.price, v)}</span>` +
+            (when ? `<span class="pop-line">Checked ${when}</span>` : "") +
+            (link ? `<span class="pop-line">${link}</span>` : "")),
+      {offset: [0, -8], maxWidth: 260});
+    marker.addTo(pins);
+  }));
+  // the map opens on this shop and its competitors
+  if(fit){
+    const pts = [shop].concat(rivals).filter(o => o.lat != null && o.lng != null).map(o => [o.lat, o.lng]);
+    if(pts.length) map.fitBounds(L.latLngBounds(pts), {padding: [48, 48], maxZoom: 17, animate: false});
+  }
+}
+
+/* ---------- what a press does ---------- */
+const focusOn = sel => { const el = document.querySelector(sel); if(el) el.focus(); };
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if(!el || el.disabled) return;
+  const act = el.dataset.act;
+  if(act === "home"){ e.preventDefault(); return; }
+  if(act === "change"){
+    e.preventDefault();
+    history.pushState(null, "", location.pathname);
+    route();
+    return;
+  }
+  if(!shop) return;
+  const k = openItem;
+  if(act === "tab"){ tab = el.dataset.tab; paintList(); focusOn(`[data-act="tab"][aria-selected="true"]`); }
+  else if(act === "open"){ openItem = el.dataset.item; paint(true); focusOn("#d-name"); }
+  else if(act === "close"){ openItem = null; paint(); focusOn(`[data-go="${k}"]`); }
+  else if(act === "try"){ trial.set(k, cents(realPrice(k))); paint(); focusOn(`[data-act="plus"]`); }
+  else if(act === "plus" || act === "minus"){
+    trial.set(k, Math.max(FLOOR, trial.get(k) + (act === "plus" ? STEP : -STEP)));
+    paint();
+    focusOn(`[data-act="${act}"]:not([disabled])`);
+  }
+  else if(act === "reset"){ trial.delete(k); paint(); focusOn(`[data-act="try"]`); }
+  else if(act === "resetall"){ trial.clear(); paint(); focusOn(`[data-act="try"]`); }
+  else if(act === "view"){ view = el.dataset.view; paintDetail(true); }
+  else if(act === "all"){ showAll = !showAll; paintCafes(); focusOn(`[data-act="all"]`); }
+});
+window.addEventListener("popstate", route);
+// which way the reader is working, so the focus mark shows for keys only
+document.addEventListener("keydown", () => document.documentElement.classList.add("keys"), true);
+document.addEventListener("pointerdown", () => document.documentElement.classList.remove("keys"), true);
+
+/* ---------- the handle between the list and the details ----------
+   The list's share of the row, in memory only. */
+const SPLIT = {start: 38, min: 28, max: 60, key: 2};
+let split = SPLIT.start;
+function setSplit(pct){
+  split = Math.max(SPLIT.min, Math.min(SPLIT.max, pct));
+  const cols = byId("cols");
+  cols.style.setProperty("--a", split + "fr");
+  cols.style.setProperty("--b", (100 - split) + "fr");
+  byId("handle").setAttribute("aria-valuenow", String(Math.round(split)));
+  if(shop && openItem){ drawChart(); if(map && view === "map") map.invalidateSize(); }
+}
+(function(){
+  const handle = byId("handle"), cols = byId("cols");
+  let grab = null;
+  handle.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    handle.focus();
+    handle.setPointerCapture(e.pointerId);
+    const r = handle.getBoundingClientRect();
+    grab = e.clientX - (r.left + r.width / 2);
+  });
+  handle.addEventListener("pointermove", e => {
+    if(grab === null) return;
+    const box = cols.getBoundingClientRect(), w = handle.offsetWidth;
+    setSplit(100 * (e.clientX - grab - box.left - w / 2) / (box.width - w));
+  });
+  const drop = () => { grab = null; };
+  handle.addEventListener("pointerup", drop);
+  handle.addEventListener("pointercancel", drop);
+  handle.addEventListener("dblclick", () => setSplit(SPLIT.start));
+  handle.addEventListener("keydown", e => {
+    if(e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    setSplit(split + (e.key === "ArrowLeft" ? -SPLIT.key : SPLIT.key));
+  });
+})();
+let resizing = 0;
+window.addEventListener("resize", () => {
+  cancelAnimationFrame(resizing);
+  resizing = requestAnimationFrame(() => { if(shop && openItem) drawChart(); });
+});
+
+/* ---------- the start screen's field ---------- */
+let opts = [], active = -1;
+function closeSuggest(){
+  const input = byId("shop-input"), list = byId("shop-list");
+  list.hidden = true; active = -1; opts = [];
+  input.setAttribute("aria-expanded", "false");
+  input.removeAttribute("aria-activedescendant");
+}
+function setActive(i){
+  const input = byId("shop-input"), list = byId("shop-list");
+  active = i;
+  list.querySelectorAll("li[role=option]").forEach((li, n) => li.setAttribute("aria-selected", String(n === i)));
+  if(i < 0){ input.removeAttribute("aria-activedescendant"); return; }
+  const li = byId("shop-opt-" + i);
+  input.setAttribute("aria-activedescendant", li.id);
+  li.scrollIntoView({block: "nearest"});
+}
+function pick(s){
+  closeSuggest();
+  history.pushState(null, "", "?shop=" + encodeURIComponent(s.shop_id));
+  route();
+}
+function buildStart(){
+  const input = byId("shop-input"), list = byId("shop-list");
+  const all = [...SHOPS.values()].sort((a, b) => a.shop_name.localeCompare(b.shop_name));
+  // two outlets with one name in one area are told apart by their street
+  const twins = new Map();
+  const twinKey = s => fold(s.shop_name) + "|" + s.district;
+  all.forEach(s => twins.set(twinKey(s), (twins.get(twinKey(s)) || 0) + 1));
+  const subOf = s => twins.get(twinKey(s)) > 1 && s.address ? `${s.address}, ${s.district}` : s.district;
+
+  function suggest(){
+    const raw = input.value.trim(), q = fold(raw);
+    if(raw.length < 2 || !q){ closeSuggest(); return; }
+    opts = ranked(all, s => s.shop_name, q).slice(0, MAX_SUGGEST);
+    list.innerHTML = opts.length
+      ? opts.map((s, i) => `<li role="option" id="shop-opt-${i}" aria-selected="false" data-i="${i}">` +
+          `<span class="optname">${esc(s.shop_name)}</span><span class="optsub">${esc(subOf(s))}</span></li>`).join("")
+      : `<li class="none" role="presentation">No shop with that name.</li>`;
+    list.hidden = false; list.scrollTop = 0; active = -1;
+    input.setAttribute("aria-expanded", "true");
+    input.removeAttribute("aria-activedescendant");
+  }
+  input.addEventListener("input", suggest);
+  input.addEventListener("focus", suggest);
+  input.addEventListener("blur", () => setTimeout(closeSuggest, 150));
+  input.addEventListener("keydown", e => {
+    if(e.key === "Escape"){ closeSuggest(); return; }
+    if(list.hidden || !opts.length) return;
+    if(e.key === "ArrowDown"){ e.preventDefault(); setActive((active + 1) % opts.length); }
+    else if(e.key === "ArrowUp"){ e.preventDefault(); setActive((active - 1 + opts.length) % opts.length); }
+    else if(e.key === "Enter"){ e.preventDefault(); pick(opts[active < 0 ? 0 : active]); }
+  });
+  // mousedown, so the pick lands before the field's blur closes the list
+  list.addEventListener("mousedown", e => {
+    const li = e.target.closest("li[role=option]");
+    if(!li) return;
+    e.preventDefault();
+    pick(opts[Number(li.dataset.i)]);
+  });
+}
+
+/* ---------- start ---------- */
+fetch("site_data.json").then(r => {
+  if(!r.ok) throw new Error("site_data.json " + r.status);
+  return r.json();
+}).then(d => {
+  D = d;
+  d.shop_items.forEach(s => SHOPS.set(s.shop_id, s));
+  buildStart();
+  route();
+}).catch(err => { console.error(err); byId("app").hidden = true; byId("start").hidden = true; byId("problem").hidden = false; });
+</script>
+</body>
+</html>

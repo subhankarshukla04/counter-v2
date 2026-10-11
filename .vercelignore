@@ -1,0 +1,6 @@
+# Allowlist: nothing is uploaded unless named below.
+# Keeps local CLI state out of the deployment.
+*
+!index.html
+!site_data.json
+!vercel.json
