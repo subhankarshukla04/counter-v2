@@ -242,6 +242,17 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .newtable .gfold td{padding:8px 10px 12px; border-bottom:0}
 .newtable .gfold .btn{min-height:36px; padding:0 12px; font-size:13px}
 .newtable .tag{margin-left:6px}
+.newtable .under{display:block; font-size:13px; color:var(--muted)}
+/* Offers: the same table, with the cafe first and the offer taking the room that is left */
+.newtable.offers{min-width:720px}
+.newtable.offers .c-cafe{width:210px}
+/* the offer's words end well clear of the source link beside them */
+.newtable.offers td.offer{padding-right:26px}
+/* "Your competitor" has a line of its own under the cafe name, in the same place in every row */
+.newtable .tagline{display:block; margin-top:4px}
+.newtable .tagline .tag{margin-left:0}
+#offers-checked{margin-top:12px}
+.newtable.offers .c-src{width:110px}     /* 10 + the link text + 10 */
 .tag.limited{background:var(--rust-soft); border-color:var(--rust-line); color:var(--rust-ink)}
 /* the price ends well clear of the source link beside it */
 .newtable th.num, .newtable td.num{padding-right:30px}
@@ -477,8 +488,8 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>New at other cafes</a></li>
         <li class="sub"><a class="line" href="./" id="nav-missing" data-nav="">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7M16 18h5"/></svg><span id="nav-missing-words">Items you do not sell</span></a></li>
-        <li><span class="line" role="link" aria-disabled="true">
-          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>Offers<span class="soon">Soon</span></span></li>
+        <li><a class="line" href="./" id="nav-offers" data-nav="">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>Offers</a></li>
         <li><a class="line" href="./" id="nav-saved" data-nav="">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S4 15.2 4 9.4a4.4 4.4 0 0 1 8-2.5 4.4 4.4 0 0 1 8 2.5c0 5.8-8 11.1-8 11.1z"/></svg><span id="nav-saved-words">Saved</span></a></li>
         <li class="divider" role="presentation"></li>
@@ -518,6 +529,7 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
       </section>
     </div>
     <section class="panel" id="newpage" aria-label="New at other cafes" hidden></section>
+    <section class="panel" id="offerspage" aria-label="Offers" hidden></section>
     <section class="panel" id="savedpage" aria-label="Saved" hidden></section>
   </main>
 </div>
@@ -622,7 +634,8 @@ function shopSaves(write){
   mine.tests = (Array.isArray(mine.tests) ? mine.tests : []).filter(e => e && text(e.item) && Number.isFinite(e.cents));
   mine.ideas = (Array.isArray(mine.ideas) ? mine.ideas : []).filter(e => e &&
     ((e.kind === "missing" && text(e.item) && (e.cents === null || Number.isFinite(e.cents))) ||
-     (e.kind === "new" && text(e.shop) && text(e.item_name))));
+     (e.kind === "new" && text(e.shop) && text(e.item_name)) ||
+     (e.kind === "offer" && text(e.brand_name) && text(e.offer_text))));
   return mine;
 }
 const newKey = (cafe, name) => cafe + "|" + name;       // the same key newScope() uses
@@ -645,6 +658,8 @@ function putIdea(same, entry){
   storeSaves();
 }
 const putMissing = (item, entry) => putIdea(e => e.kind === "missing" && e.item === item, entry);
+const savedOffer = (cafe, words) => shopSaves().ideas.find(e => e.kind === "offer" && newKey(e.brand_name, e.offer_text) === newKey(cafe, words));
+const putOffer = (cafe, words, entry) => putIdea(e => e.kind === "offer" && newKey(e.brand_name, e.offer_text) === newKey(cafe, words), entry);
 const putNew = (cafe, name, entry) => putIdea(e => e.kind === "new" && newKey(e.shop, e.item_name) === newKey(cafe, name), entry);
 /* A save button: a heart and a word. Saved, the heart is filled and the word is "Saved". */
 const saveBtn = (attrs, on, words, name) => `<button type="button" class="btn quiet savebtn" ${attrs} aria-pressed="${on}" ` +
@@ -802,7 +817,7 @@ function route(){
 }
 function openShop(s, ids, q){
   const asked = q.get("page");
-  const nextPage = asked === "missing" || asked === "new" || asked === "saved" ? asked : "prices";
+  const nextPage = Object.prototype.hasOwnProperty.call(PAGE_TITLE, asked) ? asked : "prices";
   // a new shop, a new page, or a return from set-up starts the page afresh.
   // A change to the hidden items alone leaves the open tab and item be.
   const entering = screen !== "prices" || lastShop !== s.shop_id || page !== nextPage;
@@ -830,7 +845,7 @@ function openShop(s, ids, q){
   if(entering){
     view = "list"; showAll = false; showHidden = false; closed = false;
     // New at other cafes starts on the competitors' items when there are any
-    newTab = "all"; chainsOn = false; foldNew(); onlyMine = anyMine();
+    newTab = "all"; chainsOn = false; foldNew(); onlyMine = page === "offers" ? anyMineOffer() : anyMine();
     // the Saved page asked for one item to be open
     if(wantOpen && pageItems().indexOf(wantOpen) !== -1){ tab = "all"; openItem = wantOpen; }
     // My prices opens on the category with the most items, this page on All
@@ -858,7 +873,7 @@ function openShop(s, ids, q){
   show("prices");
   paint(entering);
 }
-const PAGE_TITLE = {prices: "My prices", missing: "Items you do not sell", new: "New at other cafes", saved: "Saved"};
+const PAGE_TITLE = {prices: "My prices", missing: "Items you do not sell", new: "New at other cafes", offers: "Offers", saved: "Saved"};
 function categories(){
   const tally = new Map();
   pageItems().forEach(k => { const f = priceRow(k).format || ""; tally.set(f, (tally.get(f) || 0) + 1); });
@@ -871,6 +886,7 @@ function paint(fit){
   paintFrame();
   paintBand();
   if(page === "new"){ paintNew(); return; }
+  if(page === "offers"){ paintOffers(); return; }
   if(page === "saved"){ paintSaved(); return; }
   paintList();
   paintDetail(fit);
@@ -881,7 +897,7 @@ function paintFrame(){
   byId("nav-rivals").textContent = `My competitors (${rivals.length})`;
   byId("nav-missing-words").textContent = `Items you do not sell (${n})`;
   byId("nav-saved-words").textContent = `Saved (${savedCount()})`;
-  [["nav-prices", "prices"], ["nav-new", "new"], ["nav-missing", "missing"], ["nav-saved", "saved"]].forEach(pair => {
+  [["nav-prices", "prices"], ["nav-new", "new"], ["nav-missing", "missing"], ["nav-offers", "offers"], ["nav-saved", "saved"]].forEach(pair => {
     const link = byId(pair[0]);
     link.dataset.nav = address(here({page: pair[1] === "prices" ? "" : pair[1]}));
     if(page === pair[1]) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
@@ -896,8 +912,9 @@ function paintFrame(){
   const empty = byId("page-empty");
   empty.hidden = !none;
   empty.textContent = none ? "Your competitors do not sell any compared item that is missing from your menu." : "";
-  byId("cols").hidden = none || page === "new" || page === "saved";
+  byId("cols").hidden = none || page === "new" || page === "saved" || page === "offers";
   byId("newpage").hidden = page !== "new";
+  byId("offerspage").hidden = page !== "offers";
   byId("savedpage").hidden = page !== "saved";
 }
 
@@ -1092,6 +1109,77 @@ function paintNew(){
   box.innerHTML = html;
 }
 
+/* ---------- Offers ----------
+   Offers from counter_data.json that are running now. The words of an offer
+   are shown exactly as they are written in the data: no price is worked out,
+   guessed or pulled out of them. */
+const OFFER_TYPES = [["bundle", "Bundles"], ["price_cut", "Price cuts"]];
+/* The live site's own rule: an offer runs through its end date, and one with
+   no end date stays. Today is the reader's own date. */
+function localToday(){
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+const runningNow = (r, today) => !r.end_date || r.end_date >= today;
+const offersLoaded = () => !!C && Array.isArray(C.offers);
+const anyMineOffer = () => { const today = localToday(); return offersLoaded() && C.offers.some(r => runningNow(r, today) && isMine(r)); };
+/* an end date is shown only when the offer's own source stated one */
+const statedEnd = r => r.end_date_stated && r.end_date ? r.end_date : "";
+const offerLink = r => /^https?:\/\//.test(r.source_url || "") ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener">See the offer</a>` : "";
+/* The rows the two switches leave, before the type tab: competitors' offers
+   first, then those with a stated end date, the soonest first, then the rest. */
+function offerScope(){
+  const today = localToday();
+  return C.offers.filter(r => runningNow(r, today)).map(r => Object.assign({}, r, {mine: isMine(r), ends: statedEnd(r)}))
+    .filter(r => (!onlyMine || r.mine) && (chainsOn || !r.is_chain || r.mine))
+    .sort((a, b) => (b.mine - a.mine) || (!!b.ends - !!a.ends) || a.ends.localeCompare(b.ends) ||
+                    sameText(a.brand_name, b.brand_name) || sameText(a.offer_text, b.offer_text));
+}
+function paintOffers(){
+  const box = byId("offerspage"), sub = byId("page-sub");
+  if(!offersLoaded()){
+    sub.hidden = true;
+    box.innerHTML = `<p id="offers-failed">Offers could not be loaded.</p>`;
+    return;
+  }
+  const scope = offerScope(), n = scope.length, words = n === 1 ? "1 offer" : `${n} offers`;
+  sub.hidden = false;
+  sub.innerHTML = `<span id="offers-count">${onlyMine ? `Your competitors are running ${words} now.` : `${words} running now.`}</span>` +
+    (anyMineOffer() ? "" : `<span class="under muted" id="offers-note">None of your competitors has an offer on file. Showing all cafes.</span>`);
+
+  const tabs = [["all", "All", n]].concat(OFFER_TYPES.map(t => [t[0], t[1], scope.filter(r => r.promo_type === t[0]).length]));
+  const sw = (key, on, text) => `<button type="button" class="switch" role="switch" aria-checked="${on}" data-act="sw" data-sw="${key}">` +
+    `<span class="track" aria-hidden="true"></span><span class="words" data-text="${text}">${text}</span></button>`;
+  let html = `<div class="newbar"><div class="tabs" role="tablist" aria-label="Offer types">` + tabs.map(t =>
+      `<button type="button" role="tab" data-act="ntab" data-tab="${t[0]}" aria-selected="${t[0] === newTab}"${t[2] ? "" : " disabled"}>` +
+      `${t[1]} (${t[2]})</button>`).join("") + `</div>` +
+    `<div class="switches">${sw("mine", onlyMine, "Only my competitors")}${sw("chains", chainsOn, "Include big chains")}</div></div>`;
+
+  // how fresh the offers are: the latest day any of them was checked
+  const checked = C.offers.map(r => r.observed_date || "").sort().pop();
+  const fresh = checked ? `<p class="muted small" id="offers-checked">Offers last checked on ${dayMonth(checked)}.</p>` : "";
+  const rows = scope.filter(r => newTab === "all" || r.promo_type === newTab);
+  if(!rows.length){
+    box.innerHTML = html + `<p id="offers-empty">Nothing to show here.</p>` + fresh;
+    return;
+  }
+  html += `<div class="tablebox"><table class="newtable offers"><thead><tr>` +
+    `<th scope="col" class="c-cafe">Cafe</th><th scope="col" class="c-offer">Offer</th>` +
+    `<th scope="col" class="c-src">Source</th><th scope="col" class="c-save">Save</th></tr></thead><tbody>` +
+    rows.map(r => `<tr class="irow" data-type="${esc(r.promo_type)}">` +
+      // with only competitors showing, every cafe is one, so the tag says nothing
+      `<td><span class="lead">${esc(r.brand_name)}</span>` +
+        (r.mine && !onlyMine ? `<span class="tagline"><span class="tag">Your competitor</span></span>` : "") + `</td>` +
+      // an end date shows only when the offer's own source stated one
+      `<td class="offer"><span class="lead">${esc(r.offer_text)}</span>` +
+        (r.ends ? `<span class="under" data-ends>Ends ${dayMonth(r.ends)}</span>` : "") + `</td>` +
+      `<td class="nowrap">${offerLink(r)}</td>` +
+      `<td class="save">` + saveBtn(`data-act="saveoffer" data-cafe="${esc(r.brand_name)}" data-name="${esc(r.offer_text)}"`,
+                                    !!savedOffer(r.brand_name, r.offer_text), "Save", r.offer_text) + `</td></tr>`).join("") +
+    `</tbody></table></div>` + fresh;
+  box.innerHTML = html;
+}
+
 /* ---------- Saved ----------
    What this shop saved, read from the browser and drawn against today's data:
    every price, range and verdict here is worked out now, not when it was saved. */
@@ -1129,7 +1217,7 @@ function paintSaved(){
       }).join("") + `</ul>`;
   } else {
     const lacking = ideas.filter(e => e.kind === "missing"), fresh = ideas.filter(e => e.kind === "new");
-    if(!ideas.length) html += none("To save one, press Save on Items you do not sell or New at other cafes.");
+    if(!ideas.length) html += none("To save one, press Save on Items you do not sell, New at other cafes or Offers.");
     if(lacking.length) html += `<h3>Items you do not sell</h3><ul class="savedrows" id="saved-missing">` + lacking.map(e => {
       const row = priceRow(e.item), name = itemName(e.item), known = D.named_prices[e.item];
       return `<li data-item="${esc(e.item)}"><div class="words"><p class="name">${esc(name)}</p>` +
@@ -1152,6 +1240,17 @@ function paintSaved(){
              (since ? `<p data-since>New since ${esc(since)}</p>` : "") + (link ? `<p data-source>${link}</p>` : "")
            : `<p data-gone>${C ? "No longer listed." : "New items could not be loaded."}</p>`) + `</div>` +
         acts(act("dropnew", "Remove", `data-cafe="${esc(e.shop)}" data-name="${esc(e.item_name)}"`, e.item_name)) + `</li>`;
+    }).join("") + `</ul>`;
+    const deals = ideas.filter(e => e.kind === "offer"), today = localToday();
+    if(deals.length) html += `<h3>Offers</h3><ul class="savedrows" id="saved-offers">` + deals.map(e => {
+      const r = offersLoaded() ? C.offers.find(x => newKey(x.brand_name, x.offer_text) === newKey(e.brand_name, e.offer_text)) : null;
+      const link = r ? offerLink(r) : "";
+      return `<li data-key="${esc(newKey(e.brand_name, e.offer_text))}"><div class="words">` +
+        `<p class="name">${esc(e.offer_text)}</p><p data-cafe>${esc(e.brand_name)}</p>` +
+        (r ? (statedEnd(r) ? `<p data-ends>Ends ${dayMonth(statedEnd(r))}</p>` : "") +
+             (runningNow(r, today) ? "" : `<p class="meaning" data-ended>This offer has ended.</p>`) + (link ? `<p data-source>${link}</p>` : "")
+           : `<p data-gone>${offersLoaded() ? "No longer listed." : "Offers could not be loaded."}</p>`) + `</div>` +
+        acts(act("dropoffer", "Remove", `data-cafe="${esc(e.brand_name)}" data-name="${esc(e.offer_text)}"`, e.offer_text)) + `</li>`;
     }).join("") + `</ul>`;
   }
   box.innerHTML = html;
@@ -1598,6 +1697,14 @@ document.addEventListener("click", e => {
   else if(act === "droptest"){ putTest(el.dataset.item, null); paint(); }
   else if(act === "dropmissing"){ putMissing(el.dataset.item, null); paint(); }
   else if(act === "dropnew"){ putNew(el.dataset.cafe, el.dataset.name, null); paint(); }
+  else if(act === "dropoffer"){ putOffer(el.dataset.cafe, el.dataset.name, null); paint(); }
+  else if(act === "saveoffer"){
+    const cafe = el.dataset.cafe, words = el.dataset.name;
+    putOffer(cafe, words, savedOffer(cafe, words) ? null : {kind: "offer", brand_name: cafe, offer_text: words, at: stamp()});
+    paint();
+    const again = [...document.querySelectorAll('[data-act="saveoffer"]')].find(b => b.dataset.cafe === cafe && b.dataset.name === words);
+    if(again) again.focus();
+  }
   else if(act === "opentest"){
     const kept = savedTest(el.dataset.item);
     if(kept){ trial.set(kept.item, kept.cents); wantOpen = kept.item; go(here({page: ""})); focusOn("#d-name"); }
@@ -1613,11 +1720,11 @@ document.addEventListener("click", e => {
     }
   }
   // New at other cafes: a type tab, a switch, and the rest of the rows
-  else if(act === "ntab"){ newTab = el.dataset.tab; foldNew(); paintNew(); focusOn(`[data-act="ntab"][aria-selected="true"]`); }
+  else if(act === "ntab"){ newTab = el.dataset.tab; foldNew(); (page === "offers" ? paintOffers : paintNew)(); focusOn(`[data-act="ntab"][aria-selected="true"]`); }
   else if(act === "sw"){
     if(el.dataset.sw === "mine") onlyMine = !onlyMine; else chainsOn = !chainsOn;
     foldNew();
-    paintNew();
+    (page === "offers" ? paintOffers : paintNew)();
     focusOn(`[data-sw="${el.dataset.sw}"]`);
   }
   else if(act === "nmore"){ cafesAll = true; paintNew(); focusOn(`#newpage tbody:nth-of-type(${NEW_CAFES + 1}) a, #newpage tbody:nth-of-type(${NEW_CAFES + 1}) button`); }
