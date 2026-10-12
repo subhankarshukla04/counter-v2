@@ -330,6 +330,10 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .switch[aria-checked="true"] .track{background:var(--rust)}
 .switch[aria-checked="true"] .track::after{left:18px}
 .tablebox{overflow-x:auto}
+.moneybox{margin:14px 0; padding:12px 14px; background:var(--picked); border-radius:var(--r)}
+.moneybox .sold{display:block; font-weight:600; color:var(--ink); margin-bottom:6px}
+.moneybox input{width:120px; min-height:40px; padding:0 10px; border:1px solid var(--line); border-radius:8px; font:inherit; background:var(--panel)}
+.moneybox .moneyline{margin:8px 0 0; color:var(--body)}
 /* fixed widths, so a long name or a tag wraps inside its column and never widens the table */
 .newtable{width:100%; min-width:744px; border-collapse:collapse; table-layout:fixed; font-size:14px}
 /* The last three columns are as wide as their longest text needs, in pixels,
@@ -370,6 +374,23 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .newtable .tag.isnew{margin-left:0; margin-right:6px}
 #alertspage h2{font-size:20px; margin-bottom:8px}
 #alertspage .tablebox + h2, #alertspage p + h2{margin-top:24px}
+/* on a phone a table is too wide to read: each row becomes a small card, the column names said in words where needed */
+@media (max-width:640px){
+  .tablebox{overflow:visible}
+  .newtable, .newtable.offers{min-width:0; table-layout:auto}
+  .newtable, .newtable tbody, .newtable tr, .newtable th, .newtable td{display:block}
+  .newtable thead{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+  .newtable .ghead th{padding:10px 12px; border-radius:8px}
+  .newtable tbody + tbody .ghead th{border-top:0; margin-top:14px}
+  .newtable .irow{display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; padding:12px 2px; border-bottom:1px solid var(--rule)}
+  .newtable .irow td{padding:0; border:0}
+  .newtable .irow td:first-child, .newtable .irow td.offer, .newtable.alerts:not(.offers) .irow td:nth-child(2){flex-basis:100%}
+  .newtable.offers td.offer{padding-right:0}
+  .newtable .irow td.num{font-weight:600; color:var(--ink)}
+  .newtable .irow td.save{margin-left:auto; padding-left:0}
+  .newtable:not(.offers):not(.alerts) .irow td:nth-child(2)::before, .newtable.alerts:not(.offers) .irow td:nth-child(3)::before{content:"New: "; color:var(--muted)}
+  .newtable .gfold td{padding:10px 2px 4px}
+}
 /* a competitor for one item: its Remove button, and the list of cafes to choose from */
 .cafes .btn, #ir-box .cafes .btn{min-height:32px; padding:0 10px; font-size:13px}
 .d-list .listacts{display:flex; flex-wrap:wrap; gap:8px}
@@ -957,6 +978,18 @@ const shortVerdict = t => t.replace(/ cafes$/, "");
 
 /* How the other cafes split around a price. The reader's own shop is never
    one of the others. */
+/* the whole menu in one line, at the real prices: how many items cost more than most cafes, less, or about the usual */
+function pricesSummary(){
+  const said = myItems.map(k => compare(k, realPrice(k))).filter(c => c.enough);
+  if(!said.length) return "";
+  const more = said.filter(c => /^(Much )?[Mm]ore expensive/.test(c.verdict)).length, less = said.filter(c => /^Cheaper/.test(c.verdict)).length;
+  const usual = said.length - more - less, one = n => n === 1;
+  if(one(said.length)) return more ? "Your item costs more than most cafes charge." : less ? "Your item costs less than most cafes charge." : "Your item is about the usual price.";
+  const parts = [more ? `${more} ${one(more) ? "costs" : "cost"} more than most cafes charge` : "", less ? `${less} ${one(less) ? "costs" : "cost"} less` : "",
+                 usual ? `${usual} ${one(usual) ? "is" : "are"} about the usual price` : ""].filter(Boolean);
+  if(parts.length === 1) return more ? `All ${said.length} of your items cost more than most cafes charge.` : less ? `All ${said.length} of your items cost less than most cafes charge.` : `All ${said.length} of your items are about the usual price.`;
+  return `Of your ${said.length} items, ` + parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1] + ".";
+}
 function compare(key, v){
   const others = D.named_prices[key].filter(r => r.shop_id !== shop.shop_id);
   // with no price to compare with, no cafe charges less or more
@@ -1175,8 +1208,9 @@ function paintFrame(){
   // no item at all on Items I do not sell: one line, and no panels
   const none = miss && !missing.length;
   const sub = byId("page-sub");
-  sub.hidden = !miss || none;
-  sub.textContent = miss ? `Your competitors sell ${n === 1 ? "1 item" : n + " items"} we did not find on your menu.` : "";
+  const summary = page === "prices" ? pricesSummary() : "";
+  sub.hidden = !(miss || summary) || none;
+  sub.textContent = miss ? `Your competitors sell ${n === 1 ? "1 item" : n + " items"} we did not find on your menu.` : summary;
   const empty = byId("page-empty");
   empty.hidden = !none;
   empty.textContent = none ? "Your competitors do not sell any compared item that is missing from your menu." : "";
@@ -1706,7 +1740,7 @@ function paintPricesTop(){
         `<button type="button" class="btn sq" data-act="minus" aria-label="Lower the price by ${STEP} cents"${cents(v) <= FLOOR ? " disabled" : ""}>${ICON.minus}</button>` +
         `<span class="bigprice" id="d-big" aria-live="polite">${money(v)}</span>` +
         `<button type="button" class="btn sq" data-act="plus" aria-label="Raise the price by ${STEP} cents">${ICON.plus}</button></div>` +
-      `<p>Your real price is ${money(real)}.</p>` + own +
+      `<p>Your real price is ${money(real)}.</p>` + own + soldHtml(k) +
       `<button type="button" class="btn" data-act="reset">Go back to my real price</button>` +
       // a price that differs from the real one can be saved. The button reads
       // "Saved" only while the saved price is the one on screen.
@@ -1731,6 +1765,40 @@ function paintPricesTop(){
     `</ul>` +
     `<p class="count muted small" id="d-count">${c.n} cafes</p>`;
 }
+/* ----- what a price is worth in a month -----
+   The owner says how many they sell a day; the line is the sum only: the
+   difference in price, times that many, times 30 days. It is kept in this
+   browser, for each shop and item. */
+const SOLD_KEY = "counter.sold.v1";
+let soldAll = null;
+function soldOf(k){
+  if(!soldAll){ try { soldAll = JSON.parse(localStorage.getItem(SOLD_KEY) || "{}") || {}; } catch(e){ soldAll = {}; } }
+  const n = (soldAll[shop.shop_id] || {})[k];
+  return Number.isInteger(n) && n > 0 ? n : 0;
+}
+function setSold(k, n){
+  soldOf(k);
+  (soldAll[shop.shop_id] = soldAll[shop.shop_id] || {})[k] = n;
+  try { localStorage.setItem(SOLD_KEY, JSON.stringify(soldAll)); } catch(e){ /* kept for this visit */ }
+}
+function moneyWords(k){
+  const n = soldOf(k), real = realPrice(k), diff = cents(cur(k)) - cents(real);
+  if(!n) return "Add how many you sell to see what this price is worth in a month.";
+  if(!diff) return `At your real price, ${n} a day takes in ${money(n * real * 30).replace(/\.00$/, "")} a month.`;
+  const month = Math.round(Math.abs(diff) * n * 30 / 100);
+  return `${diff > 0 ? "About $" + month.toLocaleString("en-SG") + " more" : "About $" + month.toLocaleString("en-SG") + " less"} a month than your real price, if you still sell ${n} a day.`;
+}
+const soldHtml = k =>
+  `<div class="moneybox"><label class="sold" for="d-sold">How many do you sell a day?</label>` +
+  `<input type="number" id="d-sold" inputmode="numeric" min="1" max="5000" placeholder="e.g. 60" value="${soldOf(k) || ""}">` +
+  `<p class="moneyline" id="d-money" aria-live="polite">${esc(moneyWords(k))}</p></div>`;
+document.addEventListener("input", e => {
+  if(!e.target || e.target.id !== "d-sold" || !openItem) return;
+  const n = Math.round(Number(e.target.value));
+  setSold(openItem, n > 0 && n <= 5000 ? n : 0);
+  byId("d-money").textContent = moneyWords(openItem);
+});
+
 /* the same place for an item the shop does not sell: who sells it, a price to
    test, and what the cafes that sell it charge */
 function paintMissingTop(){
