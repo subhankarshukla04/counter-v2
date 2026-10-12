@@ -139,6 +139,9 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .upfiles .name{font-weight:600; color:var(--ink)}
 .upfiles .btn{min-height:36px; padding:0 12px; font-size:13px}
 .upacts{display:flex; flex-wrap:wrap; gap:10px}
+#plmap{height:220px; margin-top:12px}
+#pl-card{max-width:560px}
+#pl-result > * + *{margin-top:16px}
 /* ---------- Check your menu: the owner's menu as one compact table, and the compared items beside it ---------- */
 #upload.check{padding-top:8px; padding-bottom:120px}
 #ck-top{margin-top:4px}
@@ -626,6 +629,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
     <div class="who">
       <p class="name" id="who-name"></p>
       <p class="area" id="who-area"></p>
+      <p class="area" id="who-lost" role="alert" hidden>Your browser is not keeping your menu. It will be gone when you close this page.</p>
       <a href="./" data-act="change">Change shop</a>
     </div>
     <nav aria-label="Counter" id="sidenav">
@@ -654,8 +658,10 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
       <ul class="nav" aria-labelledby="group-setup">
         <li><a class="line" href="./" data-act="editrivals">
           <span class="navic" id="nav-target" aria-hidden="true"></span><span id="nav-rivals">My competitors</span></a></li>
-        <li><span class="line" role="link" aria-disabled="true">
-          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>Update my menu<span class="soon">Soon</span></span></li>
+        <li><span class="line" role="link" aria-disabled="true" id="nav-update-soon">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>Update my menu<span class="soon">Soon</span></span>
+          <a class="line" href="./" id="nav-update" data-nav="" hidden>
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>Update my menu</a></li>
       </ul>
     </nav>
   </aside>
@@ -955,15 +961,16 @@ function show(name){
   byId("find").hidden = name !== "find";
   byId("choose").hidden = name !== "choose";
   // a shop that is not in the list has two more steps: its menu, and the check of it
-  const flow = name === "menu" || name === "check" || name === "done";
-  byId("upload").hidden = !flow;
+  const upload = name === "place" || name === "menu" || name === "check";
+  const flow = upload || (name === "choose" && !!chooser && chooser.shop.shop_id === MY_ID && !chooser.edit);
+  byId("upload").hidden = !upload;
   byId("upload").className = name === "check" ? "stage wide check" : "stage";
   byId("ck-bar").hidden = name !== "check";
   byId("step-m").hidden = byId("step-c").hidden = !flow;
   byId("step-2-num").textContent = flow ? "4" : "2";
-  byId("step-1").className = name === "find" ? "now" : "done";
-  byId("step-m").className = name === "menu" ? "now" : "done";
-  byId("step-c").className = name === "check" ? "now" : name === "done" ? "done" : "";
+  byId("step-1").className = name === "find" || name === "place" ? "now" : "done";
+  byId("step-m").className = name === "menu" ? "now" : name === "place" ? "" : "done";
+  byId("step-c").className = name === "check" ? "now" : name === "choose" ? "done" : "";
   byId("step-2").className = name === "choose" ? "now" : "";
   return fresh;
 }
@@ -975,9 +982,14 @@ function slideIn(el){
 function route(){
   setMenu(false);            // a new page or screen: the phone's menu is put away
   const q = new URLSearchParams(location.search);
+  // the owner's own shop is in the data only while it is the shop that is open
+  const own = q.get("shop") === MY_ID;
+  setMine(own);
+  // its place is stored but its menu is not yet: the menu comes next
+  if(own && myShop && !myMenu){ history.replaceState(null, "", address({setup: "menu"})); chooser = null; showUpload(new URLSearchParams(location.search)); return; }
   const s = SHOPS.get(q.get("shop")) || null;
-  if(!s && q.get("setup")){ chooser = null; showUpload(q.get("setup")); return; }
-  if(!s){ chooser = null; showFind(q); return; }
+  if(!s && q.get("setup")){ chooser = null; showUpload(q); return; }
+  if(!s){ chooser = null; showFind(q, own); return; }
   const ids = validRivals(q.get("rivals"), s);
   if(!ids.length){ showChooser(s, null, q); return; }
   if(q.get("view") === "rivals"){ showChooser(s, ids, q); return; }
@@ -1038,7 +1050,9 @@ function openShop(s, ids, q){
   }
   document.title = `${PAGE_TITLE[page]}, ${s.shop_name} | Counter`;
   byId("who-name").textContent = s.shop_name;
-  byId("who-area").textContent = s.district;
+  // the owner's own shop shows its street, never a district
+  byId("who-area").textContent = s.shop_id === MY_ID ? (s.street || s.address) : s.district;
+  byId("who-lost").hidden = !(s.shop_id === MY_ID && (menuLost || shopLost));
   show("prices");
   paint(entering);
 }
@@ -1064,6 +1078,11 @@ function paint(fit){
 function paintFrame(){
   const miss = page === "missing", n = visMissing().length;
   byId("nav-rivals").textContent = `My competitors (${rivals.length})`;
+  // "Update my menu" works for the owner's own shop only
+  const own = shop.shop_id === MY_ID;
+  byId("nav-update").hidden = !own;
+  byId("nav-update-soon").hidden = own;
+  byId("nav-update").dataset.nav = own ? address({setup: "menu", update: "1"}) : "";
   byId("nav-missing-words").textContent = `Items I do not sell (${n})`;
   byId("nav-saved-words").textContent = `Saved (${savedCount()})`;
   [["nav-prices", "prices"], ["nav-new", "new"], ["nav-missing", "missing"], ["nav-offers", "offers"], ["nav-saved", "saved"]].forEach(pair => {
@@ -1102,7 +1121,10 @@ function paintList(){
   const box = byId("list"), miss = page === "missing", items = pageItems();
   if(!items.length){
     box.innerHTML = miss ? `<p>You have hidden every item.</p>` + hiddenHtml()
-                         : `<p>We have no prices to compare for this shop yet.</p>`;
+                         : shop.shop_id === MY_ID
+                           ? `<p id="mine-none">None of your menu items can be compared yet. Counter compares ${Object.keys(D.named_prices).length} common items today, and more are being added.</p>` +
+                             `<button type="button" class="btn" id="mine-update" data-nav="${esc(address({setup: "menu", update: "1"}))}">Update my menu</button>`
+                           : `<p>We have no prices to compare for this shop yet.</p>`;
     return;
   }
   const tabs = [{format: "all", n: items.length, words: "All"}]
@@ -1810,7 +1832,10 @@ document.addEventListener("click", e => {
     else if(act === "pview"){ chooser.view = el.dataset.view; chooser.fitted = false; paintChooser(); }
     else if(act === "done"){
       const ids = nearestFirst(chooser.shop, chooser.chosen.map(id => SHOPS.get(id))).map(o => o.shop_id);
-      if(ids.length) go({shop: chooser.shop.shop_id, rivals: ids.join(","), hide: chooser.keep.hide, page: chooser.keep.page});
+      if(!ids.length) return;
+      // the owner's own shop keeps its competitors in the browser too
+      if(chooser.shop.shop_id === MY_ID && myShop){ myShop.rivals = ids; storeShop(); }
+      go({shop: chooser.shop.shop_id, rivals: ids.join(","), hide: chooser.keep.hide, page: chooser.keep.page});
     }
     return;
   }
@@ -2038,7 +2063,7 @@ const partWords = p => `${count(p.areas.length, "area", "areas")}, ${count(p.caf
 const cafeWords = a => count(a.shops.length, "cafe", "cafes");
 
 /* ---------- step 1: find your shop ---------- */
-function showFind(q){
+function showFind(q, lost){
   shop = null;
   document.title = "Find your shop | Counter";
   const parts = partsOf([...SHOPS.values()]);
@@ -2055,17 +2080,21 @@ function showFind(q){
       `<p class="big">${esc(picked.shop_name)}</p><p>${esc(picked.district)}</p><p>${esc(picked.address || "")}</p>` +
       `<button type="button" class="btn primary" data-nav="${esc(address({shop: picked.shop_id}))}">Yes, this is my shop</button></div>`;
   } else if(place.level === "parts"){
-    html += `<p class="ask" tabindex="-1">Which part of ${WHOLE} is your shop in?</p><div class="tiles" id="find-tiles">` +
+    html += (lost ? `<p class="say" id="find-lost" role="status">This shop was set up in another browser. Add it again here.</p>` : "") +
+      `<p class="ask" tabindex="-1">Which part of ${WHOLE} is your shop in?</p><div class="tiles" id="find-tiles">` +
+      // a shop the owner added here comes first
+      (myShop ? `<button type="button" class="tile" id="find-mine" data-nav="${esc(mineHome())}"><span class="t1">Your shop: ${esc(myShop.shop_name)}</span>` +
+                `<span class="t2">${esc(myShop.street || myShop.address)}</span></button>` : "") +
       parts.map(p => tile(address({at: "p:" + p.name}), p.name, partWords(p))).join("") + `</div>`;
   } else if(place.level === "areas"){
     html += `<p class="ask" tabindex="-1">Which area?</p><div class="tiles" id="find-tiles">` +
       place.part.areas.map(a => tile(address({at: "a:" + a.district}), a.district, cafeWords(a))).join("") +
-      dashedTile(`data-nav="${esc(address({setup: "menu"}))}"`, "My area is not here", "Add your area") + `</div>`;
+      dashedTile(`data-nav="${esc(address({setup: "place"}))}"`, "My area is not here", "Add your area") + `</div>`;
   } else {
     const shops = place.area.shops.slice().sort((a, b) => a.shop_name.localeCompare(b.shop_name));
     html += `<p class="ask" tabindex="-1">Which shop is yours?</p><div class="tiles" id="find-tiles">` +
       shops.map(o => tile(address({at: "a:" + o.district, pick: o.shop_id}), o.shop_name, o.address || "")).join("") +
-      dashedTile(`data-nav="${esc(address({setup: "menu"}))}"`, "My shop is not here", "Add your shop") + `</div>`;
+      dashedTile(`data-nav="${esc(address({setup: "place"}))}"`, "My shop is not here", "Add your shop") + `</div>`;
   }
   const body = byId("find-body");
   body.innerHTML = html;
@@ -2147,6 +2176,7 @@ function paintChooser(){
     (picked.length ? "" : `<p class="need" id="need-one">Pick at least one cafe.</p>`) +
     `<button type="button" class="btn primary block" data-act="done"${picked.length ? "" : " disabled"}>Done. Show my prices</button>` +
     `<button type="button" class="btn block" data-nav="${esc(c.edit ? address({shop: s.shop_id, rivals: c.old.join(","), hide: c.keep.hide, page: c.keep.page})
+                                                                     : s.shop_id === MY_ID ? address({setup: "check"})
                                                                      : address({at: "a:" + s.district, pick: s.shop_id}))}">${c.edit ? "Cancel" : "Back"}</button></div>`;
 }
 function toggleRival(id, from){
@@ -2406,7 +2436,11 @@ const UP_SAY = {
   too_many: "Use up to 6 photos, or one PDF.",
   need_price: "Type a price for each item you chose, or set it to Not on my menu.",
   price_form: "Use a price from 0.10 to 999, with at most 2 decimals.",
-  not_kept: "Your browser is not keeping your menu. It will be gone when you close this page."
+  not_kept: "Your browser is not keeping your menu. It will be gone when you close this page.",
+  postal_form: "Type the 6 digits of your postal code.",
+  postal_none: "We could not find that postal code. Check the 6 digits.",
+  postal_failed: "We could not look up the postal code. Try again.",
+  name_needed: "Type your shop's name."
 };
 const up = {code: null, files: [], busy: false, adding: false};
 let ed = null;                // the menu being checked: its rows, and which row is each compared item
@@ -2509,7 +2543,14 @@ function paintMenuScreen(){
     `<p class="hint" id="up-ref"></p>` +
     `<p class="say" id="up-status" role="status"></p>` +
     `<div class="upacts"><button type="button" class="btn primary" id="up-read" data-up="read" disabled>Read my menu</button>` +
-      `<button type="button" class="btn" data-nav="${esc(address({}))}">Back</button></div></div>`;
+      `<button type="button" class="btn" data-nav="${esc(updating ? mineHome() : address({setup: "place"}))}">Back</button></div>` +
+    // opened from "Update my menu": the saved menu can be checked again, and the shop can be taken off this laptop
+    (updating ? `<div class="upacts" id="up-update"><button type="button" class="btn" data-up="again">Check my menu again</button>` +
+        `<button type="button" class="btn quiet" data-up="askremove">Remove my shop from this laptop</button></div>` +
+      `<div class="band" id="up-confirm" role="alert" tabindex="-1" hidden><div class="words">` +
+        `<p>Remove ${esc(myShop.shop_name)} and its menu from this laptop?</p></div>` +
+        `<button type="button" class="btn" data-up="remove">Yes, remove it</button>` +
+        `<button type="button" class="btn" data-up="keepshop">Keep it</button></div>` : "") + `</div>`;
   paintFiles();
 }
 /* add what was chosen, one at a time, until the limit: 6 photos, or one PDF alone */
@@ -2585,7 +2626,7 @@ async function readMenu(){
     try { localStorage.setItem(CODE_KEY, String(up.code).trim()); } catch(e){ /* the code is asked for again next time */ }
     up.files = [];                             // the files are not kept after the read
     ed = fromRead(got.items);
-    go({setup: "check"});
+    go({setup: "check", update: updating ? "1" : ""});
     return;
   }
   paintUpState();
@@ -2772,7 +2813,7 @@ function paintCheck(){
     `<aside class="panel" id="ck-box" aria-labelledby="ck-h-box"></aside></div>`;
   byId("ck-bar").innerHTML =
     `<p class="say" id="ck-msg" role="alert" tabindex="-1"></p>` +
-    `<button type="button" class="btn" data-nav="${esc(address({setup: "menu"}))}">Back</button>` +
+    `<button type="button" class="btn" data-nav="${esc(address({setup: "menu", update: updating ? "1" : ""}))}">Back</button>` +
     `<span class="status" id="ck-status" role="status"></span>` +
     `<button type="button" class="btn primary" data-ck="save">This is right. Save my menu</button>`;
   paintCounts();
@@ -2801,40 +2842,200 @@ function saveMenu(){
   // what was not saved is not kept either: a row left without a name goes, and the view starts afresh
   ed.rows = ed.rows.filter(r => r.name.trim() !== "");
   Object.assign(ed, freshView());
-  go({setup: "done"});
+  // a new shop chooses its competitors next; an update goes back to My prices with the ones it has
+  go({shop: MY_ID, rivals: updating && myShop ? myShop.rivals.join(",") : ""});
 }
 
-/* ----- the last screen of this build ----- */
-function paintDone(){
-  const m = Object.keys(myMenu.compared).filter(k => D.named_prices[k]).length;
+/* ----- the owner's own shop -----
+   A shop that is not in our list: its place comes from its postal code and its
+   prices from its own menu. Both are kept in this browser only. It has one
+   fixed id, and it is only ever the reader's own shop: its shop object and its
+   price records are put into the data while it is the open shop, and taken
+   out again for anything else, so no other shop can ever meet it as a cafe. */
+const MY_ID = "my_shop";
+const SHOP_KEY = "counter.myshop.v1";
+let myShop = null;            // the stored shop: its name, its place and its chosen competitors
+let shopLost = false;         // true when the browser would not keep it
+let updating = false;         // the menu screens were opened from "Update my menu"
+function loadShop(){
+  let kept = null;
+  try { kept = JSON.parse(localStorage.getItem(SHOP_KEY) || "null"); } catch(e){ kept = null; }
+  if(!kept || typeof kept !== "object" || kept.shop_id !== MY_ID || typeof kept.shop_name !== "string" || kept.shop_name.trim() === "" ||
+     !Number.isFinite(kept.lat) || !Number.isFinite(kept.lng)) return null;
+  ["postal", "address", "street", "district"].forEach(f => { if(typeof kept[f] !== "string") kept[f] = ""; });
+  kept.rivals = Array.isArray(kept.rivals) ? kept.rivals.filter(id => typeof id === "string") : [];
+  return kept;
+}
+function storeShop(){
+  try { localStorage.setItem(SHOP_KEY, JSON.stringify(myShop)); shopLost = false; } catch(e){ shopLost = true; }
+}
+const mineReady = () => !!(myShop && myMenu);
+const mineHome = () => address({shop: MY_ID, rivals: myShop ? myShop.rivals.join(",") : ""});
+/* the district of the nearest shop in our data: used only where the code needs one, never shown as this shop's own area */
+function nearestDistrict(lat, lng){
+  const near = nearestFirst({lat: lat, lng: lng}, [...SHOPS.values()].filter(o => o.shop_id !== MY_ID))[0];
+  return near ? near.district : "";
+}
+/* Put the owner's shop and its prices into the data, or take them out. Called
+   on every change of address, before anything is read from the data. */
+function setMine(on){
+  SHOPS.delete(MY_ID);
+  Object.keys(D.named_prices).forEach(k => {
+    if(D.named_prices[k].some(r => r.shop_id === MY_ID)) D.named_prices[k] = D.named_prices[k].filter(r => r.shop_id !== MY_ID);
+  });
+  if(!on || !mineReady()) return;
+  const base = {shop_id: MY_ID, shop_name: myShop.shop_name, district: myShop.district || nearestDistrict(myShop.lat, myShop.lng),
+                address: myShop.address, lat: myShop.lat, lng: myShop.lng};
+  const keys = Object.keys(myMenu.compared).filter(k => D.named_prices[k] && myMenu.compared[k] && Number.isFinite(myMenu.compared[k].cents));
+  keys.forEach(k => D.named_prices[k].push(Object.assign({}, base, {
+    price: myMenu.compared[k].cents / 100, price_basis: "own_menu", observed_date: String(myMenu.saved_at || "").slice(0, 10),
+    source_url: null, listed_price: null, charges: []})));
+  SHOPS.set(MY_ID, Object.assign({}, base, {street: myShop.street, price_count: keys.length, items: keys}));
+}
+function forgetMine(){
+  try { localStorage.removeItem(SHOP_KEY); localStorage.removeItem(MENU_KEY); } catch(e){ /* nothing was kept */ }
+  delete saves[MY_ID];
+  storeSaves();
+  myShop = null; myMenu = null; ed = null; menuLost = false; shopLost = false; updating = false; up.files = [];
+  pl.name = ""; pl.postal = ""; pl.results = null; pl.pick = null;
+}
+
+/* ----- the Add your shop screen: a name and a postal code, looked up on OneMap ----- */
+const ONEMAP_FIND = "https://www.onemap.gov.sg/api/common/elastic/search";
+const PLACE_WAIT = 10000;     // milliseconds before the page stops waiting for OneMap
+const pl = {name: "", postal: "", busy: false, results: null, pick: null};
+let plmap = null;
+function paintPlace(){
+  if(myShop && pl.name === "" && pl.postal === ""){ pl.name = myShop.shop_name; pl.postal = myShop.postal; }
   byId("upload-body").innerHTML =
-    `<h1 tabindex="-1">${menuLost ? "Your menu" : "Your menu is saved on this laptop."}</h1>` +
-    `<div class="up">` + (menuLost ? `<p class="say" id="dn-lost" role="alert">${UP_SAY.not_kept}</p>` : "") +
-    `<p id="dn-found">${m} of ${comparedKeys().length} compared items found on your menu.</p>` +
-    `<p>Next you place your shop on the map. That part is being built.</p>` +
-    `<div class="upacts"><button type="button" class="btn" data-nav="${esc(address({setup: "check"}))}">Check my menu again</button>` +
-      `<button type="button" class="btn" data-up="askclear">Start again</button></div>` +
-    `<div class="band" id="dn-confirm" role="alert" tabindex="-1" hidden><div class="words"><p>Start again?</p>` +
-      `<p>This removes your menu from this laptop.</p></div>` +
-      `<button type="button" class="btn" data-up="clear">Yes, start again</button>` +
-      `<button type="button" class="btn" data-up="keep">Keep my menu</button></div></div>`;
+    `<h1 tabindex="-1">Add your shop</h1>` +
+    `<p class="sub">Tell us your shop's name and postal code. We use them to find the cafes near you.</p>` +
+    `<div class="up">` +
+    `<div class="field"><label for="pl-name">Shop name</label>` +
+      `<input id="pl-name" type="text" autocomplete="organization" maxlength="80" value="${esc(pl.name)}"></div>` +
+    `<div class="field"><label for="pl-postal">Postal code</label>` +
+      `<input id="pl-postal" type="text" inputmode="numeric" autocomplete="postal-code" spellcheck="false" value="${esc(pl.postal)}">` +
+      `<p class="hint">We look up your postal code on OneMap, Singapore's official map.</p></div>` +
+    `<p class="say" id="pl-msg" role="alert" tabindex="-1"></p>` +
+    `<p class="say" id="pl-status" role="status"></p>` +
+    `<div class="upacts"><button type="button" class="btn" id="pl-find" data-pl="find">Find my address</button>` +
+      `<button type="button" class="btn" data-nav="${esc(address({}))}">Back</button></div>` +
+    `<div id="pl-result"></div></div>`;
+  paintPlaceResult();
+}
+function paintPlaceResult(){
+  const box = byId("pl-result");
+  if(plmap){ plmap.remove(); plmap = null; }
+  if(!box) return;
+  const found = pl.results || [], at = pl.pick === null ? null : found[pl.pick];
+  let html = "";
+  if(found.length > 1){
+    html += `<p class="ask" id="pl-ask" tabindex="-1">Which address is your shop?</p><div class="tiles" id="pl-choices">` + found.map((r, i) =>
+      `<button type="button" class="tile" data-pl="pick" data-i="${i}" aria-pressed="${pl.pick === i}">` +
+      (r.building ? `<span class="t1">${esc(r.building)}</span><span class="t2">${esc(r.address)}</span>` : `<span class="t1">${esc(r.address)}</span>`) +
+      `</button>`).join("") + `</div>`;
+  }
+  if(at){
+    html += `<div class="panel card" id="pl-card" tabindex="-1"><p class="muted">Your shop's address</p>` +
+      `<p id="pl-address">${esc(at.address)}</p>` +
+      `<div id="plmap" class="lmap" role="img" aria-label="Map with a pin at ${esc(at.address)}"></div>` +
+      `<button type="button" class="btn primary" data-pl="yes">Yes, this is my shop</button>` +
+      `<p class="muted small" id="pl-notright">Not right? Check the postal code.</p></div>`;
+  }
+  box.innerHTML = html;
+  if(!at) return;
+  // the same map and the same "You" pin as everywhere else
+  const el = byId("plmap");
+  plmap = makeMap(el, () => placeLabels(el, null));
+  L.marker([at.lat, at.lng], {
+    icon: L.divIcon({className: "pinwrap", iconSize: [0, 0], html: markHtml("you", "", MY_ID, "You", 0)}),
+    title: "Your shop", zIndexOffset: Z_YOU
+  }).addTo(plmap);
+  plmap.setView([at.lat, at.lng], 17, {animate: false});
+  placeLabels(el, null);
+}
+async function findPlace(){
+  if(pl.busy) return;
+  const code = byId("pl-postal").value.trim();
+  pl.results = null; pl.pick = null;
+  upSay("pl-msg", "");
+  if(!/^\d{6}$/.test(code)){
+    paintPlaceResult();
+    upSay("pl-msg", UP_SAY.postal_form);
+    focusOn("#pl-msg");
+    return;
+  }
+  pl.busy = true;
+  byId("pl-find").disabled = true;
+  upSay("pl-status", "Looking up your postal code.");
+  paintPlaceResult();
+  let rows = null;
+  const stop = new AbortController(), timer = setTimeout(() => stop.abort(), PLACE_WAIT);
+  try {
+    const res = await fetch(`${ONEMAP_FIND}?searchVal=${code}&returnGeom=Y&getAddrDetails=Y&pageNum=1`, {signal: stop.signal});
+    const data = res.ok ? await res.json() : null;
+    if(data && Array.isArray(data.results)) rows = data.results;
+  } catch(e){ rows = null; }
+  clearTimeout(timer);
+  pl.busy = false;
+  if(screen !== "place" || !byId("pl-find")) return;
+  byId("pl-find").disabled = false;
+  upSay("pl-status", "");
+  if(!rows){ upSay("pl-msg", UP_SAY.postal_failed); focusOn("#pl-msg"); return; }
+  // only places whose own postal code is the one typed, and that have a spot on the map
+  const text = v => typeof v === "string" && v !== "NIL" ? v.trim() : "";
+  const mine = rows.filter(r => r && String(r.POSTAL) === code && isFinite(parseFloat(r.LATITUDE)) && isFinite(parseFloat(r.LONGITUDE)))
+    .map(r => ({address: text(r.ADDRESS), building: text(r.BUILDING), street: text(r.ROAD_NAME), postal: code,
+                lat: parseFloat(r.LATITUDE), lng: parseFloat(r.LONGITUDE)}));
+  if(!mine.length){ upSay("pl-msg", UP_SAY.postal_none); focusOn("#pl-msg"); return; }
+  pl.results = mine;
+  pl.pick = mine.length === 1 ? 0 : null;
+  paintPlaceResult();
+  focusOn(mine.length === 1 ? "#pl-card" : "#pl-ask");
+}
+function keepPlace(){
+  const at = pl.pick === null || !pl.results ? null : pl.results[pl.pick];
+  const name = byId("pl-name").value.trim().slice(0, 80);
+  if(!at) return;
+  if(name === ""){ upSay("pl-msg", UP_SAY.name_needed); focusOn("#pl-name"); return; }
+  myShop = {shop_id: MY_ID, shop_name: name, postal: at.postal, address: at.address, street: at.street, lat: at.lat, lng: at.lng,
+            district: nearestDistrict(at.lat, at.lng), rivals: myShop ? myShop.rivals : [], saved_at: stamp()};
+  storeShop();
+  pl.name = name; pl.postal = at.postal;
+  go({setup: "menu"});
 }
 
-const UP_TITLE = {menu: "Your menu", check: "Check your menu", done: "Your menu is saved"};
-function showUpload(asked){
+const UP_TITLE = {place: "Add your shop", menu: "Your menu", check: "Check your menu"};
+function showUpload(q){
   shop = null;
-  let name = Object.prototype.hasOwnProperty.call(UP_TITLE, asked) ? asked : "menu";
-  if(!myMenu) myMenu = loadMenu();
-  // "Check my menu again" after a reload: the saved menu is what there is to check
+  const asked = q.get("setup");
+  let name = Object.prototype.hasOwnProperty.call(UP_TITLE, asked) ? asked : "place";
+  // the menu belongs to a shop: with no shop stored, the shop comes first
+  if(name !== "place" && !myShop) name = "place";
+  updating = name !== "place" && q.get("update") === "1" && mineReady();
+  // with nothing just read, the saved menu is what there is to check
   if(name === "check" && !ed && myMenu) ed = fromSaved(myMenu);
-  if((name === "check" && !ed) || (name === "done" && !myMenu)) name = "menu";
-  if(name !== asked) history.replaceState(null, "", address({setup: name}));
+  if(name === "check" && !ed) name = "menu";
+  if(name !== asked) history.replaceState(null, "", address({setup: name, update: updating ? "1" : ""}));
   document.title = `${UP_TITLE[name]} | Counter`;
-  if(name === "menu") paintMenuScreen(); else if(name === "check") paintCheck(); else paintDone();
+  if(name === "place") paintPlace(); else if(name === "menu") paintMenuScreen(); else paintCheck();
   show(name);
   slideIn(byId("upload-body"));
   focusOn("#upload-body h1");
 }
+
+/* what a press does on Add your shop */
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-pl]");
+  if(!el || el.disabled || screen !== "place") return;
+  const act = el.dataset.pl;
+  if(act === "find") findPlace();
+  else if(act === "pick"){ pl.pick = Number(el.dataset.i); paintPlaceResult(); focusOn("#pl-card"); }
+  else if(act === "yes") keepPlace();
+});
+document.addEventListener("keydown", e => {
+  if(e.key === "Enter" && screen === "place" && e.target && e.target.id === "pl-postal"){ e.preventDefault(); findPlace(); }
+});
 
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-up]");
@@ -2853,13 +3054,10 @@ document.addEventListener("click", e => {
     focusOn(`#up-list [data-up="dropfile"], label[for="up-file"]`);
   }
   else if(act === "read") readMenu();
-  else if(act === "askclear"){ byId("dn-confirm").hidden = false; focusOn("#dn-confirm"); }
-  else if(act === "keep"){ byId("dn-confirm").hidden = true; focusOn(`[data-up="askclear"]`); }
-  else if(act === "clear"){
-    try { localStorage.removeItem(MENU_KEY); } catch(e){ /* nothing was kept */ }
-    myMenu = null; ed = null; menuLost = false; up.files = [];
-    go({setup: "menu"});
-  }
+  else if(act === "again"){ ed = fromSaved(myMenu); go({setup: "check", update: "1"}); }
+  else if(act === "askremove"){ byId("up-confirm").hidden = false; focusOn("#up-confirm"); }
+  else if(act === "keepshop"){ byId("up-confirm").hidden = true; focusOn(`[data-up="askremove"]`); }
+  else if(act === "remove"){ forgetMine(); go({}); }
 });
 /* what a press does on Check your menu */
 const shownWords = () => { const n = shownRows().length; return n === 1 ? "1 item shown." : `${n} items shown.`; };
@@ -2941,6 +3139,9 @@ document.addEventListener("click", e => {
 document.addEventListener("input", e => {
   const el = e.target;
   if(el.id === "up-code"){ up.code = el.value; paintUpState(); return; }
+  if(el.id === "pl-name"){ pl.name = el.value; return; }
+  // a changed postal code makes the place found for the old one stale
+  if(el.id === "pl-postal"){ pl.postal = el.value; if(pl.results){ pl.results = null; pl.pick = null; paintPlaceResult(); } return; }
   if(!ed || screen !== "check" || !el.dataset) return;
   if(el.id === "ck-find"){
     ed.find = el.value; ed.open = null;
@@ -3003,6 +3204,8 @@ Promise.all([
   buildSetup();
   buildLegends();
   loadSaves();
+  myShop = loadShop();
+  myMenu = loadMenu();
   route();
 }).catch(err => { console.error(err); byId("app").hidden = true; byId("setup").hidden = true; byId("problem").hidden = false; });
 </script>

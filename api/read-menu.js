@@ -9,6 +9,7 @@ const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODE
 const MIMES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const PDF = "application/pdf";
 const MAX_FILES = 6;
+const WRONG_CODE_WAIT_MS = 1000;
 const MAX_BASE64 = 4000000;   // characters, all files together
 const MAX_ROWS = 400;
 const MAX_NAME = 200;
@@ -225,6 +226,8 @@ export default {
     let body = null;
     try { body = await request.json(); } catch(e){ body = null; }
     if(!body || typeof body !== "object" || typeof body.code !== "string" || body.code === "" || !sameText(body.code, code)){
+      // a wrong code is answered slowly, so codes cannot be tried quickly
+      await new Promise(done => setTimeout(done, WRONG_CODE_WAIT_MS));
       return fail(401, "bad_code");
     }
     if(!filesOk(body.files)) return fail(400, "bad_files");
