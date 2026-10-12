@@ -2604,7 +2604,7 @@ function showFind(q, lost){
 
   const hero = !picked && place.level === "parts";
   byId("find").classList.toggle("wide", hero);
-  let html = hero ? "" : `<h1>Find your shop</h1><p class="sub">Three taps. No typing needed.</p>` +
+  let html = hero ? "" : `<h1>Find your shop</h1><p class="sub">Pick your area, then your shop.</p>` +
              `<div class="trail" id="find-trail">${trailHtml(steps)}</div>`;
   if(hero) document.title = "Are your prices right? | Counter";
   if(picked){
