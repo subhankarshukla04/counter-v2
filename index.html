@@ -155,6 +155,11 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .findline input, .mtable input, .mtable select, #ck-box select{
   min-width:0; padding:0 8px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--ink); font:inherit;
 }
+/* a name or a price reads as plain text until the pointer is on it or the cursor is in it.
+   An empty or wrong one keeps its outline, so it is plain where to type. */
+.mtable input{border-color:transparent; background:transparent; cursor:text}
+.mtable input:hover{border-color:var(--line)}
+.mtable input.open{border-color:var(--faint); background:var(--panel)}
 .findline input:focus, .mtable input:focus, .mtable select:focus, #ck-box select:focus{border-color:var(--ink)}
 .findline input{flex:1 1 150px; max-width:280px; height:36px}
 .findline .btn, #ck-box .btn{min-height:36px; padding:0 12px; font-size:13px}
@@ -170,6 +175,11 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .mtable td.c-price input{width:100%; font-variant-numeric:tabular-nums}
 .mtable input[aria-invalid="true"]{border:2px solid var(--ink)}
 .mtable .btn{min-height:28px; height:28px; padding:0 10px; border-radius:8px; font-size:13px}
+/* "Remove": the word alone, no box */
+.textbtn{min-height:32px; padding:0 4px; border:0; background:none; color:var(--body); font-size:13px; cursor:pointer}
+.textbtn:hover, .textbtn:focus{text-decoration:underline}
+.mtable td.c-rm{padding-top:0; padding-bottom:0}
+.kindpick{display:inline-flex; align-items:center; gap:6px; flex:none; font-size:13px; font-weight:600; color:var(--ink)}
 .namecell{display:flex; align-items:center; gap:6px; min-width:0}
 .namecell input{flex:1 1 130px; min-width:110px}
 .namecell .tagbox{display:inline-flex; flex:none}
@@ -183,9 +193,18 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 #ck-none{padding:16px 4px; color:var(--ink)}
 #ck-box > p{margin-top:6px}
 #ck-box h3{margin:14px 0 4px}
-#ck-box li{display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; padding:6px 0; border-top:1px solid var(--rule)}
-#ck-box li .words{flex:1; min-width:0; color:var(--ink); overflow-wrap:anywhere}
-#ck-box .chooser{flex:1 1 100%}
+#ck-found li{display:flex; align-items:center; gap:6px 8px; padding:6px 0; border-top:1px solid var(--rule)}
+#ck-found .words{flex:1; min-width:0; overflow-wrap:anywhere}
+#ck-found .words span{display:block}
+#ck-found .mine{color:var(--ink); font-weight:600}
+#ck-found .with{font-size:13px; color:var(--muted)}
+#ck-box .hint{margin-top:0}
+/* the items not found: small pills that wrap */
+.pills{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+.pill{min-height:32px; padding:0 12px; border:1px solid var(--line); border-radius:999px; background:var(--panel); color:var(--ink); font-size:13px; font-weight:600; cursor:pointer}
+.pill:hover, .pill[aria-expanded="true"]{border-color:var(--ink)}
+.pill[aria-expanded="true"]{background:var(--picked)}
+#ck-box .chooser{margin-top:12px}
 #ck-box .chooser > * + *{margin-top:8px}
 #ck-box select{width:100%; height:40px}
 .savebar{
@@ -533,6 +552,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
   .mtable .c-note, .mtable .c-price, .mtable .c-rm{width:auto}
   .namecell{flex-wrap:wrap}
   .mtable input, .mtable select, .mtable .btn{height:40px; min-height:40px}
+  .textbtn{min-height:40px}
   .savebar{padding:8px 16px}
   /* the toolbar on a phone: the heading scrolls away, the tabs are one line that slides sideways, and the rest stays */
   #ck-tools{top:-34px}
@@ -2629,6 +2649,9 @@ function shownRows(){
                              (!ed.look || needsLook(r)));
 }
 const announce = words => upSay("ck-live", words);
+/* how many cafes in the data have a price for a compared item, and the tag that says so */
+const cafesWith = key => (D.named_prices[key] || []).length;
+const cafesWords = key => cafesWith(key) < MIN_OTHERS ? "Too few cafes to compare yet" : `Compared with ${cafesWith(key)} cafes`;
 const CHECK_TAG = `<span class="tag">Please check</span>`;
 
 /* the lines under the heading, the tabs, the filter button and the bar's words: every count on the page */
@@ -2661,16 +2684,20 @@ function paintMenuList(){
       return `<tr class="ghead"><th colspan="4" scope="colgroup">${esc(h || NO_HEAD)}</th></tr>` + mine.map(r => {
         const key = matchOf(r.id), name = esc(nameOr(r)), bad = badPrice(r.price), open = ed.open === r.id;
         return `<tr class="mrow" data-row="${r.id}"><td class="c-name"><div class="namecell">` +
-          `<input type="text" autocomplete="off" maxlength="200" data-name="${r.id}" value="${esc(r.name)}" aria-label="Item name: ${name}">` +
+          `<input type="text" autocomplete="off" maxlength="200" data-name="${r.id}" value="${esc(r.name)}" aria-label="Item name: ${name}"` +
+            `${r.name.trim() === "" ? ` class="open"` : ""}>` +
+          // a row the owner added says which kind it is; a row that was read already has one
+          (r.added ? `<label class="kindpick">Category<select data-kind="${r.id}">` + NEW_TYPES.map(t =>
+            `<option value="${t[0]}"${t[0] === r.kind ? " selected" : ""}>${t[1]}</option>`).join("") + `</select></label>` : "") +
           `<span class="tagbox" data-tag="${r.id}"${needsLook(r) ? "" : " hidden"}>${CHECK_TAG}</span>` +
-          (key ? `<span class="tag cmp" title="Compared as ${esc(itemName(key))}">Compared as ${esc(itemName(key))}</span>` +
+          (key ? `<span class="tag cmp" title="${esc(itemName(key))}: ${cafesWords(key)}">${cafesWords(key)}</span>` +
                  `<button type="button" class="btn quiet" data-ck="change" data-id="${r.id}" aria-expanded="${open}" ` +
-                 `aria-label="Change what ${name} is compared as">Change</button>` : "") + `</div></td>` +
+                 `aria-label="Change what ${name} is compared with">Change</button>` : "") + `</div></td>` +
           `<td class="note" title="${esc(r.variant)}">${esc(r.variant)}</td>` +
           `<td class="c-price"><input type="text" inputmode="decimal" autocomplete="off" data-price="${r.id}" value="${esc(r.price)}" ` +
-            `aria-label="Price of ${name}"${bad ? ` aria-invalid="true"` : ""}></td>` +
-          `<td class="c-rm"><button type="button" class="btn quiet" data-ck="droprow" data-id="${r.id}" aria-label="Remove ${name}">Remove</button></td></tr>` +
-          (open ? `<tr class="mctl"><td colspan="4"><div class="ctl"><label for="ck-ctl">Compare ${name} as</label>` +
+            `aria-label="Price of ${name}"${bad ? ` aria-invalid="true"` : ""}${priceCents(r.price) === null ? ` class="open"` : ""}></td>` +
+          `<td class="c-rm"><button type="button" class="textbtn" data-ck="droprow" data-id="${r.id}" aria-label="Remove ${name}">Remove</button></td></tr>` +
+          (open ? `<tr class="mctl"><td colspan="4"><div class="ctl"><label for="ck-ctl">Compare ${name} with</label>` +
             `<select id="ck-ctl" data-ctl="${r.id}">` + keys.map(k => `<option value="${esc(k)}"${k === key ? " selected" : ""}>${esc(itemName(k))}</option>`).join("") +
             `<option value=""${key ? "" : " selected"}>Do not compare this item</option></select>` +
             `<button type="button" class="btn" data-ck="ctldone" data-id="${r.id}">Done</button></div></td></tr>` : "");
@@ -2681,20 +2708,24 @@ function paintBox(){
   const keys = comparedKeys(), found = keys.filter(k => picked(k)), lacking = keys.filter(k => !picked(k));
   const named = ed.rows.filter(r => r.name.trim() !== "");
   byId("ck-box").innerHTML =
-    `<h2 id="ck-h-box">What Counter compares</h2>` +
-    `<p>Counter compares ${keys.length} common cafe items today. More are being added.</p>` +
+    `<h2 id="ck-h-box">Prices we can compare</h2>` +
+    `<p id="ck-box-says">We compare your price with what other cafes charge for the same item. Today this works for ${keys.length} common items.</p>` +
     (found.length ? "" : `<p id="ck-nonefound">We did not find any of them on your menu. If you sell one, pick it below.</p>`) +
     `<h3 id="ck-h-found">Found on your menu (${found.length})</h3><ul id="ck-found">` + found.map(k => {
       const r = picked(k);
-      return `<li data-key="${esc(k)}"><span class="words">${esc(itemName(k))}: ${esc(rowWords(r))}</span>` +
+      return `<li data-key="${esc(k)}"><span class="words"><span class="mine">${esc(rowWords(r))}</span>` +
+        `<span class="with">Compared with ${esc(itemName(k))} at ${cafesWith(k)} cafes.</span></span>` +
         `<button type="button" class="btn quiet" data-ck="boxchange" data-id="${r.id}" aria-label="Change ${esc(itemName(k))}">Change</button></li>`;
     }).join("") + `</ul>` +
-    `<h3 id="ck-h-lacking">Not found on your menu (${lacking.length})</h3><ul id="ck-lacking">` + lacking.map(k =>
-      `<li data-key="${esc(k)}"><button type="button" class="btn" data-ck="boxpick" data-key="${esc(k)}" aria-expanded="${ed.box === k}">${esc(itemName(k))}</button>` +
-      (ed.box === k ? `<div class="chooser"><div class="field"><label for="ck-boxsel">Choose from my menu</label>` +
-        `<select id="ck-boxsel">` + named.map(x => `<option value="${x.id}">${esc(rowWords(x))}</option>`).join("") + `</select></div>` +
-        `<div class="upacts"><button type="button" class="btn" data-ck="boxuse" data-key="${esc(k)}"${named.length ? "" : " disabled"}>Use this item</button>` +
-        `<button type="button" class="btn quiet" data-ck="boxcancel" data-key="${esc(k)}">Cancel</button></div></div>` : "") + `</li>`).join("") + `</ul>`;
+    `<h3 id="ck-h-lacking">Not found on your menu (${lacking.length})</h3>` +
+    (lacking.length ? `<p class="hint" id="ck-lacking-hint">If you sell one of these, pick it to compare it.</p>` : "") +
+    `<ul id="ck-lacking" class="pills">` + lacking.map(k =>
+      `<li data-key="${esc(k)}"><button type="button" class="pill" data-ck="boxpick" data-key="${esc(k)}" aria-expanded="${ed.box === k}">${esc(itemName(k))}</button></li>`).join("") + `</ul>` +
+    (ed.box && lacking.indexOf(ed.box) !== -1 ? `<div class="chooser"><div class="field"><label for="ck-boxsel">Choose from my menu</label>` +
+      `<select id="ck-boxsel" aria-describedby="ck-boxfor">` + named.map(x => `<option value="${x.id}">${esc(rowWords(x))}</option>`).join("") + `</select></div>` +
+      `<p class="muted small" id="ck-boxfor">To compare with ${esc(itemName(ed.box))}.</p>` +
+      `<div class="upacts"><button type="button" class="btn" data-ck="boxuse" data-key="${esc(ed.box)}"${named.length ? "" : " disabled"}>Use this item</button>` +
+      `<button type="button" class="btn quiet" data-ck="boxcancel" data-key="${esc(ed.box)}">Cancel</button></div></div>` : "");
 }
 /* after a name or a price is typed: the marks on that row, in place, so the cursor stays where it is */
 function markRow(r){
@@ -2704,8 +2735,12 @@ function markRow(r){
   if(price){
     if(bad) price.setAttribute("aria-invalid", "true"); else price.removeAttribute("aria-invalid");
     price.setAttribute("aria-label", `Price of ${name}`);
+    price.classList.toggle("open", priceCents(r.price) === null);
   }
-  if(field) field.setAttribute("aria-label", `Item name: ${name}`);
+  if(field){
+    field.setAttribute("aria-label", `Item name: ${name}`);
+    field.classList.toggle("open", r.name.trim() === "");
+  }
   if(rm) rm.setAttribute("aria-label", `Remove ${name}`);
   if(tag) tag.hidden = !needsLook(r);
 }
@@ -2898,7 +2933,7 @@ document.addEventListener("click", e => {
     ed.box = null;
     paintCounts(); paintMenuList(); paintBox();
     upSay("ck-msg", "");
-    announce(`${nameOr(r)} is now compared as ${itemName(key)}.`);
+    announce(`${nameOr(r)} is now compared with ${itemName(key)}.`);
     focusOn(`#ck-found [data-key="${key}"] button`);
   }
   else if(act === "save") saveMenu();
@@ -2930,14 +2965,25 @@ document.addEventListener("change", e => {
     if(chosen.length) addFiles(chosen);
     return;
   }
-  if(!ed || screen !== "check" || !el.dataset || !el.dataset.ctl) return;
+  if(!ed || screen !== "check" || !el.dataset) return;
+  // the kind of a row the owner added: the row moves to that tab
+  if(el.dataset.kind){
+    const row = edRow(el.dataset.kind);
+    if(!row) return;
+    row.kind = rowKind(el.value);
+    paintCounts(); paintMenuList();
+    announce(`${nameOr(row)} is now under ${NEW_TYPES.find(t => t[0] === row.kind)[1]}.`);
+    focusOn(`[data-kind="${row.id}"], #ck-add`);
+    return;
+  }
+  if(!el.dataset.ctl) return;
   // the row's own control: another item moves the match here, "Do not compare" takes it away
   const r = edRow(el.dataset.ctl), key = el.value;
   if(!r) return;
   setMatch(key || null, r.id);
   paintCounts(); paintMenuList(); paintBox();
   upSay("ck-msg", "");
-  announce(key ? `${nameOr(r)} is now compared as ${itemName(key)}.` : `${nameOr(r)} is no longer compared.`);
+  announce(key ? `${nameOr(r)} is now compared with ${itemName(key)}.` : `${nameOr(r)} is no longer compared.`);
   focusOn("#ck-ctl");
 });
 
