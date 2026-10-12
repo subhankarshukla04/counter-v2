@@ -125,8 +125,6 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .up{margin-top:24px}
 .up > * + *{margin-top:18px}
 .up > .field, .up .choose{max-width:420px}
-.codeline{display:flex; gap:8px}
-.codeline input{flex:1; min-width:0}
 .hint{margin-top:6px; font-size:13px; color:var(--muted)}
 .say{color:var(--ink); font-weight:600}
 .say:empty, .hint:empty{display:none}
@@ -2715,7 +2713,6 @@ function pickRow(key, rows){
    For a shop that is not in the list. The photos or the PDF go to this site's
    own /api/read-menu once and are then let go. What comes back is checked by
    the owner and kept in this browser only. */
-const CODE_KEY = "counter.code.v1";
 const MENU_KEY = "counter.mymenu.v1";
 const UP_FILES = 6;               // photos at most
 const UP_PDF = 3000000;           // bytes: a PDF of 3 MB is the most the request can carry
@@ -2727,10 +2724,9 @@ const SHRINK = [[1800, 0.82], [1800, 0.7], [1800, 0.6], [1600, 0.7], [1600, 0.6]
 /* an error code as it is shown: the server's own code, with the AI company's name left out */
 const refWords = ref => String(ref).replace(/^google_/, "ai_");
 const UP_SAY = {
-  bad_code: "That access code is not right.",
   too_large: "These files are too large together. Use fewer photos.",
   bad_files: "We could not use these files. Use up to 6 photos, or one PDF.",
-  limit: "The daily limit for reading menus is used up. Try again tomorrow.",
+  limit: "Too many menus are being read right now. Try again in a minute.",
   not_set_up: "Menu reading is not switched on yet.",
   busy: "The AI is busy right now. Wait a minute and try again.",
   read_failed: "Something went wrong while reading. Nothing was saved. Try again.",
@@ -2748,12 +2744,11 @@ const UP_SAY = {
   postal_failed: "We could not look up the postal code. Try again.",
   name_needed: "Type your shop's name."
 };
-const up = {code: null, files: [], busy: false, adding: false};
+const up = {files: [], busy: false, adding: false};
 let ed = null;                // the menu being checked: its rows, and which row is each compared item
 let myMenu = null;            // the saved menu, as it is written to the browser
 let menuLost = false;         // true when the browser would not keep it
 
-function loadCode(){ try { return localStorage.getItem(CODE_KEY) || ""; } catch(e){ return ""; } }
 function loadMenu(){
   let kept = null;
   try { kept = JSON.parse(localStorage.getItem(MENU_KEY) || "null"); } catch(e){ kept = null; }
@@ -2817,7 +2812,7 @@ function upSay(id, words){
 }
 function paintUpState(){
   const btn = byId("up-read");
-  if(btn) btn.disabled = up.busy || up.adding || !String(up.code || "").trim() || !up.files.length;
+  if(btn) btn.disabled = up.busy || up.adding || !up.files.length;
   upSay("up-status", up.busy ? "Reading your menu. This usually takes under a minute. A long menu can take up to three minutes." : "");
 }
 function paintFiles(){
@@ -2830,15 +2825,10 @@ function paintFiles(){
   paintUpState();
 }
 function paintMenuScreen(){
-  if(up.code === null) up.code = loadCode();
   byId("upload-body").innerHTML =
     `<h1 tabindex="-1">Your menu</h1>` +
     `<p class="sub">Add photos of your menu, or one PDF. We read the items and prices for you.</p>` +
     `<div class="up">` +
-    `<div class="field"><label for="up-code">Access code</label><div class="codeline">` +
-      `<input id="up-code" type="password" autocomplete="off" spellcheck="false" value="${esc(up.code)}">` +
-      `<button type="button" class="btn" data-up="showcode" aria-controls="up-code" aria-pressed="false">Show</button></div>` +
-      `<p class="hint">Your team has this code.</p></div>` +
     `<div class="choose"><input class="offscreen" type="file" id="up-file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple>` +
       `<label class="btn" for="up-file">Choose photos or a PDF</label>` +
       `<p class="hint">JPG, PNG or WebP photos, up to 6. Or one PDF up to 3 MB.</p></div>` +
@@ -2922,22 +2912,128 @@ async function fitPhotos(){
   return false;
 }
 /* the one request that carries the menu. Gives the rows, or the name of what went wrong. */
+/* ----- reading a menu without AI -----
+   A PDF made on a computer carries its text. pdf.js (loaded only when a PDF is
+   chosen) gives each piece of text and where it sits; pieces on one line are
+   joined, and a line is split where a wide gap leaves a column. A piece that
+   ends in a price is an item; a short piece without one is a heading for the
+   column it sits in. A scan or a photo has no text, so it goes to the AI. */
+const PDF_JS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+const PDF_MIN_ROWS = 5;           // fewer priced items than this: the AI reads it instead
+const PDF_MAX_PAGES = 10;
+const PRICE_AT_END = /^(.*?[A-Za-z\u00C0-\u024F\u4E00-\u9FFF].*?)[\s.·…:_-]*(?:S?\$\s*)?(\d{1,3}(?:\.\d{1,2})?)(?:\s*(?:\/|\|)?\s*(?:S?\$\s*)?(\d{1,3}(?:\.\d{1,2})?))?\s*$/;
+const PRICE_ONLY = /^(?:S?\$\s*)?(\d{1,3}(?:\.\d{1,2})?)(?:\s*(?:\/|\|)?\s*(?:S?\$\s*)?(\d{1,3}(?:\.\d{1,2})?))?$/;
+const NOT_ITEM = /\b(tel|phone|whatsapp|open|opening|closed|daily|mon|tue|wed|thu|fri|sat|sun|am|pm|gst|service charge|singapore|road|rd|street|st|avenue|ave|level|#\d|www\.|\.com|@)\b/i;
+const KIND_WORDS = [
+  ["cake", /cake|brownie|tiramisu|mousse|pudding|swiss roll|banana bread|cupcake|cheesecake|loaf slice|basque|chiffon/i],
+  ["savoury", /sandwich|burger|pizza|pasta|salad|\beggs?\b|toast|rice|noodle|soup|bagel|wrap|quiche|sausage|bacon|chicken|beef|salmon|\bham\b|tuna|brunch|breakfast|benedict|avocado|mushroom|fries|truffle/i],
+  ["pastry", /croissant|danish|\bbuns?\b|tart|cookie|scone|bread|brioche|muffin|pastry|pastries|kouign|pain|cruffin|bakes?\b|loaf|baguette|sourdough|focaccia|madeleine|canel|financier|cinnamon roll|donut|doughnut|bun\b/i]
+];
+const DRINK_HEAD = /drink|coffee|espresso|tea|beverage|juice|soda|matcha|chocolate|milk|smoothie|frappe|kombucha|beer|wine|refresher/i;
+function readKind(name, head){
+  if((DRINK_WORDS.test(name) && !NOT_DRINK.test(name)) || (DRINK_HEAD.test(head) && !KIND_WORDS.some(k => k[1].test(name)))) return "drink";
+  // the menu's own heading says what its items are; the name decides only under a heading that does not
+  const k = KIND_WORDS.find(k => k[1].test(head)) || KIND_WORDS.find(k => k[1].test(name));
+  return k ? k[0] : "other";
+}
+let pdfReady = null;
+function loadPdfJs(){
+  if(!pdfReady) pdfReady = new Promise((ok, no) => {
+    const tag = document.createElement("script");
+    tag.src = PDF_JS + "pdf.min.js";
+    tag.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_JS + "pdf.worker.min.js"; ok(window.pdfjsLib); };
+    tag.onerror = () => { pdfReady = null; no(new Error("pdf.js")); };
+    document.head.appendChild(tag);
+  });
+  return pdfReady;
+}
+/* a PDF -> rows in the shape the AI gives, or null when it has no text to read */
+async function pdfMenu(file){
+  const lib = await loadPdfJs();
+  const doc = await lib.getDocument({data: await file.arrayBuffer()}).promise;
+  const rows = [];
+  for(let n = 1; n <= Math.min(doc.numPages, PDF_MAX_PAGES); n += 1){
+    const page = await doc.getPage(n), width = page.getViewport({scale: 1}).width;
+    const bits = (await page.getTextContent()).items.filter(t => t.str && t.str.trim())
+      .map(t => ({x: t.transform[4], y: t.transform[5], w: t.width, h: Math.abs(t.transform[3]) || 10, s: t.str}));
+    // pieces whose baselines are within a third of a line are one line, top to bottom
+    bits.sort((a, b) => b.y - a.y || a.x - b.x);
+    const lines = [];
+    bits.forEach(b => { const last = lines[lines.length - 1]; if(last && Math.abs(last.y - b.y) < b.h / 3) last.bits.push(b); else lines.push({y: b.y, bits: [b]}); });
+    const heads = {};               // the column's last heading, by which third of the page it starts in
+    lines.forEach(line => {
+      line.bits.sort((a, b) => a.x - b.x);
+      // a gap wider than three letters splits the line into cells
+      const cells = [];
+      line.bits.forEach(b => {
+        const c = cells[cells.length - 1];
+        if(c && b.x - c.end < b.h * 1.6) { c.s += (b.x - c.end > b.h * 0.15 ? " " : "") + b.s; c.end = b.x + b.w; }
+        else cells.push({x: b.x, end: b.x + b.w, s: b.s});
+      });
+      // a cell that is only a price belongs to the name just before it
+      const joined = [];
+      cells.forEach(c => { const t = c.s.trim(), last = joined[joined.length - 1];
+        if(PRICE_ONLY.test(t) && last && !PRICE_AT_END.test(last.s.trim())) { last.s += " " + t; } else joined.push({x: c.x, s: t}); });
+      joined.forEach(c => {
+        const col = Math.min(2, Math.floor(3 * c.x / width));
+        const m = c.s.match(PRICE_AT_END);
+        if(m && !NOT_ITEM.test(m[1])){
+          const name = m[1].replace(/[\s.·…:_-]+$/, "").trim(), price = Number(m[2]);
+          if(price >= 0.5 && price <= 999 && name.length <= 120){
+            const head = heads[col] || "";
+            rows.push({name: name, section: head, variant: "", price: price, unsure: m[3] !== undefined, kind: readKind(name, head)});
+          }
+        } else if(!m && c.s.length <= 40 && /[A-Za-z]/.test(c.s) && !/[.!?]$/.test(c.s) && !NOT_ITEM.test(c.s)){
+          heads[col] = c.s.replace(/\s+/g, " ");
+        }
+      });
+    });
+  }
+  return rows.length ? rows : null;
+}
+/* the last few reads, kept in this browser by a hash of their files */
+const READS_KEY = "counter.reads.v1", READS_MAX = 5;
+function readsKept(){ try { const k = JSON.parse(localStorage.getItem(READS_KEY) || "{}"); return k && typeof k === "object" ? k : {}; } catch(e){ return {}; } }
+function keepRead(hash, items){
+  if(!hash) return;
+  const k = readsKept();
+  k[hash] = {at: Date.now(), items: items};
+  const newest = Object.keys(k).sort((a, b) => k[b].at - k[a].at).slice(0, READS_MAX);
+  try { localStorage.setItem(READS_KEY, JSON.stringify(Object.fromEntries(newest.map(h => [h, k[h]])))); } catch(e){ /* read again next time */ }
+}
+async function filesHash(files){
+  try {
+    const bytes = new TextEncoder().encode(files.map(f => f.mime + ":" + f.data).join("|"));
+    return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))).map(b => b.toString(16).padStart(2, "0")).join("");
+  } catch(e){ return ""; }
+}
 async function sendMenu(){
+  // a PDF with real text is read here, free and exact; the AI only reads photos and scans
+  if(up.files.length === 1 && up.files[0].pdf){
+    const items = await pdfMenu(up.files[0].file).catch(() => null);
+    if(items && items.length >= PDF_MIN_ROWS) return {items: items};
+  }
   if(!(await fitPhotos())) return {error: up.files.some(f => f.pdf) ? "pdf_large" : "photos_large"};
   const files = [];
   for(const f of up.files) files.push({mime: f.pdf ? "application/pdf" : "image/jpeg", data: await asBase64(f.pdf ? f.file : f.blob)});
+  // the same files read before in this browser are not paid for twice
+  const hash = await filesHash(files);
+  const before = readsKept()[hash];
+  if(before && Array.isArray(before.items)) return {items: before.items};
   const stop = new AbortController(), timer = setTimeout(() => stop.abort(), UP_WAIT);
   let res = null, data = null;
   try {
     res = await fetch("api/read-menu", {method: "POST", headers: {"Content-Type": "application/json"},
-                                        body: JSON.stringify({code: String(up.code).trim(), files: files}), signal: stop.signal});
+                                        body: JSON.stringify({files: files}), signal: stop.signal});
     data = await res.json();
   } catch(e){ data = null; }
   clearTimeout(timer);
   if(!res) return {error: "read_failed"};
   if(res.ok && data && Array.isArray(data.items)){
     const items = data.items.filter(r => r && typeof r.name === "string" && r.name.trim() !== "");
-    return data.not_a_menu || !items.length ? {error: "not_a_menu"} : {items: items};
+    if(data.not_a_menu || !items.length) return {error: "not_a_menu"};
+    keepRead(hash, items);
+    return {items: items};
   }
   const error = data && Object.prototype.hasOwnProperty.call(UP_SAY, data.error) ? data.error : res.status === 413 ? "too_large" : "read_failed";
   // the daily limit is said in the server's own words. A failed read may carry a short code that says where it stopped.
@@ -2956,7 +3052,6 @@ async function readMenu(){
   try { got = await sendMenu(); } catch(e){ got = {error: "read_failed"}; }
   up.busy = false;
   if(got.items){
-    try { localStorage.setItem(CODE_KEY, String(up.code).trim()); } catch(e){ /* the code is asked for again next time */ }
     up.files = [];                             // the files are not kept after the read
     ed = fromRead(got.items);
     ed.owner = id;
@@ -3548,13 +3643,7 @@ document.addEventListener("click", e => {
   const el = e.target.closest("[data-up]");
   if(!el || el.disabled) return;
   const act = el.dataset.up;
-  if(act === "showcode"){
-    const field = byId("up-code"), hide = field.type === "text";
-    field.type = hide ? "password" : "text";
-    el.textContent = hide ? "Show" : "Hide";
-    el.setAttribute("aria-pressed", String(!hide));
-  }
-  else if(act === "dropfile"){
+  if(act === "dropfile"){
     up.files.splice(Number(el.dataset.i), 1);
     upSay("up-filemsg", "");
     paintFiles();
@@ -3655,7 +3744,6 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("input", e => {
   const el = e.target;
-  if(el.id === "up-code"){ up.code = el.value; paintUpState(); return; }
   if(el.id === "pl-name"){ pl.name = el.value; return; }
   // a changed postal code makes the place found for the old one stale
   if(el.id === "pl-postal"){ pl.postal = el.value; if(pl.results){ pl.results = null; pl.pick = null; paintPlaceResult(); } return; }
@@ -3714,13 +3802,11 @@ document.addEventListener("change", e => {
    The last set, how many were asked for today and the ideas not wanted are
    kept in this browser only, for each shop. */
 const IDEAS_KEY = "counter.ideas.v1";
-const IDEAS_A_DAY = 3;            // sets of ideas for one shop in one day
-const AVOID_MAX = 30;             // ideas not wanted that are sent along, newest kept
-const IDEAS_WAIT = 75000;         // milliseconds before the page stops waiting: longer than the server's own 60 seconds
+const AVOID_MAX = 30;             // ideas not wanted, newest kept
 const IDEA_TYPES = {bundle: "Bundle", price_cut: "Price cut"};
 const IDEA_DAYS = {"weekdays": "Weekdays", "weekends": "Weekends", "every day": "Every day"};
 let ideasAll = {};                // shop_id -> {date, used, ideas, avoid, looked}
-const iu = {busy: false, loading: false, msg: "", ref: "", code: ""};
+const iu = {busy: false, loading: false, msg: "", ref: ""};
 function loadIdeas(){
   let kept = null;
   try { kept = JSON.parse(localStorage.getItem(IDEAS_KEY) || "{}"); } catch(e){ kept = null; }
@@ -3826,13 +3912,12 @@ function paintIdeas(){
     loadFile(id).then(() => { iu.loading = false; if(shop && shop.shop_id === id && page === "offers") paintIdeas(); });
   }
   const views = mine.ideas.map(i => ideaView(i, rows)).filter(Boolean);
-  const left = Math.max(0, IDEAS_A_DAY - mine.used), first = mine.used === 0 && !mine.ideas.length;
-  const needCode = loadCode() === "";
+  const first = !mine.ideas.length;
   const looked = mine.looked && views.length ? mine.looked : null;
   const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   box.innerHTML =
     `<h2 id="ideas-h" tabindex="-1">${ICON.ai}Ideas for your shop</h2>` +
-    `<p class="muted" id="ideas-says">Written by AI from your menu and what cafes near you offer. Check them before you use them.</p>` +
+    `<p class="muted" id="ideas-says">Made from your menu, the usual prices near you and the offers cafes near you run now. Check them before you use them.</p>` +
     (looked ? `<p class="muted small" id="ideas-looked">Looked at: your menu (${count(looked.n, "item", "items")}), ` +
       `${count(looked.c, "offer", "offers")} from your competitors, ${count(looked.o, "offer", "offers")} from other cafes.</p>` : "") +
     (views.length ? `<ul class="idealist" id="ideas-list">` + views.map(v =>
@@ -3841,14 +3926,8 @@ function paintIdeas(){
       `<button type="button" class="btn quiet" data-ai="drop" data-key="${esc(v.key)}" aria-label="Not for me: ${esc(v.title)}">Not for me</button></div></li>`).join("") + `</ul>` : "") +
     `<p class="say" id="ideas-msg" role="alert" tabindex="-1">${esc(iu.msg)}</p>` +
     `<p class="hint" id="ideas-ref">${iu.ref ? `Error code: ${esc(refWords(iu.ref))}` : ""}</p>` +
-    `<p class="say" id="ideas-status" role="status">${iu.busy ? "Writing ideas for your shop. This can take up to a minute." : ""}</p>` +
-    (left > 0 ? `<div class="ideasacts">` +
-      (needCode ? `<div class="field"><label for="ideas-code">Access code</label><div class="codeline">` +
-        `<input id="ideas-code" type="password" autocomplete="off" spellcheck="false" value="${esc(iu.code)}">` +
-        `<button type="button" class="btn" data-ai="showcode" aria-controls="ideas-code" aria-pressed="false">Show</button></div>` +
-        `<p class="hint">Your team has this code.</p></div>` : "") +
-      `<button type="button" class="btn" id="ideas-get" data-ai="get"${iu.busy ? " disabled" : ""}>${ICON.ai}${first ? "Get ideas for my shop" : "Give me different ideas"}</button></div>` : "") +
-    (first ? "" : `<p class="muted small" id="ideas-left">${left > 0 ? `${left} of ${IDEAS_A_DAY} left today` : "No more ideas today. Come back tomorrow."}</p>`);
+    `<div class="ideasacts">` +
+      `<button type="button" class="btn" id="ideas-get" data-ai="get"${iu.busy ? " disabled" : ""}>${ICON.ai}${first ? "Get ideas for my shop" : "Give me different ideas"}</button></div>`;
 }
 /* what goes with the menu: the offers running now, the competitors' new items, the usual prices */
 function ideasRequest(rows, mine){
@@ -3865,55 +3944,119 @@ function ideasRequest(rows, mine){
 async function getIdeas(){
   if(iu.busy) return;
   const id = shop.shop_id, mine = shopIdeas();
-  if(IDEAS_A_DAY - mine.used <= 0) return;
-  const field = byId("ideas-code");
-  const code = (loadCode() || (field ? field.value : iu.code) || "").trim();
   iu.msg = ""; iu.ref = "";
-  if(code === ""){ focusOn("#ideas-code"); return; }
   iu.busy = true;
-  paintIdeas();
-  const said = (words, ref) => { iu.busy = false; iu.msg = words; iu.ref = ref || ""; if(shop && shop.shop_id === id && page === "offers"){ paintIdeas(); focusOn("#ideas-msg"); } };
+  const said = words => { iu.busy = false; iu.msg = words; if(shop && shop.shop_id === id && page === "offers"){ paintIdeas(); focusOn("#ideas-msg"); } };
   if(!menuOf(id)) await loadFile(id);
   const rows = ideaRows(id);
   if(!rows || rows.length < 2){ said("We do not have enough of your menu to suggest ideas yet."); return; }
   const request = ideasRequest(rows, mine);
-  const stop = new AbortController(), timer = setTimeout(() => stop.abort(), IDEAS_WAIT);
-  let res = null, data = null;
-  try {
-    res = await fetch("api/ideas", {method: "POST", headers: {"Content-Type": "application/json"},
-                                    body: JSON.stringify(Object.assign({code: code}, request)), signal: stop.signal});
-    data = await res.json();
-  } catch(e){ data = null; }
-  clearTimeout(timer);
-  if(res && res.ok && data && Array.isArray(data.ideas) && data.ideas.length){
-    try { localStorage.setItem(CODE_KEY, code); } catch(e){ /* the code is asked for again next time */ }
-    mine.ideas = data.ideas;
-    mine.used += 1;
-    mine.looked = {n: request.menu.length, c: request.offers.filter(o => o.competitor).length, o: request.offers.filter(o => !o.competitor).length};
-    storeIdeas();
-    iu.busy = false; iu.code = "";
-    if(shop && shop.shop_id === id && page === "offers"){ paintIdeas(); focusOn("#ideas-h"); }
-    return;
+  // "different ideas" means none of the ones on screen now either
+  request.avoid = request.avoid.concat(mine.ideas.map(i => ({type: i.type, item_ids: i.item_ids})));
+  const ideas = makeIdeas(request);
+  if(!ideas.length){ said("Those are all the ideas we have for your menu right now. Try again when your menu or the offers near you change."); return; }
+  mine.ideas = ideas;
+  mine.used += 1;
+  mine.looked = {n: request.menu.length, c: request.offers.filter(o => o.competitor).length, o: request.offers.filter(o => !o.competitor).length};
+  storeIdeas();
+  iu.busy = false;
+  if(shop && shop.shop_id === id && page === "offers"){ paintIdeas(); focusOn("#ideas-h"); }
+}
+
+/* ---------- ideas from rules ----------
+   No AI: every idea is worked out from the owner's menu, the usual price of
+   the compared items near them and the offers cafes near them run now. Each
+   rule gives its candidates best first; three ideas from different rules are
+   shown, and one already on screen or turned down is never given again. */
+const BOTTLED = /water|evian|perrier|san pellegrino|\bcoke\b|sprite|\d+\s*ml\b|bottle|\bcan\b|canned/i;
+const COFFEE_WORDS = /latte|flat white|cappuccino|americano|long black|mocha|piccolo|cortado|macchiato|white|coffee/i;
+const shortName = r => capital(r.name.replace(/\s*\(.*?\)\s*/g, " ").trim());
+const fitTitle = t => t.length <= 40 ? t : t.slice(0, 40).replace(/\s+\S*$/, "");
+function makeIdeas(req){
+  const menu = req.menu, byPrice = (a, b) => a.price - b.price;
+  const kind = k => menu.filter(r => r.kind === k).sort(byPrice);
+  // bottled and canned drinks are sold as they are, never in a set
+  const drinks = kind("drink").filter(r => !BOTTLED.test(r.name + " " + r.variant)), pastries = kind("pastry"), cakes = kind("cake");
+  // a lunch needs a main, not a side: the dearer half of the savoury items
+  const savoury = kind("savoury").reverse().filter((r, i, all) => i < Math.ceil(all.length / 2));
+  // the drink a customer is most likely to pair: a coffee at a middle price
+  const coffees = drinks.filter(r => COFFEE_WORDS.test(r.name));
+  const mid = list => list.slice().sort((a, b) => Math.abs(a.price - list[list.length >> 1].price) - Math.abs(b.price - list[list.length >> 1].price));
+  const pairDrinks = mid(coffees.length ? coffees : drinks);
+  const croissantFirst = list => list.slice().sort((a, b) => /croissant/i.test(b.name) - /croissant/i.test(a.name));
+  const usual = new Map((D.price_table || []).map(r => [r.item_canonical, r.median]));
+  const above = r => { const k = nineTag(r.name, r.variant), u = k ? usual.get(k) : null; return typeof u === "number" && r.price > u ? r.price - u : 0; };
+  const bundlesNear = req.offers.filter(o => o.type === "bundle"), cutsNear = req.offers.filter(o => o.type === "price_cut");
+  const pick = list => list.find(o => o.competitor) || list[0] || null;
+  const nearWords = (list, what) => {
+    const one = pick(list);
+    if(!one) return {words: `No cafe near you runs ${what} right now, so yours would stand out.`, cafes: []};
+    return {words: `${list.length === 1 ? "One cafe" : `${list.length} cafes`} near you ${list.length === 1 ? "runs" : "run"} ${what} now, including ${one.cafe}.`, cafes: [one.cafe]};
+  };
+  const timed = (days, from, to) => ({days: days, all_day: from === null, start_hour: from, end_hour: to});
+  const rules = [];
+
+  // 1. a coffee and a pastry, sold as a set
+  const nb = nearWords(bundlesNear, "a bundle");
+  rules.push(pairDrinks.slice(0, 3).flatMap(dr => croissantFirst(pastries).slice(0, 3).map(pa => ({
+    type: "bundle", item_ids: [dr.id, pa.id], discount_percent: bundlesNear.length >= 2 ? 15 : 10,
+    title: fitTitle(`${shortName(dr)} and ${shortName(pa)} set`),
+    why: `A pastry is an easy add-on for someone who came in for a coffee. ${nb.words}`, cafes_named: nb.cafes}))));
+
+  // 2. a drink and a slice of cake, for the afternoon
+  rules.push(pairDrinks.slice(0, 2).flatMap(dr => cakes.slice(0, 3).map(ca => ({
+    type: "bundle", item_ids: [dr.id, ca.id], discount_percent: 10,
+    title: fitTitle(`Afternoon ${shortName(ca)} and ${shortName(dr)}`),
+    why: `Cake with a drink gives an afternoon visit a reason. ${nb.words}`, cafes_named: nb.cafes}))));
+
+  // 3. a lunch set: something savoury and a drink
+  rules.push(savoury.slice(0, 3).flatMap(sv => pairDrinks.slice(0, 2).map(dr => ({
+    type: "bundle", item_ids: [sv.id, dr.id], discount_percent: 10,
+    title: fitTitle(`Lunch: ${shortName(sv)} and ${shortName(dr)}`),
+    why: "A fixed lunch set is quick to choose and brings in the weekday lunch crowd.", cafes_named: []}))));
+
+  // 4. the items priced above the usual nearby, cheaper in the quiet afternoon
+  const dear = menu.filter(r => above(r) > 0).sort((a, b) => above(b) - above(a));
+  if(dear.length) rules.push([dear.slice(0, 3), dear.slice(0, 1), dear.slice(1, 3)].filter(l => l.length).map(list => Object.assign({
+    type: "price_cut", item_ids: list.map(r => r.id), discount_percent: 10,
+    title: fitTitle(list.length === 1 ? `Quiet-hours ${shortName(list[0])}` : "Quiet-hours price cut"),
+    why: `${list.length === 1 ? "This costs" : "These cost"} more than most cafes near you charge. A cut in the quiet afternoon shows whether a lower price brings more people in, without changing your menu.`,
+    cafes_named: []}, timed("weekdays", 14, 17))));
+
+  // 5. bakes at the end of the day, so fewer are left over
+  const bakes = pastries.concat(cakes).sort((a, b) => b.price - a.price);
+  if(bakes.length) rules.push([bakes.slice(0, 4), bakes.slice(0, 2), bakes.slice(2, 6)].filter(l => l.length).map(list => Object.assign({
+    type: "price_cut", item_ids: list.map(r => r.id), discount_percent: 20,
+    title: fitTitle("End-of-day bakes"),
+    why: "Bakes left at closing are thrown away. A cut in the last hours sells them instead.", cafes_named: []}, timed("every day", 17, 19))));
+
+  // 6. early coffee, when cafes near you already run price cuts
+  if(cutsNear.length && coffees.length){
+    const nc = nearWords(cutsNear, "a price cut");
+    rules.push([coffees.slice(0, 2), coffees.slice(2, 4)].filter(l => l.length).map(list => Object.assign({
+      type: "price_cut", item_ids: list.map(r => r.id), discount_percent: 10,
+      title: fitTitle("Early-bird coffee"),
+      why: `Morning regulars decide where to go on habit and price. ${nc.words}`, cafes_named: nc.cafes}, timed("weekdays", 7, 10))));
   }
-  const error = data && typeof data.error === "string" ? data.error : "read_failed";
-  const ref = data && typeof data.ref === "string" && /^[a-z0-9_]{1,40}$/.test(data.ref) ? data.ref : "";
-  // a code that is not right is asked for again
-  if(error === "bad_code"){ try { localStorage.removeItem(CODE_KEY); } catch(e){ /* nothing was kept */ } iu.code = ""; }
-  // the daily limit and "no ideas this time" are said in the server's own words
-  const own = (error === "limit" || error === "no_ideas") && typeof data.message === "string" ? data.message : "";
-  said(own || (Object.prototype.hasOwnProperty.call(UP_SAY, error) && ["bad_code", "not_set_up", "busy"].indexOf(error) !== -1 ? UP_SAY[error] : UP_SAY.read_failed), ref);
+
+  // three ideas from different rules first, then more from the same rules if needed
+  const avoid = new Set(req.avoid.map(a => a.type + "|" + a.item_ids.slice().sort().join(",")));
+  const keyOf = i => i.type + "|" + i.item_ids.slice().sort().join(",");
+  const lists = rules.map(list => list.filter(i => !avoid.has(keyOf(i)) && new Set(i.item_ids).size === i.item_ids.length));
+  const out = [], seen = new Set();
+  for(let round = 0; out.length < 3 && lists.some(l => l.length > round); round += 1){
+    for(const list of lists){
+      const i = list[round];
+      if(i && !seen.has(keyOf(i)) && out.length < 3){ seen.add(keyOf(i)); out.push(Object.assign({days: null, all_day: null, start_hour: null, end_hour: null}, i)); }
+    }
+  }
+  return out;
 }
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-ai]");
   if(!el || el.disabled || !shop) return;
   const act = el.dataset.ai, key = el.dataset.key;
   if(act === "get") getIdeas();
-  else if(act === "showcode"){
-    const field = byId("ideas-code"), hide = field.type === "text";
-    field.type = hide ? "password" : "text";
-    el.textContent = hide ? "Show" : "Hide";
-    el.setAttribute("aria-pressed", String(!hide));
-  }
   // an idea saved is kept as it is shown now: its items, their prices and the sums do not change later
   else if(act === "save"){
     const mine = shopIdeas(), idea = mine.ideas.find(i => ideaKey(i) === key), view = idea ? ideaView(idea, ideaRows(shop.shop_id)) : null;
@@ -3936,7 +4079,6 @@ document.addEventListener("click", e => {
   // the Saved page: take a saved idea away
   else if(act === "unsave"){ putIdea(x => x.kind === "ai_idea" && x.idea.key === key, null); paint(); }
 });
-document.addEventListener("input", e => { if(e.target && e.target.id === "ideas-code") iu.code = e.target.value; });
 
 /* ---------- start ---------- */
 // The prices are needed by every page. The new items are needed by one, so

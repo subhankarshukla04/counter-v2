@@ -8,7 +8,6 @@
 # the server functions: the folder, then only these files inside it
 !api
 !api/read-menu.js
-!api/ideas.js
 !api/_models.js
 # each shop's own menu: the folder, then only the .json files inside it
 !menus
