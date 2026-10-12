@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Counter">
+  <rect width="32" height="32" rx="8" fill="#24150E"/>
+  <g fill="#FFFCF5">
+    <circle cx="9.5" cy="23" r="2.6"/>
+    <circle cx="16" cy="23" r="2.6"/><circle cx="16" cy="16.5" r="2.6"/>
+    <circle cx="22.5" cy="23" r="2.6"/><circle cx="22.5" cy="16.5" r="2.6"/>
+  </g>
+  <circle cx="22.5" cy="10" r="2.6" fill="#EE9A6C"/>
+</svg>

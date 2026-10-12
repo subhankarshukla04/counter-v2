@@ -5,49 +5,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Counter</title>
 <meta name="robots" content="noindex">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="img/logo-mark.svg">
+<link rel="preload" href="fonts/gambetta-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/switzer-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://www.onemap.gov.sg" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous" referrerpolicy="no-referrer">
 <style>
+@font-face{font-family:'Gambetta';src:url(fonts/gambetta-400.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Gambetta';src:url(fonts/gambetta-400i.woff2) format('woff2');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Gambetta';src:url(fonts/gambetta-500.woff2) format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Gambetta';src:url(fonts/gambetta-500i.woff2) format('woff2');font-weight:500;font-style:italic;font-display:swap}
+@font-face{font-family:'Gambetta';src:url(fonts/gambetta-600.woff2) format('woff2');font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:'Switzer';src:url(fonts/switzer-400.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Switzer';src:url(fonts/switzer-500.woff2) format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Switzer';src:url(fonts/switzer-600.woff2) format('woff2');font-weight:600;font-style:normal;font-display:swap}
 /* Every colour and typeface on the page is named here, so each changes in one place. */
 :root{
-  --bg:#F5F4F1;
-  --panel:#FFFFFF;
-  --line:#DEDBD5;
-  --rule:#E4E1DB;
-  --ink:#2A1810;
-  --body:#4A3F38;
-  --muted:#6F665E;
-  --butter:#FFC83D;      /* the one main button, and the line under the selected tab */
-  --picked:#F0EEEA;
+  --bg:#FFFCF5;
+  --panel:#FFFEFA;
+  --line:#E3D8C1;
+  --rule:#E3D8C1;
+  --ink:#24150E;
+  --body:#45321F;
+  --muted:#76664F;
+  --butter:#24150E;      /* the one main button (espresso, as on the landing page), and the line under the selected tab */
+  --on-butter:#FFFCF5;
+  --picked:#F4ECDA;
   /* another cafe compared with this shop, and nothing else */
-  --more:#D63A14;        /* charges more than this shop */
-  --less:#3E6FA3;        /* charges less than this shop */
-  --same:#C9C5BE;        /* charges the same */
-  --same-line:#8F8A83;   /* the thin border round a "same" mark */
-  --faint:#8F8A83;       /* lines of the menu that do not work yet */
+  --more:#B5401A;        /* charges more than this shop */
+  --less:#3B6A8F;        /* charges less than this shop */
+  --same:#D3C8AE;        /* charges the same */
+  --same-line:#8A7C62;   /* the thin border round a "same" mark */
+  --faint:#9A8C74;       /* lines of the menu that do not work yet */
   /* rust, from the Counter logo: the "Limited time" tag, a switch that is on, and the filled heart of a saved item. Nothing else. */
-  --rust:#C0531F;
-  --rust-soft:#FBEDE5;   /* the tag's background */
-  --rust-line:#EBC3AE;   /* the tag's border */
-  --rust-ink:#A8481B;    /* the tag's text: rust darkened until it reads on the soft tint */
-  --f-display:"Bricolage Grotesque", system-ui, sans-serif;
-  --f-text:"Archivo", system-ui, sans-serif;
-  --r-panel:12px;
-  --r:10px;
+  --rust:#A4441C;
+  --rust-soft:#F8E9DC;   /* the tag's background */
+  --rust-line:#E4BFA3;   /* the tag's border */
+  --tomato-deep:#7E3313;
+  --rust-ink:#8E3A16;    /* the tag's text: rust darkened until it reads on the soft tint */
+  --f-display:"Gambetta", Georgia, "Times New Roman", serif;
+  --f-text:"Switzer", system-ui, -apple-system, sans-serif;
+  --r-panel:8px;
+  --r:6px;
   --side:240px;
 }
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none !important}
 html{-webkit-text-size-adjust:100%}
-body{margin:0; background:var(--bg); color:var(--body); font:400 15px/1.45 var(--f-text)}
+body{font-feature-settings:"kern","liga"; margin:0; background:var(--bg); color:var(--body); font:400 15px/1.45 var(--f-text)}
 h1,h2,h3,p,ul{margin:0}
 ul{padding:0; list-style:none}
-h1,h2{font-family:var(--f-display); color:var(--ink); line-height:1.15}
-h1{font-weight:800; font-size:30px}
-h2{font-weight:700; font-size:22px}
+h1,h2{font-family:var(--f-display); color:var(--ink); line-height:1.15; font-weight:500; letter-spacing:-.015em}
+h1{font-size:34px}
+h2{font-size:25px}
 h3{font:600 13px/1.3 var(--f-text); color:var(--muted)}
 a{color:var(--ink)}
 button{font:inherit; color:inherit}
@@ -62,8 +72,8 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
   display:inline-flex; align-items:center; justify-content:center; gap:8px; white-space:nowrap;
 }
 .btn:hover{border-color:var(--ink)}
-.btn.primary{background:var(--butter); border-color:var(--butter)}
-.btn.primary:hover{border-color:var(--ink)}
+.btn.primary{background:var(--butter); border-color:var(--butter); color:var(--on-butter)}
+.btn.primary:hover{background:var(--tomato-deep); border-color:var(--tomato-deep)}
 .btn.sq{width:44px; padding:0}
 .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--r-panel); padding:20px}
 .muted{color:var(--muted)}
@@ -103,7 +113,7 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 }
 .trail button:hover{border-color:var(--ink)}
 .trail button.last{background:var(--picked); border-color:var(--ink)}
-.ask{font:700 20px/1.2 var(--f-display); color:var(--ink); margin-bottom:14px}
+.ask{font:500 22px/1.2 var(--f-display); color:var(--ink); margin-bottom:14px}
 .tiles{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(200px, 100%), 1fr)); gap:12px}
 .tile{
   min-height:96px; padding:14px 16px; display:flex; flex-direction:column; justify-content:center; gap:3px;
@@ -253,7 +263,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .field input:disabled{background:var(--bg)}
 .field input[aria-invalid="true"]{border:2px solid var(--ink)}
 .card{max-width:480px}
-.card .big{font:800 28px/1.15 var(--f-display); color:var(--ink); margin:4px 0 8px}
+.card .big{font:500 30px/1.15 var(--f-display); color:var(--ink); margin:4px 0 8px}
 .card .btn{margin-top:18px}
 .choose-cols{display:grid; grid-template-columns:minmax(0, 2fr) minmax(0, 1fr); gap:24px; align-items:start; margin-top:24px}
 #picker .trail{margin:0 0 16px}
@@ -273,7 +283,8 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .btn:disabled:hover{border-color:var(--butter)}
 .pop-btn{margin-top:8px; min-height:40px; font-size:13px}
 
-.wordmark{font:800 22px/1 var(--f-display); color:var(--ink)}
+.wordmark img{width:26px; height:26px; flex:none}
+.wordmark{display:inline-flex; align-items:center; gap:8px; font:600 22px/1 var(--f-display); letter-spacing:-.01em; color:var(--ink)}
 .field label{display:block; font-weight:600; color:var(--ink); margin-bottom:6px}
 .field input{
   width:100%; min-height:44px; padding:0 12px; border:1px solid var(--line); border-radius:var(--r);
@@ -384,7 +395,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 /* a cafe's own row: its name, where it is, how many items, on the picked grey */
 .newtable .ghead th{padding:10px; text-align:left; font-weight:400; background:var(--picked); border-bottom:1px solid var(--line)}
 .newtable tbody + tbody .ghead th{border-top:10px solid var(--panel)}
-.newtable .ghead .cafe{font:700 17px/1.25 var(--f-display); color:var(--ink); margin-right:10px}
+.newtable .ghead .cafe{font:500 18px/1.25 var(--f-display); color:var(--ink); margin-right:10px}
 .newtable .ghead .where{color:var(--muted); margin-right:10px}
 .newtable .ghead .howmany{color:var(--body); font-weight:600}
 .newtable .gfold td{padding:8px 10px 12px; border-bottom:0}
@@ -516,7 +527,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .note{margin:16px 4px 0}
 .mailbox{margin:20px 0 0; padding:16px; background:var(--picked); border-radius:var(--r)}
 .mailbox.alerts{margin:28px 0 0}
-.mailh{margin:0 0 6px; font:700 20px/1.2 var(--f-display); color:var(--ink)}
+.mailh{margin:0 0 6px; font:500 22px/1.2 var(--f-display); color:var(--ink)}
 .mailbox.prices .mailh{font-size:17px}
 .mailwords{margin:0; color:var(--body)}
 .mailform{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
@@ -533,12 +544,12 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .d-head{display:flex; align-items:center; gap:12px}
 .d-head .title{flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px}
 .d-head .label{font-weight:600; color:var(--muted)}
-.d-verdict{font:700 24px/1.2 var(--f-display); color:var(--ink)}
+.d-verdict{font:500 26px/1.2 var(--f-display); color:var(--ink)}
 .detail > .d-verdict{margin-top:8px}
-.askprice h3{font:700 17px/1.2 var(--f-display); color:var(--ink)}
+.askprice h3{font:500 18px/1.2 var(--f-display); color:var(--ink)}
 .askprice > * + *{margin-top:10px}
 .d-price{display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px}
-.bigprice{font:800 44px/1 var(--f-display); color:var(--ink); font-variant-numeric:tabular-nums}
+.bigprice{font:500 48px/1 var(--f-display); color:var(--ink); font-variant-numeric:tabular-nums}
 .stepper{display:flex; align-items:center; gap:12px}
 .d-priceinfo > * + *{margin-top:8px}
 .inner{background:var(--bg); border-radius:var(--r); padding:16px}
@@ -569,7 +580,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .seg .btn:first-child{border-radius:var(--r) 0 0 var(--r)}
 .seg .btn:last-child{border-radius:0 var(--r) var(--r) 0; margin-left:-1px}
 .seg .btn[aria-pressed="true"]{background:var(--ink); border-color:var(--ink); color:#fff}
-.d-list h3{font:700 17px/1.2 var(--f-display); color:var(--ink); margin-bottom:10px}
+.d-list h3{font:500 18px/1.2 var(--f-display); color:var(--ink); margin-bottom:10px}
 .cafes li{display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-top:1px solid var(--rule)}
 .cafes .what{flex:1; min-width:0}
 .cafes .name{font-weight:600; color:var(--ink)}
@@ -687,7 +698,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 <!-- set-up: step 1 finds the shop, step 2 chooses its competitors -->
 <div class="setup" id="setup" hidden>
   <header class="topbar">
-    <p class="wordmark">Counter</p>
+    <p class="wordmark"><img src="img/logo-mark.svg" alt="" width="26" height="26">Counter</p>
     <ol class="steps" id="steps" aria-label="Set-up steps">
       <li id="step-1"><span class="num">1</span>Your shop</li>
       <li id="step-m" hidden><span class="num">2</span>Your menu</li>
@@ -732,12 +743,12 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 <div class="app" id="app" hidden>
   <!-- phone widths only: a bar that stays at the top, with the page's name and the menu button -->
   <header class="mbar" id="mbar">
-    <div class="words"><p class="wordmark">Counter</p><p class="where" id="mbar-page"></p></div>
+    <div class="words"><p class="wordmark"><img src="img/logo-mark.svg" alt="" width="26" height="26">Counter</p><p class="where" id="mbar-page"></p></div>
     <button type="button" class="btn" id="menu-btn" aria-expanded="false" aria-controls="side"></button>
   </header>
   <!-- one set of links: the sidebar on a laptop, the menu panel on a phone -->
   <aside class="side" id="side">
-    <p class="wordmark side-mark">Counter</p>
+    <p class="wordmark side-mark"><img src="img/logo-mark.svg" alt="" width="26" height="26">Counter</p>
     <div class="who">
       <p class="name" id="who-name"></p>
       <p class="area" id="who-area"></p>
