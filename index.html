@@ -482,6 +482,19 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .hidden-list li span{flex:1; min-width:0; color:var(--ink); font-weight:600}
 .hidden-list .btn{margin-left:0}
 .note{margin:16px 4px 0}
+.mailbox{margin:20px 0 0; padding:16px; background:var(--picked); border-radius:var(--r)}
+.mailbox.alerts{margin:0 0 24px}
+.mailh{margin:0 0 6px; font:700 20px/1.2 var(--f-display); color:var(--ink)}
+.mailbox.prices .mailh{font-size:17px}
+.mailwords{margin:0; color:var(--body)}
+.mailform{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.mailin{flex:1 1 220px; min-width:0; min-height:44px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--ink); font:inherit}
+.mailin:focus{border-color:var(--ink)}
+.mailbox .mailmsg{margin:8px 0 0}
+.mailbox .small{margin:8px 0 0}
+.mailbox .btn.quiet{border-color:transparent; background:transparent}
+.mailbox .btn.quiet:hover{border-color:var(--ink)}
+.mailsaid{display:flex; align-items:center; gap:8px; margin:0; color:var(--ink); overflow-wrap:anywhere}
 
 /* ---------- right panel: one item ---------- */
 .detail > * + *{margin-top:16px}
@@ -779,6 +792,41 @@ const byId = id => document.getElementById(id);
 const money = n => "$" + Number(n).toFixed(2);
 const cents = n => Math.round(Number(n) * 100);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- usage numbers ----------
+   Small events and one email signup go to the same Supabase project as the
+   landing page. The key is the public anon key; row-level security limits it
+   to adding rows. Nothing here may ever break or slow the app: a failed or
+   blocked call is dropped without a word. The id lives in memory only. */
+const SUPABASE_URL = "https://ybcnzkzgyoghkqsxnqkl.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InliY256a3pneW9naGtxc3hucWtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODc0MzAsImV4cCI6MjEwNTQ2MzQzMH0.koP33NN4VcbzyBtfBoAT9Gbwd0ayU03-5tW6YZOZr4A";
+const SB_HEADERS = {"apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", "Prefer": "return=minimal"};
+const SESSION_ID = Math.random().toString(36).slice(2) + "-" + Date.now().toString(36);
+function track(name, props){
+  try {
+    fetch(SUPABASE_URL + "/rest/v1/events", {method: "POST", keepalive: true, credentials: "omit", headers: SB_HEADERS,
+      body: JSON.stringify({name: String(name), props: props || {}, session_id: SESSION_ID})}).catch(() => {});
+  } catch(e){ /* dropped on purpose */ }
+}
+const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+/* where the visit came from, read once: src is a short plain tag on our own links (?src=newsletter), anything else is dropped;
+   ref is the referring site's host only. src is then taken out of the address, the rest of it (shop, rivals, page) kept. */
+(() => {
+  let src = null, ref = null, has = false;
+  try {
+    const url = new URL(location.href), tag = url.searchParams.get("src");
+    has = !!url.searchParams.get("shop");
+    if(tag !== null){
+      if(/^[A-Za-z0-9_-]{1,40}$/.test(tag)) src = tag.toLowerCase();
+      url.searchParams.delete("src");
+      history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+    }
+  } catch(e){ /* the app works the same without it */ }
+  try { if(document.referrer) ref = new URL(document.referrer).hostname || null; } catch(e){ ref = null; }
+  let phone = false;
+  try { phone = matchMedia("(max-width:640px)").matches; } catch(e){ /* not a phone */ }
+  track("app_opened", {src: src, ref: ref, has_shop: has, is_phone: phone});
+})();
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 /* "2026-10-04" -> "4 Oct" */
 const dayMonth = iso => {
@@ -1128,6 +1176,7 @@ function openShop(s, ids, q){
   if(lastShop !== s.shop_id){ trial.clear(); test.clear(); }
   lastShop = s.shop_id;
   page = nextPage;
+  if(entering) track("page_viewed", {page: page});
   setShop(s, ids, q);
 
   if(entering){
@@ -1257,6 +1306,7 @@ function paintList(){
   });
   html += miss ? hiddenHtml() + `<p class="note muted small">Not for me hides an item from this list.</p>`
                : `<p class="note muted small">We compare the items most cafes sell. More are coming.</p>`;
+  if(page === "prices" && compared) html += mailHtml("prices");
   box.innerHTML = html;
 }
 /* A row for an item the shop does not sell: who sells it and what cafes
@@ -1501,7 +1551,7 @@ const ALERTS_KEY = "counter.alerts.v1";
 const ALERT_DAYS = 30;            // a new item is an alert for this many days
 const ALERT_WAIT = 2000;          // milliseconds on the page before its alerts are seen
 const SEEN_MAX = 500;             // keys kept for one shop, newest kept
-let alertsAll = {};               // shop_id -> {seen: [keys]}
+let alertsAll = {};               // shop_id -> {seen: [keys], email: the address signed up, off: true once the strip was turned down}
 let alertFresh = null;            // the keys that were unseen when the page was opened: they keep their "New" tag until it is left
 let alertTimer = 0;
 function loadAlerts(){
@@ -1553,7 +1603,7 @@ function paintAlerts(){
   const all = alertList(), shown = all.items.concat(all.offers), seen = new Set(seenAlerts());
   if(!alertFresh) alertFresh = new Set(shown.filter(r => !seen.has(r.key)).map(r => r.key));
   const fresh = r => alertFresh.has(r.key) ? `<span class="tag isnew">New</span>` : "";
-  box.innerHTML = `<h2 id="alerts-h-items">New items from your competitors</h2>` +
+  box.innerHTML = mailHtml("alerts") + `<h2 id="alerts-h-items">New items from your competitors</h2>` +
     (!all.items.length ? `<p id="alerts-noitems">Nothing new from your competitors in the last ${ALERT_DAYS} days.</p>` :
       `<div class="tablebox"><table class="newtable alerts" id="alerts-items"><thead><tr>` +
       `<th scope="col" class="c-cafe">Cafe</th><th scope="col" class="c-item">Item</th><th scope="col" class="c-since">New since</th>` +
@@ -1581,11 +1631,77 @@ function paintAlerts(){
   alertTimer = setTimeout(() => {
     if(!shop || shop.shop_id !== id || page !== "alerts" || screen !== "prices") return;
     const keys = shown.map(r => r.key), old = seenAlerts().filter(k => keys.indexOf(k) === -1);
-    alertsAll[id] = {seen: old.concat(keys).slice(-SEEN_MAX)};
+    alertsAll[id] = Object.assign({}, alertsAll[id], {seen: old.concat(keys).slice(-SEEN_MAX)});
     storeAlerts();
     byId("nav-alerts-words").textContent = `Alerts (${unseenAlerts()})`;
   }, ALERT_WAIT);
 }
+
+/* ---------- email me when they change something ----------
+   One form in two places: the top of Alerts, and a strip under the item list
+   once the reader has compared an item. Once a shop has signed up both show
+   the address instead. The address and the choice are kept in this browser,
+   for each shop, with what was seen. */
+const PRIVACY_URL = "https://demoweeklybake.vercel.app/privacy.html";
+let mailDraft = "";               // what is typed in the field, kept across repaints
+const alertMine = () => alertsAll[shop.shop_id] && typeof alertsAll[shop.shop_id] === "object" ? alertsAll[shop.shop_id] : {};
+function mailWords(){
+  const names = rivals.slice(0, 2).map(o => `<b>${esc(o.shop_name)}</b>`), n = rivals.length;
+  const acts = (one) => one ? "changes a price, adds an item or starts an offer" : "change a price, add an item or start an offer";
+  if(n === 0) return `We'll email you when your competitors ${acts(false)}.`;
+  if(n === 1) return `We'll email you when ${names[0]} ${acts(true)}.`;
+  if(n === 2) return `We'll email you when ${names[0]} or ${names[1]} ${acts(false)}.`;
+  return `We'll email you when ${names[0]}, ${names[1]} or your other competitors ${acts(false)}.`;
+}
+function mailHtml(place){
+  const mine = alertMine(), email = typeof mine.email === "string" ? mine.email : "";
+  const head = place === "alerts" ? "h2" : "p";
+  if(email) return `<div class="mailbox done ${place}"><p class="mailsaid">${ICON.tick}<span>We'll email <b>${esc(email)}</b> when something changes.</span></p></div>`;
+  if(place === "prices" && mine.off) return "";
+  return `<div class="mailbox ${place}"><${head} class="mailh">Get these by email</${head}><p class="mailwords">${mailWords()}</p>` +
+    `<form class="mailform" data-place="${place}" novalidate>` +
+    `<input type="email" class="mailin" autocomplete="email" inputmode="email" placeholder="you@yourcafe.com" aria-label="Your email" value="${esc(mailDraft)}">` +
+    `<button type="submit" class="btn primary">Email me</button>` +
+    (place === "prices" ? `<button type="button" class="btn quiet" data-mail="no">No thanks</button>` : "") + `</form>` +
+    `<p class="say mailmsg" role="alert"></p>` +
+    `<p class="muted small">One email when something changes. Unsubscribe any time. <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a></p></div>`;
+}
+document.addEventListener("input", e => { if(e.target && e.target.classList && e.target.classList.contains("mailin")) mailDraft = e.target.value; });
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-mail]");
+  if(!el || !shop) return;
+  alertsAll[shop.shop_id] = Object.assign({}, alertMine(), {off: true});
+  storeAlerts();
+  paintList();
+});
+document.addEventListener("submit", async e => {
+  const f = e.target.closest ? e.target.closest(".mailform") : null;
+  if(!f || !shop) return;
+  e.preventDefault();
+  const input = f.querySelector("input"), btn = f.querySelector("button[type=submit]"), msg = f.parentNode.querySelector(".mailmsg");
+  if(btn.disabled) return;
+  const email = input.value.trim(), id = shop.shop_id, place = f.dataset.place;
+  if(!isEmail(email)){ msg.textContent = "Please check your email address."; input.focus(); return; }
+  msg.textContent = "";
+  btn.disabled = true;
+  btn.textContent = "Sending";
+  let ok = false;
+  try {
+    const res = await fetch(SUPABASE_URL + "/rest/v1/signups", {method: "POST", headers: SB_HEADERS, body: JSON.stringify({email: email, source: "counter_app"})});
+    ok = res.ok;
+  } catch(err){ ok = false; }
+  if(!ok){
+    btn.disabled = false;
+    btn.textContent = "Email me";
+    msg.textContent = "We could not save that. Please try again in a moment.";
+    return;
+  }
+  alertsAll[id] = Object.assign({}, alertsAll[id], {email: email});
+  storeAlerts();
+  mailDraft = "";
+  track("alerts_signup", {shop_id: id, n_rivals: rivals.length, place: place});
+  if(shop && shop.shop_id === id) paint();
+});
 
 /* ---------- a competitor for one item ----------
    On My prices a cafe can be added as a competitor for the open item alone.
@@ -1771,6 +1887,7 @@ function paintPricesTop(){
    browser, for each shop and item. */
 const SOLD_KEY = "counter.sold.v1";
 let soldAll = null;
+let soldSeen = false;            // the daily count has been counted this visit
 function soldOf(k){
   if(!soldAll){ try { soldAll = JSON.parse(localStorage.getItem(SOLD_KEY) || "{}") || {}; } catch(e){ soldAll = {}; } }
   const n = (soldAll[shop.shop_id] || {})[k];
@@ -1796,6 +1913,7 @@ document.addEventListener("input", e => {
   if(!e.target || e.target.id !== "d-sold" || !openItem) return;
   const n = Math.round(Number(e.target.value));
   setSold(openItem, n > 0 && n <= 5000 ? n : 0);
+  if(n > 0 && n <= 5000 && !soldSeen){ soldSeen = true; track("sold_entered", {}); }
   byId("d-money").textContent = moneyWords(openItem);
 });
 
@@ -2148,6 +2266,8 @@ function drawMap(fit){
 }
 
 /* ---------- what a press does ---------- */
+const triedSeen = new Set();     // items whose trial price was counted this visit
+let compared = false;            // whether the reader has opened an item's compare view this visit
 const focusOn = sel => { const el = document.querySelector(sel); if(el) el.focus(); };
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-act]");
@@ -2166,6 +2286,7 @@ document.addEventListener("click", e => {
       if(!ids.length) return;
       // the owner's own shop keeps its competitors in the browser too
       if(chooser.shop.shop_id === MY_ID && myShop){ myShop.rivals = ids; storeShop(); }
+      track("competitors_done", {shop_id: chooser.shop.shop_id, n: ids.length});
       go({shop: chooser.shop.shop_id, rivals: ids.join(","), hide: chooser.keep.hide, page: chooser.keep.page});
     }
     return;
@@ -2178,6 +2299,8 @@ document.addEventListener("click", e => {
   }
   if(!shop) return;
   const k = openItem, miss = page === "missing", bag = miss ? test : trial;
+  if((act === "try" || act === "plus" || act === "minus") && !miss && k && !triedSeen.has(k)){ triedSeen.add(k); track("price_tried", {item: k}); }
+  if(act === "open") compared = true;
   // the question about a real price is answered at once or it is gone
   const asked = ask;
   ask = null;
@@ -2482,10 +2605,12 @@ function awayWords(km){
   const m = Math.round(km * 1000 / 50) * 50;
   return m < 1000 ? `${m} m` : `${km.toFixed(1)} km`;
 }
+const pickedSeen = new Set();    // shops already counted as picked this visit
 function showChooser(s, ids, q){
   shop = null;
   const key = s.shop_id + (ids ? "|edit|" + ids.join(",") : "|first");
   const entering = !chooser || chooser.key !== key;
+  if(entering && !ids && !pickedSeen.has(s.shop_id)){ pickedSeen.add(s.shop_id); track("shop_picked", {shop_id: s.shop_id, added: s.shop_id === MY_ID}); }
   if(entering){
     const others = nearestFirst(s, [...SHOPS.values()].filter(o => o.shop_id !== s.shop_id));
     chooser = {key: key, shop: s, edit: !!ids, old: ids || [], others: others, view: "list", fitted: false, at: null,
@@ -3111,7 +3236,7 @@ async function sendMenu(){
   // a PDF with real text is read here, free and exact; the AI only reads photos and scans
   if(up.files.length === 1 && up.files[0].pdf){
     const items = await pdfMenu(up.files[0].file).catch(() => null);
-    if(pdfSure(items)) return {items: items};
+    if(pdfSure(items)){ track("menu_read", {how: "pdf_free", ok: true}); return {items: items}; }
     if(up.files[0].file.size > UP_PDF){
       const pages = await pdfPhotos(up.files[0].file).catch(() => null);
       if(!pages || !pages.length) return {error: "pdf_large"};
@@ -3124,7 +3249,7 @@ async function sendMenu(){
   // the same files read before in this browser are not paid for twice
   const hash = await filesHash(files);
   const before = readsKept()[hash];
-  if(before && Array.isArray(before.items)) return {items: before.items};
+  if(before && Array.isArray(before.items)){ track("menu_read", {how: "cache", ok: true}); return {items: before.items}; }
   const stop = new AbortController(), timer = setTimeout(() => stop.abort(), UP_WAIT);
   let res = null, data = null;
   try {
@@ -3133,13 +3258,15 @@ async function sendMenu(){
     data = await res.json();
   } catch(e){ data = null; }
   clearTimeout(timer);
-  if(!res) return {error: "read_failed"};
+  if(!res){ track("menu_read", {how: "ai", ok: false}); return {error: "read_failed"}; }
   if(res.ok && data && Array.isArray(data.items)){
     const items = data.items.filter(r => r && typeof r.name === "string" && r.name.trim() !== "");
-    if(data.not_a_menu || !items.length) return {error: "not_a_menu"};
+    if(data.not_a_menu || !items.length){ track("menu_read", {how: "ai", ok: false}); return {error: "not_a_menu"}; }
     keepRead(hash, items);
+    track("menu_read", {how: "ai", ok: true});
     return {items: items};
   }
+  track("menu_read", {how: "ai", ok: false});
   const error = data && Object.prototype.hasOwnProperty.call(UP_SAY, data.error) ? data.error : res.status === 413 ? "too_large" : "read_failed";
   // the daily limit is said in the server's own words. A failed read may carry a short code that says where it stopped.
   return {error: error, words: error === "limit" && data && typeof data.message === "string" ? data.message : "",
@@ -3719,6 +3846,7 @@ function showUpload(q, s){
   if(name === "check" && !ed) name = target ? "update" : "menu";
   if(name !== asked) history.replaceState(null, "", upAddr(name));
   document.title = `${UP_TITLE[name]} | Counter`;
+  if(name === "update" && screen !== "update") track("page_viewed", {page: "update"});
   if(name === "place") paintPlace(); else if(name === "menu") paintMenuScreen(); else if(name === "update") paintUpdate(); else paintCheck();
   show(name);
   if(target){
@@ -4008,6 +4136,7 @@ function ideaLines(v){
 }
 const savedAi = key => shopSaves().ideas.find(e => e.kind === "ai_idea" && e.idea.key === key);
 
+let ideasShown = "";             // the ideas on screen last counted
 function paintIdeas(){
   const box = byId("ideaspage"), mine = shopIdeas(), rows = ideaRows(shop.shop_id);
   // ideas kept from before need the menu to be drawn: it is asked for once, and the section is drawn again
@@ -4018,6 +4147,8 @@ function paintIdeas(){
   }
   const views = mine.ideas.map(i => ideaView(i, rows)).filter(Boolean);
   const first = !mine.ideas.length;
+  const shownKey = shop.shop_id + "|" + views.map(v => v.key).join(",");
+  if(views.length && shownKey !== ideasShown){ ideasShown = shownKey; track("ideas_shown", {n: views.length}); }
   const looked = mine.looked && views.length ? mine.looked : null;
   const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   box.innerHTML =
