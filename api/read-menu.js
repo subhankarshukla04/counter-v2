@@ -6,6 +6,7 @@ import { askChain, askModel, isBusy, isLimit } from "./_models.js";
 
 const MIMES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const PDF = "application/pdf";
+const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
 const MAX_FILES = 6;
 const MAX_BASE64 = 4000000;   // characters, all files together
 const MAX_ROWS = 400;
@@ -88,7 +89,8 @@ function filesOk(files){
   if(!Array.isArray(files) || files.length < 1 || files.length > MAX_FILES) return false;
   for(const f of files){
     if(!f || typeof f !== "object" || MIMES.indexOf(f.mime) === -1) return false;
-    if(typeof f.data !== "string" || f.data === "") return false;
+    // base64 only, so nothing that is not a file is sent to the model and paid for
+    if(typeof f.data !== "string" || f.data === "" || !BASE64.test(f.data)) return false;
   }
   const pdfs = files.filter(f => f.mime === PDF).length;
   return pdfs === 0 || (pdfs === 1 && files.length === 1);

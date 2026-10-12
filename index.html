@@ -2885,7 +2885,7 @@ async function addFiles(chosen){
     if(!pdf && !isPhoto(file)){ said = UP_SAY.file_type; continue; }
     if(hasPdf || (pdf && up.files.length) || up.files.length >= UP_FILES){ said = UP_SAY.too_many; continue; }
     if(pdf){
-      if(file.size > UP_PDF){ said = UP_SAY.pdf_large; continue; }
+      // a PDF too large to send is read here if it has text, or turned into photos of its pages
       up.files.push({name: file.name, size: file.size, pdf: true, file: file});
       continue;
     }
@@ -2920,10 +2920,17 @@ async function fitPhotos(){
    column it sits in. A scan or a photo has no text, so it goes to the AI. */
 const PDF_JS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
 const PDF_MIN_ROWS = 5;           // fewer priced items than this: the AI reads it instead
+/* Only a read that looks clean skips the AI: most price-like numbers became an item, names do not repeat
+   (a "member" price column) and are not spaced out letter by letter. Tried on 15 real cafe PDFs, this kept
+   the 3 that were read 98-100% right and sent every poor read to the AI. A doubt costs one AI read, not a wrong menu. */
+const pdfSure = rows => !!rows && rows.length >= PDF_MIN_ROWS && !!rows.stats &&
+  rows.stats.coverage >= 0.7 && rows.stats.repeats <= 0.05 && rows.stats.spaced <= 0.05;
 const PDF_MAX_PAGES = 10;
-const PRICE_AT_END = /^(.*?[A-Za-z\u00C0-\u024F\u4E00-\u9FFF].*?)[\s.·…:_-]*(?:S?\$\s*)?(\d{1,3}(?:\.\d{1,2})?)(?:\s*(?:\/|\|)?\s*(?:S?\$\s*)?(\d{1,3}(?:\.\d{1,2})?))?\s*$/;
-const PRICE_ONLY = /^(?:S?\$\s*)?(\d{1,3}(?:\.\d{1,2})?)(?:\s*(?:\/|\|)?\s*(?:S?\$\s*)?(\d{1,3}(?:\.\d{1,2})?))?$/;
-const NOT_ITEM = /\b(tel|phone|whatsapp|open|opening|closed|daily|mon|tue|wed|thu|fri|sat|sun|am|pm|gst|service charge|singapore|road|rd|street|st|avenue|ave|level|#\d|www\.|\.com|@)\b/i;
+// a price as menus here print it: 6.5, $6.50, S$6.50, SGD 6.50, 6.50++ (before service charge and GST), 6,50
+const PRICE = String.raw`(?:S\$|SGD\s*|\$)?\s*(\d{1,3}(?:[.,]\d{1,2})?)\s*\+{0,2}`;
+const PRICE_AT_END = new RegExp(String.raw`^(.*?[A-Za-zÀ-ɏ一-鿿].*?)[\s.·…:_+-]*${PRICE}(?:\s*(?:\/|\|)?\s*${PRICE})?\s*$`);
+const PRICE_ONLY = new RegExp(String.raw`^${PRICE}(?:\s*(?:\/|\|)?\s*${PRICE})?$`);
+const NOT_ITEM = /\b(tel|phone|whatsapp|open|opening|closed|daily|am|pm|gst|service charge|singapore|road|rd|street|st|avenue|ave|level|min|minimum|spend|delivery|fee|deposit|corkage|voucher|since|est|#\d|www\.|\.com|@)\b/i;
 const KIND_WORDS = [
   ["cake", /cake|brownie|tiramisu|mousse|pudding|swiss roll|banana bread|cupcake|cheesecake|loaf slice|basque|chiffon/i],
   ["savoury", /sandwich|burger|pizza|pasta|salad|\beggs?\b|toast|rice|noodle|soup|bagel|wrap|quiche|sausage|bacon|chicken|beef|salmon|\bham\b|tuna|brunch|breakfast|benedict|avocado|mushroom|fries|truffle/i],
@@ -2952,6 +2959,7 @@ async function pdfMenu(file){
   const lib = await loadPdfJs();
   const doc = await lib.getDocument({data: await file.arrayBuffer()}).promise;
   const rows = [];
+  let numbers = 0;                  // every piece of text that looks like a price, used or not
   for(let n = 1; n <= Math.min(doc.numPages, PDF_MAX_PAGES); n += 1){
     const page = await doc.getPage(n), width = page.getViewport({scale: 1}).width;
     const bits = (await page.getTextContent()).items.filter(t => t.str && t.str.trim())
@@ -2975,10 +2983,11 @@ async function pdfMenu(file){
       cells.forEach(c => { const t = c.s.trim(), last = joined[joined.length - 1];
         if(PRICE_ONLY.test(t) && last && !PRICE_AT_END.test(last.s.trim())) { last.s += " " + t; } else joined.push({x: c.x, s: t}); });
       joined.forEach(c => {
+        numbers += (c.s.match(/(?:^|[^\d.])\d{1,3}(?:[.,]\d{1,2})?(?![\d.])/g) || []).length;
         const col = Math.min(2, Math.floor(3 * c.x / width));
         const m = c.s.match(PRICE_AT_END);
         if(m && !NOT_ITEM.test(m[1])){
-          const name = m[1].replace(/[\s.·…:_-]+$/, "").trim(), price = Number(m[2]);
+          const name = m[1].replace(/[\s.·…:_+-]+$/, "").trim(), price = Number(m[2].replace(",", "."));
           if(price >= 0.5 && price <= 999 && name.length <= 120){
             const head = heads[col] || "";
             rows.push({name: name, section: head, variant: "", price: price, unsure: m[3] !== undefined, kind: readKind(name, head)});
@@ -2989,7 +2998,30 @@ async function pdfMenu(file){
       });
     });
   }
-  return rows.length ? rows : null;
+  if(!rows.length) return null;
+  // how sure the read is, from the read alone: the share of price-like numbers that became an item, and the share of names that repeat
+  const names = rows.map(r => r.name.toLowerCase());
+  rows.stats = {numbers: numbers, coverage: rows.length / Math.max(numbers, 1),
+                repeats: 1 - new Set(names).size / names.length,
+                spaced: rows.filter(r => /(?:\b\w ){3,}/.test(r.name)).length / rows.length};
+  return rows;
+}
+/* the first pages of a PDF as photos, the same as photos the owner took: for a PDF too large to send */
+async function pdfPhotos(file){
+  const lib = await loadPdfJs();
+  const doc = await lib.getDocument({data: await file.arrayBuffer()}).promise, out = [];
+  for(let n = 1; n <= Math.min(doc.numPages, UP_FILES); n += 1){
+    const page = await doc.getPage(n), one = page.getViewport({scale: 1});
+    const view = page.getViewport({scale: SHRINK[0][0] / Math.max(one.width, one.height)});
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(view.width); canvas.height = Math.round(view.height);
+    const pen = canvas.getContext("2d");
+    pen.fillStyle = "#fff"; pen.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({canvasContext: pen, viewport: view}).promise;
+    const blob = await new Promise(ok => canvas.toBlob(ok, "image/jpeg", SHRINK[0][1]));
+    if(blob) out.push({name: `${file.name} page ${n}`, size: blob.size, pdf: false, file: blob, blob: blob, step: 0});
+  }
+  return out;
 }
 /* the last few reads, kept in this browser by a hash of their files */
 const READS_KEY = "counter.reads.v1", READS_MAX = 5;
@@ -3011,7 +3043,12 @@ async function sendMenu(){
   // a PDF with real text is read here, free and exact; the AI only reads photos and scans
   if(up.files.length === 1 && up.files[0].pdf){
     const items = await pdfMenu(up.files[0].file).catch(() => null);
-    if(items && items.length >= PDF_MIN_ROWS) return {items: items};
+    if(pdfSure(items)) return {items: items};
+    if(up.files[0].file.size > UP_PDF){
+      const pages = await pdfPhotos(up.files[0].file).catch(() => null);
+      if(!pages || !pages.length) return {error: "pdf_large"};
+      up.files = pages;
+    }
   }
   if(!(await fitPhotos())) return {error: up.files.some(f => f.pdf) ? "pdf_large" : "photos_large"};
   const files = [];
@@ -3971,7 +4008,7 @@ async function getIdeas(){
 const BOTTLED = /water|evian|perrier|san pellegrino|\bcoke\b|sprite|\d+\s*ml\b|bottle|\bcan\b|canned/i;
 const COFFEE_WORDS = /latte|flat white|cappuccino|americano|long black|mocha|piccolo|cortado|macchiato|white|coffee/i;
 const shortName = r => capital(r.name.replace(/\s*\(.*?\)\s*/g, " ").trim());
-const fitTitle = t => t.length <= 40 ? t : t.slice(0, 40).replace(/\s+\S*$/, "");
+const fitTitle = (t, plain) => t.length <= 40 ? t : plain;
 function makeIdeas(req){
   const menu = req.menu, byPrice = (a, b) => a.price - b.price;
   const kind = k => menu.filter(r => r.kind === k).sort(byPrice);
@@ -4000,26 +4037,26 @@ function makeIdeas(req){
   const nb = nearWords(bundlesNear, "a bundle");
   rules.push(pairDrinks.slice(0, 3).flatMap(dr => croissantFirst(pastries).slice(0, 3).map(pa => ({
     type: "bundle", item_ids: [dr.id, pa.id], discount_percent: bundlesNear.length >= 2 ? 15 : 10,
-    title: fitTitle(`${shortName(dr)} and ${shortName(pa)} set`),
+    title: fitTitle(`${shortName(dr)} and ${shortName(pa)} set`, "Coffee and pastry set"),
     why: `A pastry is an easy add-on for someone who came in for a coffee. ${nb.words}`, cafes_named: nb.cafes}))));
 
   // 2. a drink and a slice of cake, for the afternoon
   rules.push(pairDrinks.slice(0, 2).flatMap(dr => cakes.slice(0, 3).map(ca => ({
     type: "bundle", item_ids: [dr.id, ca.id], discount_percent: 10,
-    title: fitTitle(`Afternoon ${shortName(ca)} and ${shortName(dr)}`),
+    title: fitTitle(`Afternoon ${shortName(ca)} and ${shortName(dr)}`, "Afternoon cake and drink"),
     why: `Cake with a drink gives an afternoon visit a reason. ${nb.words}`, cafes_named: nb.cafes}))));
 
   // 3. a lunch set: something savoury and a drink
   rules.push(savoury.slice(0, 3).flatMap(sv => pairDrinks.slice(0, 2).map(dr => ({
     type: "bundle", item_ids: [sv.id, dr.id], discount_percent: 10,
-    title: fitTitle(`Lunch: ${shortName(sv)} and ${shortName(dr)}`),
+    title: fitTitle(`Lunch: ${shortName(sv)} and ${shortName(dr)}`, "Lunch set with a drink"),
     why: "A fixed lunch set is quick to choose and brings in the weekday lunch crowd.", cafes_named: []}))));
 
   // 4. the items priced above the usual nearby, cheaper in the quiet afternoon
   const dear = menu.filter(r => above(r) > 0).sort((a, b) => above(b) - above(a));
   if(dear.length) rules.push([dear.slice(0, 3), dear.slice(0, 1), dear.slice(1, 3)].filter(l => l.length).map(list => Object.assign({
     type: "price_cut", item_ids: list.map(r => r.id), discount_percent: 10,
-    title: fitTitle(list.length === 1 ? `Quiet-hours ${shortName(list[0])}` : "Quiet-hours price cut"),
+    title: fitTitle(list.length === 1 ? `Quiet-hours ${shortName(list[0])}` : "Quiet-hours price cut", "Quiet-hours price cut"),
     why: `${list.length === 1 ? "This costs" : "These cost"} more than most cafes near you charge. A cut in the quiet afternoon shows whether a lower price brings more people in, without changing your menu.`,
     cafes_named: []}, timed("weekdays", 14, 17))));
 
@@ -4027,7 +4064,7 @@ function makeIdeas(req){
   const bakes = pastries.concat(cakes).sort((a, b) => b.price - a.price);
   if(bakes.length) rules.push([bakes.slice(0, 4), bakes.slice(0, 2), bakes.slice(2, 6)].filter(l => l.length).map(list => Object.assign({
     type: "price_cut", item_ids: list.map(r => r.id), discount_percent: 20,
-    title: fitTitle("End-of-day bakes"),
+    title: "End-of-day bakes",
     why: "Bakes left at closing are thrown away. A cut in the last hours sells them instead.", cafes_named: []}, timed("every day", 17, 19))));
 
   // 6. early coffee, when cafes near you already run price cuts
@@ -4035,14 +4072,16 @@ function makeIdeas(req){
     const nc = nearWords(cutsNear, "a price cut");
     rules.push([coffees.slice(0, 2), coffees.slice(2, 4)].filter(l => l.length).map(list => Object.assign({
       type: "price_cut", item_ids: list.map(r => r.id), discount_percent: 10,
-      title: fitTitle("Early-bird coffee"),
+      title: "Early-bird coffee",
       why: `Morning regulars decide where to go on habit and price. ${nc.words}`, cafes_named: nc.cafes}, timed("weekdays", 7, 10))));
   }
 
   // three ideas from different rules first, then more from the same rules if needed
   const avoid = new Set(req.avoid.map(a => a.type + "|" + a.item_ids.slice().sort().join(",")));
   const keyOf = i => i.type + "|" + i.item_ids.slice().sort().join(",");
-  const lists = rules.map(list => list.filter(i => !avoid.has(keyOf(i)) && new Set(i.item_ids).size === i.item_ids.length));
+  // an idea whose sums leave nothing to offer is never shown, so it is never one of the three
+  const lists = rules.map(list => list.filter(i => !avoid.has(keyOf(i)) && new Set(i.item_ids).size === i.item_ids.length &&
+    ideaView(Object.assign({days: null, all_day: null, start_hour: null, end_hour: null}, i), menu)));
   const out = [], seen = new Set();
   for(let round = 0; out.length < 3 && lists.some(l => l.length > round); round += 1){
     for(const list of lists){
