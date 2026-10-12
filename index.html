@@ -1681,25 +1681,25 @@ let mailDraft = "";               // what is typed in the field, kept across rep
 const alertMine = () => alertsAll[shop.shop_id] && typeof alertsAll[shop.shop_id] === "object" ? alertsAll[shop.shop_id] : {};
 function mailWords(){
   const names = rivals.slice(0, 2).map(o => `<b>${esc(o.shop_name)}</b>`), n = rivals.length;
-  const acts = (one) => one ? "changes a price, adds an item or starts an offer" : "change a price, add an item or start an offer";
-  if(n === 0) return `We'll email you when your competitors ${acts(false)}.`;
-  if(n === 1) return `We'll email you when ${names[0]} ${acts(true)}.`;
-  if(n === 2) return `We'll email you when ${names[0]} or ${names[1]} ${acts(false)}.`;
-  return `We'll email you when ${names[0]}, ${names[1]} or your other competitors ${acts(false)}.`;
+  const what = "changed: prices, new items and offers";
+  if(n === 0) return `Every Monday, what your competitors ${what}.`;
+  if(n === 1) return `Every Monday, what ${names[0]} ${what}.`;
+  if(n === 2) return `Every Monday, what ${names[0]} and ${names[1]} ${what}.`;
+  return `Every Monday, what ${names[0]}, ${names[1]} and your other competitors ${what}.`;
 }
 function mailHtml(place){
   const mine = alertMine(), email = typeof mine.email === "string" ? mine.email : "";
   const head = place === "alerts" ? "h2" : "p";
   if(email && place === "prices") return "";
-  if(email) return `<div class="mailbox done ${place}"><p class="mailsaid">${ICON.tick}<span>We'll email <b>${esc(email)}</b> when something changes.</span></p></div>`;
+  if(email) return `<div class="mailbox done ${place}"><p class="mailsaid">${ICON.tick}<span>The Weekly Bake goes to <b>${esc(email)}</b> every Monday.</span></p></div>`;
   if(place === "prices" && mine.off) return "";
-  return `<div class="mailbox ${place}"><${head} class="mailh">${place === "alerts" ? "Get these by email" : "Hear when they change a price"}</${head}><p class="mailwords">${mailWords()}</p>` +
+  return `<div class="mailbox ${place}"><${head} class="mailh">${place === "alerts" ? "Get these in The Weekly Bake" : "Hear when they change a price"}</${head}><p class="mailwords">${mailWords()}</p>` +
     `<form class="mailform" data-place="${place}" novalidate>` +
     `<input type="email" class="mailin" autocomplete="email" inputmode="email" placeholder="you@yourcafe.com" aria-label="Your email" value="${esc(mailDraft)}">` +
-    `<button type="submit" class="btn primary">Tell me</button>` +
+    `<button type="submit" class="btn primary">Sign me up</button>` +
     (place === "prices" ? `<button type="button" class="btn quiet" data-mail="no">No thanks</button>` : "") + `</form>` +
     `<p class="say mailmsg" role="alert"></p>` +
-    (place === "alerts" ? `<p class="muted small">One email when something changes. Unsubscribe any time. <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a></p>` : "") + `</div>`;
+    (place === "alerts" ? `<p class="muted small">The Weekly Bake is our free Monday email. Unsubscribe any time. <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a></p>` : "") + `</div>`;
 }
 document.addEventListener("input", e => { if(e.target && e.target.classList && e.target.classList.contains("mailin")) mailDraft = e.target.value; });
 document.addEventListener("click", e => {
@@ -1728,7 +1728,7 @@ document.addEventListener("submit", async e => {
   } catch(err){ ok = false; }
   if(!ok){
     btn.disabled = false;
-    btn.textContent = "Tell me";
+    btn.textContent = "Sign me up";
     msg.textContent = "We could not save that. Please try again in a moment.";
     return;
   }
