@@ -517,7 +517,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .hidden-list .btn{margin-left:0}
 .note{margin:16px 4px 0}
 .mailbox{margin:20px 0 0; padding:16px; background:var(--picked); border-radius:var(--r)}
-.mailbox.alerts{margin:0 0 24px}
+.mailbox.alerts{margin:28px 0 0}
 .mailh{margin:0 0 6px; font:700 20px/1.2 var(--f-display); color:var(--ink)}
 .mailbox.prices .mailh{font-size:17px}
 .mailwords{margin:0; color:var(--body)}
@@ -1637,7 +1637,7 @@ function paintAlerts(){
   const all = alertList(), shown = all.items.concat(all.offers), seen = new Set(seenAlerts());
   if(!alertFresh) alertFresh = new Set(shown.filter(r => !seen.has(r.key)).map(r => r.key));
   const fresh = r => alertFresh.has(r.key) ? `<span class="tag isnew">New</span>` : "";
-  box.innerHTML = mailHtml("alerts") + `<h2 id="alerts-h-items">New items from your competitors</h2>` +
+  box.innerHTML = `<h2 id="alerts-h-items">New items from your competitors</h2>` +
     (!all.items.length ? `<p id="alerts-noitems">Nothing new from your competitors in the last ${ALERT_DAYS} days.</p>` :
       `<div class="tablebox"><table class="newtable alerts" id="alerts-items"><thead><tr>` +
       `<th scope="col" class="c-cafe">Cafe</th><th scope="col" class="c-item">Item</th><th scope="col" class="c-since">New since</th>` +
@@ -1657,7 +1657,7 @@ function paintAlerts(){
       all.offers.map(r => `<tr class="irow" data-key="${esc(r.key)}"><td>${fresh(r)}<span class="lead">${esc(r.brand_name)}</span></td>` +
         `<td class="offer"><span class="lead">${esc(r.offer_text)}</span>` +
           (statedEnd(r) ? `<span class="under" data-ends>Ends ${dayMonth(statedEnd(r))}</span>` : "") + `</td>` +
-        `<td class="nowrap">${offerLink(r)}</td></tr>`).join("") + `</tbody></table></div>`);
+        `<td class="nowrap">${offerLink(r)}</td></tr>`).join("") + `</tbody></table></div>`) + mailHtml("alerts");
   // after 2 seconds on the page every alert shown is seen: the count goes, the "New" tags stay until the page is left
   clearTimeout(alertTimer);
   if(!shown.some(r => !seen.has(r.key))) return;
@@ -1690,15 +1690,16 @@ function mailWords(){
 function mailHtml(place){
   const mine = alertMine(), email = typeof mine.email === "string" ? mine.email : "";
   const head = place === "alerts" ? "h2" : "p";
+  if(email && place === "prices") return "";
   if(email) return `<div class="mailbox done ${place}"><p class="mailsaid">${ICON.tick}<span>We'll email <b>${esc(email)}</b> when something changes.</span></p></div>`;
   if(place === "prices" && mine.off) return "";
   return `<div class="mailbox ${place}"><${head} class="mailh">${place === "alerts" ? "Get these by email" : "Hear when they change a price"}</${head}><p class="mailwords">${mailWords()}</p>` +
     `<form class="mailform" data-place="${place}" novalidate>` +
     `<input type="email" class="mailin" autocomplete="email" inputmode="email" placeholder="you@yourcafe.com" aria-label="Your email" value="${esc(mailDraft)}">` +
-    `<button type="submit" class="btn primary">Email me</button>` +
+    `<button type="submit" class="btn primary">Tell me</button>` +
     (place === "prices" ? `<button type="button" class="btn quiet" data-mail="no">No thanks</button>` : "") + `</form>` +
     `<p class="say mailmsg" role="alert"></p>` +
-    `<p class="muted small">One email when something changes. Unsubscribe any time. <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a></p></div>`;
+    (place === "alerts" ? `<p class="muted small">One email when something changes. Unsubscribe any time. <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy</a></p>` : "") + `</div>`;
 }
 document.addEventListener("input", e => { if(e.target && e.target.classList && e.target.classList.contains("mailin")) mailDraft = e.target.value; });
 document.addEventListener("click", e => {
@@ -1726,7 +1727,7 @@ document.addEventListener("submit", async e => {
   } catch(err){ ok = false; }
   if(!ok){
     btn.disabled = false;
-    btn.textContent = "Email me";
+    btn.textContent = "Tell me";
     msg.textContent = "We could not save that. Please try again in a moment.";
     return;
   }
@@ -2617,13 +2618,13 @@ function showFind(q, lost){
       `<div class="field combo"><label for="shop-input">Find your cafe by name</label>` +
       `<input id="shop-input" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="shop-list" aria-autocomplete="list"${sample ? ` placeholder="${esc("e.g. " + sample.s.shop_name)}"` : ""}>` +
       `<ul id="shop-list" role="listbox" aria-label="Cafes" hidden></ul></div>` +
+      (sample ? `<button type="button" class="samplebtn" id="sample-link" data-nav="${esc(address({shop: sample.s.shop_id, rivals: sample.ids.join(",")}))}">Just looking? See a sample cafe</button>` : "") +
       (lost ? `<p class="say" id="find-lost" role="status">This shop was set up in another browser. Add it again here.</p>` : "") +
       `<p class="ask" tabindex="-1">Or pick your area</p><div class="tiles" id="find-tiles">` +
       // a shop the owner added here comes first
       (myShop ? `<button type="button" class="tile" id="find-mine" data-nav="${esc(mineHome())}"><span class="t1">Your shop: ${esc(myShop.shop_name)}</span>` +
                 `<span class="t2">${esc(myShop.street || myShop.address)}</span></button>` : "") +
       parts.map(p => tile(address({at: "p:" + p.name}), p.name, partWords(p))).join("") + `</div>` +
-      (sample ? `<button type="button" class="samplebtn" id="sample-link" data-nav="${esc(address({shop: sample.s.shop_id, rivals: sample.ids.join(",")}))}">Just looking? See a sample cafe</button>` : "") +
       `</div>${proofHtml()}</div>`;
   } else if(place.level === "areas"){
     html += `<p class="ask" tabindex="-1">Which area?</p><div class="tiles" id="find-tiles">` +
@@ -2676,20 +2677,14 @@ function proofHtml(){
       `<div class="plabels"><span style="left:0"><strong>${money(top.low)}</strong>low</span>` +
       `<span style="left:${at(top.median)}%;transform:translateX(-50%);text-align:center"><strong>${money(top.median)}</strong>usual</span>` +
       `<span style="right:0;text-align:right"><strong>${money(top.high)}</strong>high</span></div>` +
-      `<p class="small muted">${count(prices.length, "cafe", "cafes")}. One dot is one cafe.</p></div>`);
+      `<p class="small muted">The usual ${esc(String(top.display_name || "").toLowerCase())} is ${money(top.median)}. ${count(prices.length, "cafe", "cafes")}, one dot each.</p></div>`);
   }
   if(C){
-    const ls = C.launches.filter(l => l.item_name && l.shop && l.launch_month);
+    const ls = (C.launches || []).filter(l => l.item_name && l.shop && l.launch_month);
     const newest = a => a.sort((x, y) => y.launch_month.localeCompare(x.launch_month))[0];
     const l = newest(ls.filter(x => !x.is_chain)) || newest(ls);
     if(l) rows.push(`<div class="prow"><p class="pk">Newest launch</p><p class="pv">${esc(l.item_name)}` +
       `<br><span>${esc(l.shop)}${l.price != null ? " · " + money(l.price) : ""}</span></p></div>`);
-    const today = new Date().toISOString().slice(0, 10);
-    const os = (C.offers || []).filter(o => o.brand_name && o.offer_text);
-    const day = o => o.observed_date || o.start_date || "";
-    const live = os.filter(o => !o.end_date || o.end_date >= today);
-    const o = (live.length ? live : os).sort((x, y) => day(y).localeCompare(day(x)))[0];
-    if(o) rows.push(`<div class="prow"><p class="pk">An offer</p><p class="pv">${esc(o.brand_name)}<br><span>${esc(o.offer_text)}</span></p></div>`);
   }
   if(!rows.length) return "";
   const from = pt.map(r => r.observed_from).filter(Boolean).sort()[0], to = pt.map(r => r.observed_to).filter(Boolean).sort().pop();
