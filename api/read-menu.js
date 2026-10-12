@@ -25,6 +25,11 @@ const RETRY_WAIT_MS = 5000;
 const MAX_TRIES = 3;
 const RETRY_NEEDS_MS = 60000;
 
+// The kinds of item, the same keys Counter's New items tabs use. The first four
+// are sorted the way our own data sorts them (classify_format in wave3_lib.py).
+const KINDS = ["drink", "pastry", "cake", "savoury", "other"];
+const OTHER_KIND = "other";
+
 const INSTRUCTION = [
   "These files are a cafe or bakery menu from Singapore.",
   "List every item that has a price, exactly as printed. Do not translate, correct or tidy names.",
@@ -35,6 +40,12 @@ const INSTRUCTION = [
   "variant: the size, hot or iced, milk or other note printed for that price, or an empty string.",
   "price: the number in Singapore dollars, or null.",
   "unsure: true when the name or the price is not clearly readable.",
+  "kind: one of drink, pastry, cake, savoury, other. Choose the one that fits best; when unsure use other.",
+  "drink: coffee, tea, juice, smoothies, sodas, milkshakes, beer, wine and anything else served to drink.",
+  "savoury: sandwiches, burgers, pizza, pasta, salads, eggs, toast, rice and noodle dishes, soups and other savoury food.",
+  "cake: cakes, brownies, tiramisu, mousse, puddings, swiss rolls, banana bread, cupcakes and loaf slices.",
+  "pastry: croissants, danishes, buns, tarts, cookies, scones, bread and other bakes that are not a cake and not savoury.",
+  "other: anything that is none of these.",
   "If a price cannot be read with confidence, set price to null and unsure to true. Never guess a price.",
   "If the files are not a menu, return no rows and set not_a_menu to true."
 ].join("\n");
@@ -52,9 +63,10 @@ const SCHEMA = {
           section: {type: "string"},
           variant: {type: "string"},
           price: {type: ["number", "null"]},
-          unsure: {type: "boolean"}
+          unsure: {type: "boolean"},
+          kind: {type: "string", enum: KINDS}
         },
-        required: ["name", "section", "variant", "price", "unsure"]
+        required: ["name", "section", "variant", "price", "unsure", "kind"]
       }
     }
   },
@@ -113,7 +125,9 @@ function cleanRow(r){
     variant: text(r.variant, MAX_NAME),
     price: price,
     // a row with no price always needs a look
-    unsure: r.unsure === true || price === null
+    unsure: r.unsure === true || price === null,
+    // a kind that is missing or not one of ours is "other", never a reason to drop the row
+    kind: KINDS.indexOf(r.kind) !== -1 ? r.kind : OTHER_KIND
   };
 }
 

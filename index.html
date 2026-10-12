@@ -137,28 +137,64 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .upfiles li{display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--rule)}
 .upfiles .words{flex:1; min-width:0; overflow-wrap:anywhere}
 .upfiles .name{font-weight:600; color:var(--ink)}
-.upfiles .btn, .erow .btn{min-height:36px; padding:0 12px; font-size:13px}
+.upfiles .btn{min-height:36px; padding:0 12px; font-size:13px}
 .upacts{display:flex; flex-wrap:wrap; gap:10px}
-.up .panel > h2{font-size:20px}
-.up .panel > .btn{margin-top:14px}
-.cmp li, .erow{display:flex; flex-wrap:wrap; gap:10px 16px; padding:14px 4px; border-top:1px solid var(--rule)}
-.cmp li{align-items:flex-start}
-.erow{align-items:flex-end}
-.cmp .pick{flex:1 1 260px; min-width:0}
-.cmp select{
-  width:100%; min-height:44px; padding:0 10px; border:1px solid var(--line); border-radius:var(--r);
-  background:var(--panel); color:var(--ink); font:inherit;
+/* ---------- Check your menu: the owner's menu as one compact table, and the compared items beside it ---------- */
+#upload.check{padding-top:8px; padding-bottom:120px}
+#ck-top{margin-top:4px}
+.ckcols{display:grid; grid-template-columns:minmax(0, 1fr) 300px; gap:20px; align-items:start; margin-top:8px}
+.ckcols .panel{padding:8px 16px 16px}
+.ckcols h2{font-size:20px}
+/* the toolbar keeps its place at the top while the list scrolls under it */
+#ck-tools{position:sticky; top:0; z-index:3; background:var(--panel); padding:4px 0 8px; border-bottom:1px solid var(--line)}
+.ckhead{display:flex; flex-wrap:wrap; align-items:center; gap:0 20px}
+.ckhead .tabs{flex:1; flex-wrap:wrap; border-bottom:0; margin-bottom:0}
+.ckhead .tabs button{min-height:36px; white-space:nowrap}
+.findline{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:4px}
+.findline label{font-weight:600; color:var(--ink)}
+.findline input, .mtable input, .mtable select, #ck-box select{
+  min-width:0; padding:0 8px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--ink); font:inherit;
 }
-.cmp select:focus{border-color:var(--ink)}
-.pricefield{flex:0 0 120px; width:120px}
-.pricefield input{font-variant-numeric:tabular-nums}
-.cmp .cmpnote, .erow .rowmsg{flex:1 1 100%}
-.cmpnote:empty, .rowmsg:empty{display:none}
-.cmpnote .tag{margin-right:8px}
-.erow .namefield{flex:1 1 200px; min-width:0}
-.erow .variant{flex:0 1 150px; min-height:44px; display:flex; align-items:center; font-size:13px; color:var(--muted); overflow-wrap:anywhere}
-.erow .tagbox{min-height:44px; display:flex; align-items:center}
-.erow .btn{margin-bottom:4px}
+.findline input:focus, .mtable input:focus, .mtable select:focus, #ck-box select:focus{border-color:var(--ink)}
+.findline input{flex:1 1 150px; max-width:280px; height:36px}
+.findline .btn, #ck-box .btn{min-height:36px; padding:0 12px; font-size:13px}
+.btn.toggle[aria-pressed="true"]{background:var(--ink); border-color:var(--ink); color:#fff}
+.mtable{width:100%; border-collapse:collapse; table-layout:fixed; font-size:14px}
+.mtable thead th{padding:4px 6px; text-align:left; font-size:13px; font-weight:600; color:var(--muted); border-bottom:1px solid var(--line)}
+.mtable .c-note{width:150px}
+.mtable .c-price{width:92px}
+.mtable .c-rm{width:86px}
+.mtable .ghead th{padding:4px 8px; text-align:left; font-size:14px; font-weight:700; color:var(--ink); background:var(--picked)}
+.mtable td{height:36px; padding:2px 6px; vertical-align:middle; border-bottom:1px solid var(--rule)}
+.mtable input, .mtable select{height:30px}
+.mtable td.c-price input{width:100%; font-variant-numeric:tabular-nums}
+.mtable input[aria-invalid="true"]{border:2px solid var(--ink)}
+.mtable .btn{min-height:28px; height:28px; padding:0 10px; border-radius:8px; font-size:13px}
+.namecell{display:flex; align-items:center; gap:6px; min-width:0}
+.namecell input{flex:1 1 130px; min-width:110px}
+.namecell .tagbox{display:inline-flex; flex:none}
+.namecell .tag.cmp{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; color:var(--body)}
+.mtable td.note{font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.mctl td{height:auto; padding:8px; background:var(--bg)}
+.mctl .ctl{display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+.mctl label{font-weight:600; color:var(--ink)}
+.mctl select{max-width:100%}
+#ck-add{margin-top:12px}
+#ck-none{padding:16px 4px; color:var(--ink)}
+#ck-box > p{margin-top:6px}
+#ck-box h3{margin:14px 0 4px}
+#ck-box li{display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; padding:6px 0; border-top:1px solid var(--rule)}
+#ck-box li .words{flex:1; min-width:0; color:var(--ink); overflow-wrap:anywhere}
+#ck-box .chooser{flex:1 1 100%}
+#ck-box .chooser > * + *{margin-top:8px}
+#ck-box select{width:100%; height:40px}
+.savebar{
+  position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px;
+  padding:8px 24px; background:var(--panel); border-top:1px solid var(--line);
+}
+.savebar .say{flex:1 1 100%; order:-1}
+.savebar .status{flex:1; min-width:0; color:var(--ink); font-weight:600}
+.savebar .btn{min-height:40px}
 .field.mini label{font-size:13px; margin-bottom:4px}
 .field input:disabled{background:var(--bg)}
 .field input[aria-invalid="true"]{border:2px solid var(--ink)}
@@ -487,6 +523,23 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
   .topbar{padding:12px 16px}
   .stage{padding:22px 16px 40px}
   .choose-cols{grid-template-columns:minmax(0, 1fr)}
+  /* Check your menu: the box goes under the menu, and an item may use two lines */
+  .ckcols{grid-template-columns:minmax(0, 1fr)}
+  .mtable, .mtable tbody, .mtable tr, .mtable th, .mtable td{display:block}
+  .mtable thead{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%)}
+  .mtable tr.mrow{display:grid; grid-template-columns:minmax(0, 1fr) 92px auto; gap:6px 8px; align-items:center; padding:8px 0; border-bottom:1px solid var(--rule)}
+  .mtable tr.mrow td{height:auto; padding:0; border:0}
+  .mtable tr.mrow td.c-name{grid-column:1 / -1}
+  .mtable .c-note, .mtable .c-price, .mtable .c-rm{width:auto}
+  .namecell{flex-wrap:wrap}
+  .mtable input, .mtable select, .mtable .btn{height:40px; min-height:40px}
+  .savebar{padding:8px 16px}
+  /* the toolbar on a phone: the heading scrolls away, the tabs are one line that slides sideways, and the rest stays */
+  #ck-tools{top:-34px}
+  .ckhead h2{flex:1 1 100%; height:30px}
+  .ckhead .tabs{flex-wrap:nowrap; overflow-x:auto}
+  .findline input{flex:1 1 110px}
+  #upload.check{padding-bottom:150px}
   #pmap{height:360px}
   .panel{padding:16px}
   .bigprice{font-size:38px}
@@ -512,6 +565,8 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 
   <!-- a shop that is not in the list: its menu is read, then checked -->
   <main class="stage" id="upload" hidden><div id="upload-body"></div></main>
+  <!-- Check your menu only: a bar that stays at the bottom of the screen -->
+  <div class="savebar" id="ck-bar" hidden></div>
 
   <main class="stage wide" id="choose" hidden>
     <h1>Choose your competitors</h1>
@@ -882,6 +937,8 @@ function show(name){
   // a shop that is not in the list has two more steps: its menu, and the check of it
   const flow = name === "menu" || name === "check" || name === "done";
   byId("upload").hidden = !flow;
+  byId("upload").className = name === "check" ? "stage wide check" : "stage";
+  byId("ck-bar").hidden = name !== "check";
   byId("step-m").hidden = byId("step-c").hidden = !flow;
   byId("step-2-num").textContent = flow ? "4" : "2";
   byId("step-1").className = name === "find" ? "now" : "done";
@@ -2518,120 +2575,197 @@ async function readMenu(){
   focusOn("#up-msg");
 }
 
-/* ----- the Check your menu screen ----- */
+/* ----- the Check your menu screen -----
+   The owner's own menu comes first: one compact row for each item, under the
+   menu's own headings, with tabs for the kinds of item and a field to find
+   one. Which rows are the items Counter compares is a small box beside it. */
+const KINDS = NEW_TYPES.map(t => t[0]);           // the same keys and words as the New items tabs
+const OTHER_KIND = "other";
+const rowKind = v => KINDS.indexOf(v) !== -1 ? v : OTHER_KIND;
+const NO_HEAD = "No heading", ADDED_HEAD = "Added by you";
 const edRow = id => ed.rows.find(r => String(r.id) === String(id)) || null;
 const picked = key => ed.pick[key] == null ? null : edRow(ed.pick[key]);
+const matchOf = id => comparedKeys().find(k => ed.pick[k] === id) || null;
+/* a row is one compared item at most, and a compared item is one row at most */
+function setMatch(key, id){
+  comparedKeys().forEach(k => { if(ed.pick[k] === id) ed.pick[k] = null; });
+  if(key) ed.pick[key] = id;
+}
+const freshView = () => ({tab: "all", find: "", look: false, open: null, box: null});
 function fromRead(items){
   const rows = items.map((r, i) => {
     const price = readPrice(r.price);
     return {id: i + 1, name: r.name.trim(), section: typeof r.section === "string" ? r.section.trim() : "",
-            variant: typeof r.variant === "string" ? r.variant.trim() : "", price: price,
-            unsure: r.unsure === true || price === "", looked: false, added: false};
+            variant: typeof r.variant === "string" ? r.variant.trim() : "", price: price, kind: rowKind(r.kind),
+            flag: r.unsure === true || price === "", looked: false, added: false};
   });
   const pick = {};
   comparedKeys().forEach(k => { const r = pickRow(k, rows); pick[k] = r ? r.id : null; });
-  return {n: rows.length, k: rows.filter(r => r.unsure).length, rows: rows, pick: pick, next: rows.length + 1};
+  return Object.assign({rows: rows, pick: pick, next: rows.length + 1}, freshView());
 }
 function fromSaved(menu){
   const rows = menu.rows.filter(r => r && typeof r.name === "string").map((r, i) => (
     {id: i + 1, name: r.name, section: String(r.section || ""), variant: String(r.variant || ""),
-     price: Number.isFinite(r.cents) ? centsText(r.cents) : "", unsure: false, looked: false, added: false}));
+     price: Number.isFinite(r.cents) ? centsText(r.cents) : "", kind: rowKind(r.kind), flag: false, looked: false, added: false}));
   const pick = {};
   comparedKeys().forEach(k => {
     const c = menu.compared[k];
     const r = c ? rows.find(x => x.name === c.name && x.variant === String(c.variant || "") && priceCents(x.price) === c.cents) : null;
     pick[k] = r ? r.id : null;
   });
-  return {n: rows.length, k: 0, rows: rows, pick: pick, next: rows.length + 1};
+  return Object.assign({rows: rows, pick: pick, next: rows.length + 1}, freshView());
 }
-/* a row asks for a look while it is unsure and untouched, or was read without a price */
-const needsLook = r => (r.unsure && !r.looked) || (!r.added && priceCents(r.price) === null);
+/* a row asks for a look when it was read unsure or without a price, until the
+   owner has typed in it and it has a price */
+const needsLook = r => r.flag && !(r.looked && priceCents(r.price) !== null);
+const matchCount = () => comparedKeys().filter(k => picked(k)).length;
+const lookCount = () => ed.rows.filter(needsLook).length;
+const nameOr = r => r.name.trim() || "new item";
+const rowWords = r => r.name.trim() + (r.variant ? `, ${r.variant}` : "") + (priceCents(r.price) !== null ? ` ${money(priceCents(r.price) / 100)}` : "");
+/* the rows the tab, the search and the filter leave. Text in the search looks in every kind. */
+function shownRows(){
+  const q = fold(ed.find);
+  return ed.rows.filter(r => (q ? fold(r.name).indexOf(q) !== -1 || fold(r.variant).indexOf(q) !== -1 : ed.tab === "all" || r.kind === ed.tab) &&
+                             (!ed.look || needsLook(r)));
+}
+const announce = words => upSay("ck-live", words);
 const CHECK_TAG = `<span class="tag">Please check</span>`;
-const optionWords = r => r.name.trim() + (r.variant ? `, ${r.variant}` : "") + (priceCents(r.price) !== null ? ` ${money(priceCents(r.price) / 100)}` : "");
-function noteHtml(key){
-  const r = picked(key);
-  if(!r) return "";
-  if(badPrice(r.price)) return `<span class="say">${UP_SAY.price_form}</span>`;
-  return needsLook(r) || priceCents(r.price) === null ? CHECK_TAG + `<span>Type the price to compare this item.</span>` : "";
+
+/* the lines under the heading, the tabs, the filter button and the bar's words: every count on the page */
+function paintCounts(){
+  const n = ed.rows.length, m = matchCount(), k = lookCount();
+  if(!k) ed.look = false;
+  byId("ck-top").innerHTML =
+    `<p id="ck-read">We read ${n === 1 ? "1 item" : `${n} items`} from your menu.</p>` +
+    `<p id="ck-can">${m === 0 ? "None of them can be compared with other cafes yet." : `${m} of them can be compared with other cafes today.`}</p>` +
+    (k ? `<p id="ck-look">${k === 1 ? "1 needs a look." : `${k} need a look.`}</p>` : "");
+  const searching = fold(ed.find) !== "";
+  const tabs = [["all", "All", n]].concat(NEW_TYPES.map(t => [t[0], t[1], ed.rows.filter(r => r.kind === t[0]).length]).filter(t => t[2] > 0));
+  byId("ck-tabs").innerHTML = tabs.map(t =>
+    `<button type="button" role="tab" data-ck="tab" data-tab="${t[0]}" aria-selected="${searching ? t[0] === "all" : t[0] === ed.tab}">${t[1]} (${t[2]})</button>`).join("");
+  byId("ck-lookbox").innerHTML = k ? `<button type="button" class="btn toggle" data-ck="look" aria-pressed="${ed.look}">Needs a look (${k})</button>` : "";
+  upSay("ck-status", `${n === 1 ? "1 item" : `${n} items`}, ${m} compared`);
 }
-function paintCompare(){
-  const named = ed.rows.filter(r => r.name.trim() !== "");
-  byId("ck-cmp").innerHTML = comparedGroups().map(g =>
-    `<div class="group"><h3>${esc(g[0])}</h3><ul class="cmp">` + g[1].map(k => {
-      const r = picked(k), id = esc(k);
-      return `<li data-key="${id}">` +
-        `<div class="field pick"><label for="ck-sel-${id}">${esc(itemName(k))}</label>` +
-        `<select id="ck-sel-${id}" data-pick="${id}"><option value="">Not on my menu</option>` +
-        named.map(x => `<option value="${x.id}"${r && r.id === x.id ? " selected" : ""}>${esc(optionWords(x))}</option>`).join("") + `</select></div>` +
-        `<div class="field pricefield"><label for="ck-cp-${id}">Price</label>` +
-        `<input id="ck-cp-${id}" type="text" inputmode="decimal" autocomplete="off" data-cprice="${id}" value="${r ? esc(r.price) : ""}"` +
-        `${r ? "" : " disabled"}${r && badPrice(r.price) ? ` aria-invalid="true"` : ""}></div>` +
-        `<p class="cmpnote" data-note="${id}">${noteHtml(k)}</p></li>`;
-    }).join("") + `</ul></div>`).join("");
-}
-function paintRows(){
+function paintMenuList(){
+  const rows = shownRows(), box = byId("ck-list");
+  if(!rows.length){ box.innerHTML = `<p id="ck-none">No items match.</p>`; return; }
+  // the menu's own headings, in the order they were read
   const heads = [];
-  ed.rows.forEach(r => { if(r.section && heads.indexOf(r.section) === -1) heads.push(r.section); });
-  const groups = heads.map(h => [h, ed.rows.filter(r => r.section === h)]).concat([["No heading", ed.rows.filter(r => !r.section)]]);
-  byId("ck-rows").innerHTML = groups.filter(g => g[1].length).map(g =>
-    `<div class="group"><h3>${esc(g[0])}</h3><ul>` + g[1].map(r =>
-      `<li class="erow" data-row="${r.id}">` +
-      `<div class="field mini namefield"><label for="ck-n-${r.id}">Item</label>` +
-        `<input id="ck-n-${r.id}" type="text" autocomplete="off" maxlength="200" data-name="${r.id}" value="${esc(r.name)}"></div>` +
-      (r.variant ? `<p class="variant">${esc(r.variant)}</p>` : "") +
-      `<div class="field mini pricefield"><label for="ck-p-${r.id}">Price</label>` +
-        `<input id="ck-p-${r.id}" type="text" inputmode="decimal" autocomplete="off" data-price="${r.id}" value="${esc(r.price)}"` +
-        `${badPrice(r.price) ? ` aria-invalid="true"` : ""}></div>` +
-      `<span class="tagbox" data-tag="${r.id}"${needsLook(r) ? "" : " hidden"}>${CHECK_TAG}</span>` +
-      `<button type="button" class="btn quiet" data-up="droprow" data-id="${r.id}" aria-label="Remove: ${esc(r.name)}">Remove</button>` +
-      `<p class="say rowmsg" data-bad="${r.id}">${badPrice(r.price) ? UP_SAY.price_form : ""}</p></li>`).join("") + `</ul></div>`).join("");
+  ed.rows.forEach(r => { if(heads.indexOf(r.section) === -1) heads.push(r.section); });
+  const keys = comparedKeys();
+  box.innerHTML = `<table class="mtable"><thead><tr><th scope="col">Item</th><th scope="col" class="c-note">Note</th>` +
+    `<th scope="col" class="c-price">Price</th><th scope="col" class="c-rm"><span class="offscreen">Remove</span></th></tr></thead><tbody>` +
+    heads.map(h => {
+      const mine = rows.filter(r => r.section === h);
+      if(!mine.length) return "";
+      return `<tr class="ghead"><th colspan="4" scope="colgroup">${esc(h || NO_HEAD)}</th></tr>` + mine.map(r => {
+        const key = matchOf(r.id), name = esc(nameOr(r)), bad = badPrice(r.price), open = ed.open === r.id;
+        return `<tr class="mrow" data-row="${r.id}"><td class="c-name"><div class="namecell">` +
+          `<input type="text" autocomplete="off" maxlength="200" data-name="${r.id}" value="${esc(r.name)}" aria-label="Item name: ${name}">` +
+          `<span class="tagbox" data-tag="${r.id}"${needsLook(r) ? "" : " hidden"}>${CHECK_TAG}</span>` +
+          (key ? `<span class="tag cmp" title="Compared as ${esc(itemName(key))}">Compared as ${esc(itemName(key))}</span>` +
+                 `<button type="button" class="btn quiet" data-ck="change" data-id="${r.id}" aria-expanded="${open}" ` +
+                 `aria-label="Change what ${name} is compared as">Change</button>` : "") + `</div></td>` +
+          `<td class="note" title="${esc(r.variant)}">${esc(r.variant)}</td>` +
+          `<td class="c-price"><input type="text" inputmode="decimal" autocomplete="off" data-price="${r.id}" value="${esc(r.price)}" ` +
+            `aria-label="Price of ${name}"${bad ? ` aria-invalid="true"` : ""}></td>` +
+          `<td class="c-rm"><button type="button" class="btn quiet" data-ck="droprow" data-id="${r.id}" aria-label="Remove ${name}">Remove</button></td></tr>` +
+          (open ? `<tr class="mctl"><td colspan="4"><div class="ctl"><label for="ck-ctl">Compare ${name} as</label>` +
+            `<select id="ck-ctl" data-ctl="${r.id}">` + keys.map(k => `<option value="${esc(k)}"${k === key ? " selected" : ""}>${esc(itemName(k))}</option>`).join("") +
+            `<option value=""${key ? "" : " selected"}>Do not compare this item</option></select>` +
+            `<button type="button" class="btn" data-ck="ctldone" data-id="${r.id}">Done</button></div></td></tr>` : "");
+      }).join("");
+    }).join("") + `</tbody></table>`;
 }
-/* after a price or a name is typed: the marks round that row, here and in the compared items */
-function markRow(r, from){
-  const bad = badPrice(r.price);
-  document.querySelectorAll(`[data-price="${r.id}"]`).forEach(el => {
-    if(el !== from) el.value = r.price;
-    if(bad) el.setAttribute("aria-invalid", "true"); else el.removeAttribute("aria-invalid");
-  });
-  const tag = document.querySelector(`[data-tag="${r.id}"]`), said = document.querySelector(`[data-bad="${r.id}"]`);
+function paintBox(){
+  const keys = comparedKeys(), found = keys.filter(k => picked(k)), lacking = keys.filter(k => !picked(k));
+  const named = ed.rows.filter(r => r.name.trim() !== "");
+  byId("ck-box").innerHTML =
+    `<h2 id="ck-h-box">What Counter compares</h2>` +
+    `<p>Counter compares ${keys.length} common cafe items today. More are being added.</p>` +
+    (found.length ? "" : `<p id="ck-nonefound">We did not find any of them on your menu. If you sell one, pick it below.</p>`) +
+    `<h3 id="ck-h-found">Found on your menu (${found.length})</h3><ul id="ck-found">` + found.map(k => {
+      const r = picked(k);
+      return `<li data-key="${esc(k)}"><span class="words">${esc(itemName(k))}: ${esc(rowWords(r))}</span>` +
+        `<button type="button" class="btn quiet" data-ck="boxchange" data-id="${r.id}" aria-label="Change ${esc(itemName(k))}">Change</button></li>`;
+    }).join("") + `</ul>` +
+    `<h3 id="ck-h-lacking">Not found on your menu (${lacking.length})</h3><ul id="ck-lacking">` + lacking.map(k =>
+      `<li data-key="${esc(k)}"><button type="button" class="btn" data-ck="boxpick" data-key="${esc(k)}" aria-expanded="${ed.box === k}">${esc(itemName(k))}</button>` +
+      (ed.box === k ? `<div class="chooser"><div class="field"><label for="ck-boxsel">Choose from my menu</label>` +
+        `<select id="ck-boxsel">` + named.map(x => `<option value="${x.id}">${esc(rowWords(x))}</option>`).join("") + `</select></div>` +
+        `<div class="upacts"><button type="button" class="btn" data-ck="boxuse" data-key="${esc(k)}"${named.length ? "" : " disabled"}>Use this item</button>` +
+        `<button type="button" class="btn quiet" data-ck="boxcancel" data-key="${esc(k)}">Cancel</button></div></div>` : "") + `</li>`).join("") + `</ul>`;
+}
+/* after a name or a price is typed: the marks on that row, in place, so the cursor stays where it is */
+function markRow(r){
+  const bad = badPrice(r.price), name = nameOr(r);
+  const price = document.querySelector(`[data-price="${r.id}"]`), field = document.querySelector(`[data-name="${r.id}"]`);
+  const tag = document.querySelector(`[data-tag="${r.id}"]`), rm = document.querySelector(`[data-ck="droprow"][data-id="${r.id}"]`);
+  if(price){
+    if(bad) price.setAttribute("aria-invalid", "true"); else price.removeAttribute("aria-invalid");
+    price.setAttribute("aria-label", `Price of ${name}`);
+  }
+  if(field) field.setAttribute("aria-label", `Item name: ${name}`);
+  if(rm) rm.setAttribute("aria-label", `Remove ${name}`);
   if(tag) tag.hidden = !needsLook(r);
-  if(said) said.textContent = bad ? UP_SAY.price_form : "";
-  comparedKeys().filter(k => ed.pick[k] === r.id).forEach(k => {
-    const field = document.querySelector(`[data-cprice="${k}"]`), note = document.querySelector(`[data-note="${k}"]`);
-    if(field){
-      if(field !== from) field.value = r.price;
-      if(bad) field.setAttribute("aria-invalid", "true"); else field.removeAttribute("aria-invalid");
-    }
-    if(note) note.innerHTML = noteHtml(k);
-  });
+}
+/* bring one row into view: the search, the filter and the tab give way when they hide it */
+function reveal(id){
+  const there = () => shownRows().some(r => r.id === id);
+  if(!there()){ ed.find = ""; ed.look = false; byId("ck-find").value = ""; }
+  if(!there()) ed.tab = "all";
+}
+function goToRow(id, focusSel){
+  paintCounts();
+  paintMenuList();
+  const row = document.querySelector(`.mrow[data-row="${id}"]`);
+  if(row) row.scrollIntoView({block: "center"});
+  focusOn(focusSel);
 }
 function paintCheck(){
-  const items = ed.n === 1 ? "1 item" : `${ed.n} items`;
-  const look = ed.k === 0 ? "None need a look." : ed.k === 1 ? "1 needs a look." : `${ed.k} need a look.`;
   byId("upload-body").innerHTML =
-    `<h1 tabindex="-1">Check your menu</h1><p class="sub" id="ck-count">We read ${items}. ${look}</p>` +
-    `<div class="up">` +
-    `<section class="panel" aria-labelledby="ck-h-cmp"><h2 id="ck-h-cmp">Items we can compare</h2><div id="ck-cmp"></div></section>` +
-    `<section class="panel" aria-labelledby="ck-h-all"><h2 id="ck-h-all">Everything we read</h2><div id="ck-rows"></div>` +
-      `<button type="button" class="btn" data-up="addrow">Add an item</button></section>` +
+    `<h1 tabindex="-1">Check your menu</h1><div id="ck-top"></div>` +
+    `<div class="ckcols"><section class="panel" id="ck-menu" aria-labelledby="ck-h-menu">` +
+      `<div id="ck-tools"><div class="ckhead"><h2 id="ck-h-menu">Your menu</h2>` +
+        `<div class="tabs" role="tablist" aria-label="Kinds of item" id="ck-tabs"></div></div>` +
+        `<div class="findline"><label for="ck-find">Find an item</label>` +
+          `<input id="ck-find" type="text" autocomplete="off" spellcheck="false" value="${esc(ed.find)}">` +
+          `<button type="button" class="btn" data-ck="clearfind">Clear</button><span id="ck-lookbox"></span></div></div>` +
+      `<p class="offscreen" id="ck-live" role="status"></p>` +
+      `<div id="ck-list"></div>` +
+      `<button type="button" class="btn" id="ck-add" data-ck="addrow">Add an item</button></section>` +
+    `<aside class="panel" id="ck-box" aria-labelledby="ck-h-box"></aside></div>`;
+  byId("ck-bar").innerHTML =
     `<p class="say" id="ck-msg" role="alert" tabindex="-1"></p>` +
-    `<div class="upacts"><button type="button" class="btn primary" data-up="save">This is right. Save my menu</button>` +
-      `<button type="button" class="btn" data-nav="${esc(address({setup: "menu"}))}">Back</button></div></div>`;
-  paintCompare();
-  paintRows();
+    `<button type="button" class="btn" data-nav="${esc(address({setup: "menu"}))}">Back</button>` +
+    `<span class="status" id="ck-status" role="status"></span>` +
+    `<button type="button" class="btn primary" data-ck="save">This is right. Save my menu</button>`;
+  paintCounts();
+  paintMenuList();
+  paintBox();
 }
 function saveMenu(){
   const keys = comparedKeys();
-  const said = keys.some(k => picked(k) && priceCents(picked(k).price) === null) ? UP_SAY.need_price
-    : ed.rows.some(r => r.name.trim() !== "" && badPrice(r.price)) ? UP_SAY.price_form : "";
-  upSay("ck-msg", said);
-  if(said){ focusOn("#ck-msg"); return; }
+  // a compared row must have a price; any other typed price must be a price
+  const lacking = keys.map(picked).find(r => r && priceCents(r.price) === null);
+  const wrong = lacking ? null : ed.rows.find(r => r.name.trim() !== "" && badPrice(r.price));
+  const stuck = lacking || wrong;
+  upSay("ck-msg", lacking ? `Type a price for ${nameOr(lacking)}, or stop comparing it.` : wrong ? UP_SAY.price_form : "");
+  if(stuck){
+    reveal(stuck.id);
+    goToRow(stuck.id, `[data-price="${stuck.id}"]`);
+    return;
+  }
   const compared = {};
-  keys.forEach(k => { const r = picked(k); if(r) compared[k] = {name: r.name.trim(), variant: r.variant, cents: priceCents(r.price)}; });
+  keys.forEach(k => { const r = picked(k); if(r && r.name.trim() !== "") compared[k] = {name: r.name.trim(), variant: r.variant, cents: priceCents(r.price)}; });
   myMenu = {saved_at: stamp(),
-            rows: ed.rows.filter(r => r.name.trim() !== "").map(r => ({name: r.name.trim(), section: r.section, variant: r.variant, cents: priceCents(r.price)})),
+            rows: ed.rows.filter(r => r.name.trim() !== "").map(r => (
+              {name: r.name.trim(), section: r.section, variant: r.variant, cents: priceCents(r.price), kind: r.kind})),
             compared: compared};
   try { localStorage.setItem(MENU_KEY, JSON.stringify(myMenu)); menuLost = false; } catch(e){ menuLost = true; }
+  // what was not saved is not kept either: a row left without a name goes, and the view starts afresh
+  ed.rows = ed.rows.filter(r => r.name.trim() !== "");
+  Object.assign(ed, freshView());
   go({setup: "done"});
 }
 
@@ -2684,22 +2818,6 @@ document.addEventListener("click", e => {
     focusOn(`#up-list [data-up="dropfile"], label[for="up-file"]`);
   }
   else if(act === "read") readMenu();
-  else if(act === "addrow"){
-    const id = ed.next;
-    ed.next += 1;
-    ed.rows.push({id: id, name: "", section: "", variant: "", price: "", unsure: false, looked: false, added: true});
-    paintRows();
-    focusOn(`#ck-n-${id}`);
-  }
-  else if(act === "droprow"){
-    const id = Number(el.dataset.id);
-    ed.rows = ed.rows.filter(r => r.id !== id);
-    comparedKeys().forEach(k => { if(ed.pick[k] === id) ed.pick[k] = null; });
-    paintCompare();
-    paintRows();
-    focusOn(`[data-up="addrow"]`);
-  }
-  else if(act === "save") saveMenu();
   else if(act === "askclear"){ byId("dn-confirm").hidden = false; focusOn("#dn-confirm"); }
   else if(act === "keep"){ byId("dn-confirm").hidden = true; focusOn(`[data-up="askclear"]`); }
   else if(act === "clear"){
@@ -2708,16 +2826,101 @@ document.addEventListener("click", e => {
     go({setup: "menu"});
   }
 });
+/* what a press does on Check your menu */
+const shownWords = () => { const n = shownRows().length; return n === 1 ? "1 item shown." : `${n} items shown.`; };
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-ck]");
+  if(!el || el.disabled || !ed || screen !== "check") return;
+  const act = el.dataset.ck, id = Number(el.dataset.id), key = el.dataset.key;
+  if(act === "tab"){
+    ed.tab = el.dataset.tab; ed.find = ""; ed.open = null; byId("ck-find").value = "";
+    paintCounts(); paintMenuList(); announce(shownWords());
+    focusOn(`#ck-tabs [aria-selected="true"]`);
+  }
+  else if(act === "clearfind"){
+    ed.find = ""; byId("ck-find").value = "";
+    paintCounts(); paintMenuList(); announce(shownWords());
+    focusOn("#ck-find");
+  }
+  else if(act === "look"){
+    ed.look = !ed.look; ed.open = null;
+    paintCounts(); paintMenuList(); announce(shownWords());
+    focusOn(`[data-ck="look"], #ck-find`);
+  }
+  else if(act === "change"){
+    ed.open = ed.open === id ? null : id;
+    paintMenuList();
+    focusOn(ed.open ? "#ck-ctl" : `[data-ck="change"][data-id="${id}"]`);
+  }
+  else if(act === "ctldone"){
+    ed.open = null;
+    paintMenuList();
+    focusOn(`[data-ck="change"][data-id="${id}"], [data-name="${id}"]`);
+  }
+  else if(act === "droprow"){
+    const gone = edRow(id);
+    ed.rows = ed.rows.filter(r => r.id !== id);
+    setMatch(null, id);
+    if(ed.open === id) ed.open = null;
+    paintCounts(); paintMenuList(); paintBox();
+    announce(`${gone ? nameOr(gone) : "The item"} was removed.`);
+    focusOn("#ck-add");
+  }
+  // a new, empty row: in the kind of the open tab, under its own heading, where it can be seen
+  else if(act === "addrow"){
+    const row = {id: ed.next, name: "", section: ADDED_HEAD, variant: "", price: "", kind: ed.tab === "all" || fold(ed.find) ? OTHER_KIND : ed.tab,
+                 flag: false, looked: false, added: true};
+    ed.next += 1; ed.find = ""; ed.look = false; byId("ck-find").value = "";
+    ed.rows.push(row);
+    paintCounts(); paintMenuList();
+    focusOn(`[data-name="${row.id}"]`);
+  }
+  // "Change" in the box: to the row itself, with its control open
+  else if(act === "boxchange"){
+    reveal(id);
+    ed.open = id;
+    goToRow(id, "#ck-ctl");
+  }
+  else if(act === "boxpick"){
+    ed.box = ed.box === key ? null : key;
+    paintBox();
+    focusOn(ed.box ? "#ck-boxsel" : `[data-ck="boxpick"][data-key="${key}"]`);
+  }
+  else if(act === "boxcancel"){
+    ed.box = null;
+    paintBox();
+    focusOn(`[data-ck="boxpick"][data-key="${key}"]`);
+  }
+  else if(act === "boxuse"){
+    const r = edRow(byId("ck-boxsel").value);
+    if(!r) return;
+    setMatch(key, r.id);
+    ed.box = null;
+    paintCounts(); paintMenuList(); paintBox();
+    upSay("ck-msg", "");
+    announce(`${nameOr(r)} is now compared as ${itemName(key)}.`);
+    focusOn(`#ck-found [data-key="${key}"] button`);
+  }
+  else if(act === "save") saveMenu();
+});
 document.addEventListener("input", e => {
   const el = e.target;
   if(el.id === "up-code"){ up.code = el.value; paintUpState(); return; }
-  if(!ed || !el.dataset) return;
-  // a price is kept exactly as it is typed
-  const r = el.dataset.cprice ? picked(el.dataset.cprice) : el.dataset.price ? edRow(el.dataset.price) : el.dataset.name ? edRow(el.dataset.name) : null;
+  if(!ed || screen !== "check" || !el.dataset) return;
+  if(el.id === "ck-find"){
+    ed.find = el.value; ed.open = null;
+    paintCounts(); paintMenuList();
+    announce(shownWords());
+    return;
+  }
+  // a name or a price is kept exactly as it is typed
+  const r = el.dataset.price ? edRow(el.dataset.price) : el.dataset.name ? edRow(el.dataset.name) : null;
   if(!r) return;
   if(el.dataset.name) r.name = el.value; else r.price = el.value;
   r.looked = true;
-  markRow(r, el);
+  markRow(r);
+  paintCounts();
+  paintBox();
 });
 document.addEventListener("change", e => {
   const el = e.target;
@@ -2727,16 +2930,15 @@ document.addEventListener("change", e => {
     if(chosen.length) addFiles(chosen);
     return;
   }
-  if(!ed || !el.dataset) return;
-  if(el.dataset.pick){
-    const key = el.dataset.pick;
-    ed.pick[key] = el.value === "" ? null : Number(el.value);
-    paintCompare();
-    upSay("ck-msg", "");
-    focusOn(`[data-pick="${key}"]`);
-  }
-  // a changed name shows in the lists above; it does not change which row is which item
-  else if(el.dataset.name) paintCompare();
+  if(!ed || screen !== "check" || !el.dataset || !el.dataset.ctl) return;
+  // the row's own control: another item moves the match here, "Do not compare" takes it away
+  const r = edRow(el.dataset.ctl), key = el.value;
+  if(!r) return;
+  setMatch(key || null, r.id);
+  paintCounts(); paintMenuList(); paintBox();
+  upSay("ck-msg", "");
+  announce(key ? `${nameOr(r)} is now compared as ${itemName(key)}.` : `${nameOr(r)} is no longer compared.`);
+  focusOn("#ck-ctl");
 });
 
 /* ---------- start ---------- */
