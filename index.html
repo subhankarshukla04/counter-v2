@@ -137,10 +137,12 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .proof .pk{font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px}
 .proof .pv{color:var(--ink); font-weight:600; overflow-wrap:anywhere}
 .proof .pv span{color:var(--muted); font-weight:400}
-.pstrip{position:relative; margin:6px 5px 0; border-bottom:1px solid var(--same-line)}
-.pstrip i{position:absolute; width:8px; height:8px; border-radius:50%; background:var(--same); border:1px solid var(--same-line); margin-left:-4px; opacity:.75}
+.pstrip{position:relative; height:94px; margin:6px 14px 0; border-bottom:1px solid var(--muted)}
+.pcol{position:absolute; bottom:1px; width:20px; margin-left:-10px; display:flex; flex-wrap:wrap-reverse; align-content:flex-start; gap:2px}
+.pcol .cdot{position:static}
+.pcol.one{width:9px; margin-left:-4.5px}
 .pstrip b{position:absolute; bottom:0; top:0; margin-left:-1px; border-left:2px solid var(--ink)}
-.plabels{position:relative; height:34px; margin:2px 5px 0; font-size:12px; line-height:16px; color:var(--muted)}
+.plabels{position:relative; height:34px; margin:4px 14px 0; font-size:12px; line-height:16px; color:var(--muted)}
 .plabels span{position:absolute; top:0; white-space:nowrap}
 .plabels strong{display:block; color:var(--ink); font-size:13px}
 .proof .pfoot{margin-top:6px; padding-top:12px; border-top:1px solid var(--rule); font-size:13px; color:var(--muted)}
@@ -2490,7 +2492,7 @@ function showFind(q, lost){
     html += `<div class="hero"><div><p class="kicker">For cafes and bakeries in ${WHOLE}</p><h1>Are your prices right?</h1>` +
       `<p class="lede">See your menu next to the ${withPrices} cafes we check, what they launched and the offers they run. Free, about a minute.</p>` +
       `<div class="field combo"><label for="shop-input">Find your cafe by name</label>` +
-      `<input id="shop-input" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="shop-list" aria-autocomplete="list">` +
+      `<input id="shop-input" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="shop-list" aria-autocomplete="list"${sample ? ` placeholder="${esc("e.g. " + sample.s.shop_name)}"` : ""}>` +
       `<ul id="shop-list" role="listbox" aria-label="Cafes" hidden></ul></div>` +
       (lost ? `<p class="say" id="find-lost" role="status">This shop was set up in another browser. Add it again here.</p>` : "") +
       `<p class="ask" tabindex="-1">Or pick your area</p><div class="tiles" id="find-tiles">` +
@@ -2531,7 +2533,7 @@ function sampleShop(){
   }
   return null;
 }
-/* "What cafes near you are doing": three rows from the data, a row with a missing field is left out */
+/* "This month in Singapore cafes": three rows from the data, a row with a missing field is left out */
 function proofHtml(){
   const rows = [];
   const pt = D.price_table || [];
@@ -2541,20 +2543,17 @@ function proofHtml(){
     const prices = list.map(r => r.price).filter(p => p != null);
     const lo = Math.min(...prices), span = (Math.max(...prices) - lo) || 1;
     const at = v => ((v - lo) / span * 100).toFixed(1);
-    // cafes with the same price stack up, so a price many charge reads as a tall pile
+    // like the My prices plot: round dots, two to a row, one pile per price, the tallest cut at 8 rows
     const pile = new Map();
     prices.forEach(p => pile.set(cents(p), (pile.get(cents(p)) || 0) + 1));
-    const tall = Math.max(...pile.values()), step = Math.min(7, 56 / tall);
-    const dots = prices.sort((x, y) => x - y).map(p => {
-      const n = pile.get(cents(p)); pile.set(cents(p), n - 1);
-      return `<i style="left:${at(p)}%;bottom:${((n - 1) * step + 1).toFixed(1)}px"></i>`;
-    }).join("");
+    const dots = [...pile.entries()].map(e => `<span class="pcol${e[1] > 1 ? "" : " one"}" style="left:${at(e[0] / 100)}%">` +
+      `<span class="cdot same"></span>`.repeat(Math.min(e[1], 16)) + `</span>`).join("");
     rows.push(`<div class="prow"><p class="pk">${esc(top.display_name || top.item_canonical)} prices</p>` +
-      `<div class="pstrip" style="height:${Math.round((tall - 1) * step + 10)}px">${dots}<b style="left:${at(top.median)}%"></b></div>` +
+      `<div class="pstrip" >${dots}<b style="left:${at(top.median)}%"></b></div>` +
       `<div class="plabels"><span style="left:0"><strong>${money(top.low)}</strong>low</span>` +
       `<span style="left:${at(top.median)}%;transform:translateX(-50%);text-align:center"><strong>${money(top.median)}</strong>usual</span>` +
       `<span style="right:0;text-align:right"><strong>${money(top.high)}</strong>high</span></div>` +
-      `<p class="small muted">${count(prices.length, "cafe", "cafes")}</p></div>`);
+      `<p class="small muted">${count(prices.length, "cafe", "cafes")}. One dot is one cafe.</p></div>`);
   }
   if(C){
     const ls = C.launches.filter(l => l.item_name && l.shop && l.launch_month);
@@ -2571,7 +2570,7 @@ function proofHtml(){
   }
   if(!rows.length) return "";
   const from = pt.map(r => r.observed_from).filter(Boolean).sort()[0], to = pt.map(r => r.observed_to).filter(Boolean).sort().pop();
-  return `<aside class="panel proof" aria-labelledby="proof-h"><h2 id="proof-h">What cafes near you are doing</h2>${rows.join("")}` +
+  return `<aside class="panel proof" aria-labelledby="proof-h"><h2 id="proof-h">This month in Singapore cafes</h2>${rows.join("")}` +
     (from && to ? `<p class="pfoot">Prices checked ${dayMonth(from)} to ${dayMonth(to)}</p>` : "") + `</aside>`;
 }
 /* "Find your cafe by name": picking one is the same as picking its tile */
