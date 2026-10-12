@@ -16,7 +16,8 @@ const farFrom = (s, o) => s.lat == null || s.lng == null || o.lat == null || o.l
 const nearestFirst = (s, list) => list.map(o => ({ o, far: farFrom(s, o) })).sort((a, b) => a.far - b.far).map(x => x.o);
 
 const csv = v => /[",\n]/.test(v = String(v)) ? '"' + v.replace(/"/g, '""') + '"' : v;
-const rows = shops.map(s => {
+// a shop with no compared items would open an empty My prices page, so it gets no link
+const rows = shops.filter(s => s.items.length).map(s => {
   const rivals = nearestFirst(s, shops.filter(o => o.shop_id !== s.shop_id)).slice(0, NEAR_START);
   const q = `shop=${encodeURIComponent(s.shop_id)}&rivals=${rivals.map(r => encodeURIComponent(r.shop_id)).join(",")}&src=owner`;
   return [s.shop_name, s.district, s.address, s.items.length, `${BASE}?${q}`, rivals.map(r => r.shop_name).join("; ")];

@@ -1207,7 +1207,7 @@ function openShop(s, ids, q){
   // a new shop, a new page, or a return from set-up starts the page afresh.
   // A change to the hidden items alone leaves the open tab and item be.
   const entering = screen !== "prices" || lastShop !== s.shop_id || page !== nextPage;
-  if(lastShop !== s.shop_id){ trial.clear(); test.clear(); }
+  if(lastShop !== s.shop_id){ trial.clear(); test.clear(); compared = false; }
   lastShop = s.shop_id;
   page = nextPage;
   if(entering) track("page_viewed", {page: page});
@@ -1722,8 +1722,9 @@ document.addEventListener("submit", async e => {
   btn.textContent = "Sending";
   let ok = false;
   try {
-    const res = await fetch(SUPABASE_URL + "/rest/v1/signups", {method: "POST", headers: SB_HEADERS, body: JSON.stringify({email: email, source: "counter_app"})});
-    ok = res.ok;
+    const res = await fetch(SUPABASE_URL + "/rest/v1/signups", {method: "POST", headers: SB_HEADERS, body: JSON.stringify({email: email, source: "counter_app shop=" + id + " rivals=" + rivals.map(o => o.shop_id).join(",")})});
+    // 409: this address is already on the list, which is what they asked for
+    ok = res.ok || res.status === 409;
   } catch(err){ ok = false; }
   if(!ok){
     btn.disabled = false;
@@ -2645,7 +2646,7 @@ function showFind(q, lost){
     const link = byId("sample-link");
     if(link) link.addEventListener("click", () => { if(typeof track === "function") track("sample_opened", {shop_id: link.dataset.nav.match(/shop=([^&]+)/)[1]}); });
   }
-  focusOn("#find-body .ask, #shop-card");
+  if(place.level !== "parts" || picked) focusOn("#find-body .ask, #shop-card");
 }
 /* a shop with a full set of compared items whose nearest few cafes have some too: the sample cafe */
 function sampleShop(){
@@ -2662,9 +2663,9 @@ function proofHtml(){
   const rows = [];
   const pt = D.price_table || [];
   const top = pt.slice().sort((a, b) => b.shop_count - a.shop_count)[0];
-  const list = top && D.named_prices[top.item_canonical];
-  if(list && list.length > 1 && top.low != null && top.median != null && top.high != null){
-    const prices = list.map(r => r.price).filter(p => p != null);
+  const list = top && (D.named_prices || {})[top.item_canonical] || [];
+  const prices = list.map(r => Number(r.price)).filter(p => isFinite(p) && p > 0);
+  if(prices.length > 1 && top.low != null && top.median != null && top.high != null){
     const lo = Math.min(...prices), span = (Math.max(...prices) - lo) || 1;
     const at = v => ((v - lo) / span * 100).toFixed(1);
     // like the My prices plot: round dots, two to a row, one pile per price, the tallest cut at 8 rows
