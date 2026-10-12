@@ -1,7 +1,7 @@
 // Usage: node outreach/make_links.mjs  -> writes outreach/links.csv
 import { readFileSync, writeFileSync } from "node:fs";
 
-const BASE = "https://counter-cafe.vercel.app/";
+const BASE = "https://counter-cafe-v2.vercel.app/";
 const NEAR_START = 4; // same as index.html
 const here = new URL(".", import.meta.url);
 const shops = JSON.parse(readFileSync(new URL("../site_data.json", here), "utf8")).shop_items;
