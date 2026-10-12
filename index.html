@@ -121,6 +121,40 @@ svg.ic{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; strok
 .tile .box svg{width:14px; height:14px; stroke-width:3; visibility:hidden}
 .tile[aria-pressed="true"] .box{background:var(--ink)}
 .tile[aria-pressed="true"] .box svg{visibility:visible}
+/* ---------- first screen: the value up front, the search, the areas ---------- */
+.hero{display:grid; gap:28px}
+.kicker{font-size:13px; font-weight:600; color:var(--muted); margin-bottom:8px}
+.hero h1{font-size:34px}
+.hero .lede{margin-top:10px; max-width:52ch; font-size:16px}
+.hero .field{margin-top:22px; max-width:480px}
+.hero .ask{margin:26px 0 12px}
+.hero .none a{font-weight:600}
+.samplebtn{margin-top:14px; min-height:44px; padding:0; border:0; background:none; color:var(--ink); font-weight:600; text-decoration:underline; cursor:pointer}
+.proof{align-self:start}
+.proof h2{font-size:20px; margin-bottom:6px}
+.proof .prow{padding:14px 0; border-top:1px solid var(--rule)}
+.proof .prow:first-of-type{border-top:0}
+.proof .pk{font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px}
+.proof .pv{color:var(--ink); font-weight:600; overflow-wrap:anywhere}
+.proof .pv span{color:var(--muted); font-weight:400}
+.pstrip{position:relative; height:94px; margin:6px 14px 0; border-bottom:1px solid var(--muted)}
+.pcol{position:absolute; bottom:1px; width:20px; margin-left:-10px; display:flex; flex-wrap:wrap-reverse; align-content:flex-start; gap:2px}
+.pcol .cdot{position:static}
+.pcol.one{width:9px; margin-left:-4.5px}
+.pstrip b{position:absolute; bottom:0; top:0; margin-left:-1px; border-left:2px solid var(--ink)}
+.plabels{position:relative; height:34px; margin:4px 14px 0; font-size:12px; line-height:16px; color:var(--muted)}
+.plabels span{position:absolute; top:0; white-space:nowrap}
+.plabels strong{display:block; color:var(--ink); font-size:13px}
+.proof .pfoot{margin-top:6px; padding-top:12px; border-top:1px solid var(--rule); font-size:13px; color:var(--muted)}
+@media (min-width:1024px){
+  .hero{grid-template-columns:minmax(0, 3fr) minmax(0, 2fr); gap:48px}
+  .hero h1{font-size:44px}
+  .hero .tiles{grid-template-columns:repeat(2, minmax(0, 1fr))}
+}
+@media (max-width:640px){
+  .hero .tiles{grid-template-columns:repeat(2, minmax(0, 1fr))}
+  .hero .tile{padding:12px}
+}
 /* ---------- menu upload: Your menu, Check your menu ---------- */
 .up{margin-top:24px}
 .up > * + *{margin-top:18px}
@@ -2566,19 +2600,31 @@ function showFind(q, lost){
   if(place.part) steps.push({text: place.part.name, nav: address({at: "p:" + place.part.name})});
   if(place.area) steps.push({text: place.area.district, nav: address({at: "a:" + place.area.district})});
 
-  let html = `<h1>Find your shop</h1><p class="sub">Three taps. No typing needed.</p>` +
+  const hero = !picked && place.level === "parts";
+  byId("find").classList.toggle("wide", hero);
+  let html = hero ? "" : `<h1>Find your shop</h1><p class="sub">Three taps. No typing needed.</p>` +
              `<div class="trail" id="find-trail">${trailHtml(steps)}</div>`;
+  if(hero) document.title = "Are your prices right? | Counter";
   if(picked){
     html += `<div class="panel card" id="shop-card" tabindex="-1"><p class="muted">Your shop</p>` +
       `<p class="big">${esc(picked.shop_name)}</p><p>${esc(picked.district)}</p><p>${esc(picked.address || "")}</p>` +
       `<button type="button" class="btn primary" data-nav="${esc(address({shop: picked.shop_id}))}">Yes, this is my shop</button></div>`;
   } else if(place.level === "parts"){
-    html += (lost ? `<p class="say" id="find-lost" role="status">This shop was set up in another browser. Add it again here.</p>` : "") +
-      `<p class="ask" tabindex="-1">Which part of ${WHOLE} is your shop in?</p><div class="tiles" id="find-tiles">` +
+    const withPrices = [...SHOPS.values()].filter(o => o.price_count > 0).length;
+    const sample = sampleShop();
+    html += `<div class="hero"><div><p class="kicker">For cafes and bakeries in ${WHOLE}</p><h1>Are your prices right?</h1>` +
+      `<p class="lede">See your menu next to the ${withPrices} cafes we check, what they launched and the offers they run. Free, about a minute.</p>` +
+      `<div class="field combo"><label for="shop-input">Find your cafe by name</label>` +
+      `<input id="shop-input" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="shop-list" aria-autocomplete="list"${sample ? ` placeholder="${esc("e.g. " + sample.s.shop_name)}"` : ""}>` +
+      `<ul id="shop-list" role="listbox" aria-label="Cafes" hidden></ul></div>` +
+      (lost ? `<p class="say" id="find-lost" role="status">This shop was set up in another browser. Add it again here.</p>` : "") +
+      `<p class="ask" tabindex="-1">Or pick your area</p><div class="tiles" id="find-tiles">` +
       // a shop the owner added here comes first
       (myShop ? `<button type="button" class="tile" id="find-mine" data-nav="${esc(mineHome())}"><span class="t1">Your shop: ${esc(myShop.shop_name)}</span>` +
                 `<span class="t2">${esc(myShop.street || myShop.address)}</span></button>` : "") +
-      parts.map(p => tile(address({at: "p:" + p.name}), p.name, partWords(p))).join("") + `</div>`;
+      parts.map(p => tile(address({at: "p:" + p.name}), p.name, partWords(p))).join("") + `</div>` +
+      (sample ? `<button type="button" class="samplebtn" id="sample-link" data-nav="${esc(address({shop: sample.s.shop_id, rivals: sample.ids.join(",")}))}">Just looking? See a sample cafe</button>` : "") +
+      `</div>${proofHtml()}</div>`;
   } else if(place.level === "areas"){
     html += `<p class="ask" tabindex="-1">Which area?</p><div class="tiles" id="find-tiles">` +
       place.part.areas.map(a => tile(address({at: "a:" + a.district}), a.district, cafeWords(a))).join("") +
@@ -2593,7 +2639,111 @@ function showFind(q, lost){
   body.innerHTML = html;
   show("find");
   slideIn(body);
+  if(hero){
+    wireShopSearch();
+    const link = byId("sample-link");
+    if(link) link.addEventListener("click", () => { if(typeof track === "function") track("sample_opened", {shop_id: link.dataset.nav.match(/shop=([^&]+)/)[1]}); });
+  }
   focusOn("#find-body .ask, #shop-card");
+}
+/* a shop with a full set of compared items whose nearest few cafes have some too: the sample cafe */
+function sampleShop(){
+  const priced = [...SHOPS.values()].filter(o => o.items && o.items.length && o.lat != null && o.shop_id !== MY_ID);
+  const best = priced.slice().sort((a, b) => b.items.length - a.items.length || b.price_count - a.price_count);
+  for(const s of best){
+    const near = nearestFirst(s, priced.filter(o => o.shop_id !== s.shop_id)).slice(0, NEAR_START);
+    if(near.length === NEAR_START) return {s: s, ids: near.map(o => o.shop_id)};
+  }
+  return null;
+}
+/* "This month in Singapore cafes": three rows from the data, a row with a missing field is left out */
+function proofHtml(){
+  const rows = [];
+  const pt = D.price_table || [];
+  const top = pt.slice().sort((a, b) => b.shop_count - a.shop_count)[0];
+  const list = top && D.named_prices[top.item_canonical];
+  if(list && list.length > 1 && top.low != null && top.median != null && top.high != null){
+    const prices = list.map(r => r.price).filter(p => p != null);
+    const lo = Math.min(...prices), span = (Math.max(...prices) - lo) || 1;
+    const at = v => ((v - lo) / span * 100).toFixed(1);
+    // like the My prices plot: round dots, two to a row, one pile per price, the tallest cut at 8 rows
+    const pile = new Map();
+    prices.forEach(p => pile.set(cents(p), (pile.get(cents(p)) || 0) + 1));
+    const dots = [...pile.entries()].map(e => `<span class="pcol${e[1] > 1 ? "" : " one"}" style="left:${at(e[0] / 100)}%">` +
+      `<span class="cdot same"></span>`.repeat(Math.min(e[1], 16)) + `</span>`).join("");
+    rows.push(`<div class="prow"><p class="pk">${esc(top.display_name || top.item_canonical)} prices</p>` +
+      `<div class="pstrip" >${dots}<b style="left:${at(top.median)}%"></b></div>` +
+      `<div class="plabels"><span style="left:0"><strong>${money(top.low)}</strong>low</span>` +
+      `<span style="left:${at(top.median)}%;transform:translateX(-50%);text-align:center"><strong>${money(top.median)}</strong>usual</span>` +
+      `<span style="right:0;text-align:right"><strong>${money(top.high)}</strong>high</span></div>` +
+      `<p class="small muted">${count(prices.length, "cafe", "cafes")}. One dot is one cafe.</p></div>`);
+  }
+  if(C){
+    const ls = C.launches.filter(l => l.item_name && l.shop && l.launch_month);
+    const newest = a => a.sort((x, y) => y.launch_month.localeCompare(x.launch_month))[0];
+    const l = newest(ls.filter(x => !x.is_chain)) || newest(ls);
+    if(l) rows.push(`<div class="prow"><p class="pk">Newest launch</p><p class="pv">${esc(l.item_name)}` +
+      `<br><span>${esc(l.shop)}${l.price != null ? " · " + money(l.price) : ""}</span></p></div>`);
+    const today = new Date().toISOString().slice(0, 10);
+    const os = (C.offers || []).filter(o => o.brand_name && o.offer_text);
+    const day = o => o.observed_date || o.start_date || "";
+    const live = os.filter(o => !o.end_date || o.end_date >= today);
+    const o = (live.length ? live : os).sort((x, y) => day(y).localeCompare(day(x)))[0];
+    if(o) rows.push(`<div class="prow"><p class="pk">An offer</p><p class="pv">${esc(o.brand_name)}<br><span>${esc(o.offer_text)}</span></p></div>`);
+  }
+  if(!rows.length) return "";
+  const from = pt.map(r => r.observed_from).filter(Boolean).sort()[0], to = pt.map(r => r.observed_to).filter(Boolean).sort().pop();
+  return `<aside class="panel proof" aria-labelledby="proof-h"><h2 id="proof-h">This month in Singapore cafes</h2>${rows.join("")}` +
+    (from && to ? `<p class="pfoot">Prices checked ${dayMonth(from)} to ${dayMonth(to)}</p>` : "") + `</aside>`;
+}
+/* "Find your cafe by name": picking one is the same as picking its tile */
+function wireShopSearch(){
+  const input = byId("shop-input"), list = byId("shop-list");
+  const all = [...SHOPS.values()].sort((a, b) => a.shop_name.localeCompare(b.shop_name));
+  let opts = [], active = -1;
+  function close(){
+    list.hidden = true; active = -1; opts = [];
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+  }
+  function setActive(i){
+    active = i;
+    list.querySelectorAll("li[role=option]").forEach((li, n) => li.setAttribute("aria-selected", String(n === i)));
+    if(i < 0){ input.removeAttribute("aria-activedescendant"); return; }
+    const li = byId("shop-opt-" + i);
+    input.setAttribute("aria-activedescendant", li.id);
+    li.scrollIntoView({block: "nearest"});
+  }
+  function suggest(){
+    const raw = input.value.trim(), q = fold(raw);
+    if(raw.length < 2 || !q){ close(); return; }
+    opts = ranked(all, s => s.shop_name, q).slice(0, 8);
+    list.innerHTML = opts.length
+      ? opts.map((s, i) => `<li role="option" id="shop-opt-${i}" aria-selected="false" data-i="${i}">` +
+          `<span class="optname">${esc(s.shop_name)}</span><span class="optsub">${esc(s.district)}</span></li>`).join("")
+      : `<li class="none" role="presentation">Not listed? <a href="${esc(address({setup: "place"}))}" data-nav="${esc(address({setup: "place"}))}">Add your shop</a></li>`;
+    list.hidden = false; list.scrollTop = 0; active = -1;
+    input.setAttribute("aria-expanded", "true");
+    input.removeAttribute("aria-activedescendant");
+  }
+  const pick = s => go({at: "a:" + s.district, pick: s.shop_id});
+  input.addEventListener("input", suggest);
+  input.addEventListener("focus", suggest);
+  input.addEventListener("blur", () => setTimeout(close, 150));
+  input.addEventListener("keydown", e => {
+    if(e.key === "Escape"){ close(); return; }
+    if(list.hidden || !opts.length) return;
+    if(e.key === "ArrowDown"){ e.preventDefault(); setActive((active + 1) % opts.length); }
+    else if(e.key === "ArrowUp"){ e.preventDefault(); setActive((active - 1 + opts.length) % opts.length); }
+    else if(e.key === "Enter"){ e.preventDefault(); pick(opts[active < 0 ? 0 : active]); }
+  });
+  // mousedown, so the pick lands before the field's blur closes the list
+  list.addEventListener("mousedown", e => {
+    const li = e.target.closest("li[role=option]");
+    if(!li) return;
+    e.preventDefault();
+    pick(opts[Number(li.dataset.i)]);
+  });
 }
 
 /* ---------- step 2: choose your competitors ----------
