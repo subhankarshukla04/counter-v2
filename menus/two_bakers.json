@@ -1,0 +1,12 @@
+{"shop_id": "two_bakers", "rows": [
+{"id": "me80801", "name": "Butter Croissant", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "m044d91", "name": "Almond Croissant", "variant": "", "price": 5.8, "kind": "pastry"},
+{"id": "m2af657", "name": "Lady Mousse Cake Slice", "variant": "", "price": 9.5, "kind": "cake"},
+{"id": "m52dce2", "name": "Bao Bae Mousse Cake Slice", "variant": "", "price": 9.5, "kind": "cake"},
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "ma89755", "name": "Latte", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m6737c5", "name": "Long Black", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "me9e4f6", "name": "Matcha Latte", "variant": "", "price": 7.0, "kind": "drink"},
+{"id": "mcf8b41", "name": "Hojicha Latte", "variant": "", "price": 7.0, "kind": "drink"}
+]}

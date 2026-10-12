@@ -1,0 +1,6 @@
+{"shop_id": "apartment_coffee", "rows": [
+{"id": "m56e05b", "name": "Filter Coffee", "variant": "", "price": 7.0, "kind": "drink"},
+{"id": "m3d011e", "name": "Espresso", "variant": "", "price": 4.5, "kind": "drink"},
+{"id": "m30d9f7", "name": "White Coffee", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "me9e4f6", "name": "Matcha Latte", "variant": "", "price": 7.0, "kind": "drink"}
+]}

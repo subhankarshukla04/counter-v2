@@ -1,0 +1,9 @@
+{"shop_id": "the_french_american_bakery", "rows": [
+{"id": "m479568", "name": "Cinnamon Bun", "variant": "", "price": 4.83, "kind": "pastry"},
+{"id": "mb1788c", "name": "Carrot Cake Slice", "variant": "", "price": 9.77, "kind": "cake"},
+{"id": "m496b1b", "name": "Fudgy Brownie", "variant": "", "price": 7.93, "kind": "cake"},
+{"id": "m0904ac", "name": "Lemon Loaf Slice", "variant": "", "price": 6.78, "kind": "cake"},
+{"id": "mf43be3", "name": "Carrot Cake", "variant": "", "price": 9.77, "kind": "cake"},
+{"id": "mdadbc6", "name": "Maple Pecan Granola", "variant": "", "price": 18.4, "kind": "pastry"},
+{"id": "mb4aa8a", "name": "Dark Chocolate Hazelnut Granola", "variant": "", "price": 20.7, "kind": "pastry"}
+]}

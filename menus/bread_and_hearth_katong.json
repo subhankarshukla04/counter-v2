@@ -1,0 +1,10 @@
+{"shop_id": "bread_and_hearth_katong", "rows": [
+{"id": "ma97c09", "name": "Le Croissant Français", "variant": "", "price": 3.8, "kind": "pastry"},
+{"id": "m032e3c", "name": "Pain Au Chocolat", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "m044d91", "name": "Almond Croissant", "variant": "", "price": 4.8, "kind": "pastry"},
+{"id": "mbb0486", "name": "Cinnamon Danish", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 5.8, "kind": "drink"},
+{"id": "ma89755", "name": "Latte", "variant": "", "price": 5.8, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 5.8, "kind": "drink"},
+{"id": "m6737c5", "name": "Long Black", "variant": "", "price": 5.0, "kind": "drink"}
+]}

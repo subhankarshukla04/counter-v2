@@ -1,0 +1,10 @@
+{"shop_id": "nesuto_tras", "rows": [
+{"id": "m26ee6c", "name": "Uji Matcha Latte", "variant": "", "price": 7.0, "kind": "drink"},
+{"id": "m9c229f", "name": "Roasted Hojicha Latte", "variant": "", "price": 7.0, "kind": "drink"},
+{"id": "m6737c5", "name": "Long Black", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "me9e35d", "name": "Caffe Latte", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m8ec3f1", "name": "Yuzu Raspberry Cake Slice", "variant": "", "price": 11.9, "kind": "cake"},
+{"id": "mc56ebc", "name": "Konichiwa Hojicha Cake Slice", "variant": "", "price": 12.4, "kind": "cake"},
+{"id": "m862137", "name": "Classic Tiramisu in Jar", "variant": "", "price": 13.9, "kind": "cake"}
+]}

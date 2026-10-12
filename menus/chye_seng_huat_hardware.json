@@ -1,0 +1,10 @@
+{"shop_id": "chye_seng_huat_hardware", "rows": [
+{"id": "m6737c5", "name": "Long Black", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "ma89755", "name": "Latte", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m3d011e", "name": "Espresso", "variant": "", "price": 4.0, "kind": "drink"},
+{"id": "m5cdb70", "name": "Cold Brew Coffee", "variant": "bottle, iced", "price": 8.0, "kind": "drink"},
+{"id": "m54956b", "name": "Croissant", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "m032e3c", "name": "Pain Au Chocolat", "variant": "", "price": 5.5, "kind": "pastry"}
+]}

@@ -1,0 +1,11 @@
+{"shop_id": "hello_arigato_upper_thomson", "rows": [
+{"id": "m30d9f7", "name": "White Coffee", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "mbaabe0", "name": "Black Coffee", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "me9e4f6", "name": "Matcha Latte", "variant": "", "price": 6.5, "kind": "drink"},
+{"id": "mcf8b41", "name": "Hojicha Latte", "variant": "", "price": 6.5, "kind": "drink"},
+{"id": "m745ee2", "name": "Classic Croissant", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "m403100", "name": "Matcha White Chocolate Cookie", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "me41f6f", "name": "Miso Chocolate Chip Cookie", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "mdae883", "name": "Gyu Sando", "variant": "", "price": 26.0, "kind": "savoury"},
+{"id": "mddca69", "name": "Tamago Sando", "variant": "", "price": 14.0, "kind": "savoury"}
+]}

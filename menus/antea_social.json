@@ -1,0 +1,6 @@
+{"shop_id": "antea_social", "rows": [
+{"id": "mef4cd3", "name": "Lychee Oolong Tea", "variant": "pot", "price": 8.5, "kind": "drink"},
+{"id": "mcf8b41", "name": "Hojicha Latte", "variant": "", "price": 6.5, "kind": "drink"},
+{"id": "me9e4f6", "name": "Matcha Latte", "variant": "", "price": 6.5, "kind": "drink"},
+{"id": "m57898e", "name": "Earl Grey Chiffon Cake Slice", "variant": "", "price": 7.5, "kind": "cake"}
+]}

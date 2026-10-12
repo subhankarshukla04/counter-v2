@@ -3,9 +3,8 @@
    line is logged for each read, and it never holds the key, the access code,
    a header, the files or anything of the menu: see logLine(). */
 import { createHash, timingSafeEqual } from "node:crypto";
+import { endpointOf, askChain, isBusy, isLimit } from "./_models.js";
 
-const MODEL = "gemini-3.8-flash";
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 const MIMES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const PDF = "application/pdf";
 const MAX_FILES = 6;
@@ -16,15 +15,10 @@ const MAX_NAME = 200;
 const PRICE_MIN = 0.1, PRICE_MAX = 999;
 // The platform stops this function at 180 seconds (vercel.json). All the tries
 // together are given a little less, so the reply below is sent before that.
-const OVERALL_MS = 170000;
-// One try is stopped at 90 seconds. When a try is stopped, or Google says it is
-// busy (503) or fails inside (500), the same request is sent again after a
-// short wait: 3 tries at most, and a new one only with a minute or more left.
-const TRY_MS = 90000;
-const RETRY_ON = [500, 503];
-const RETRY_WAIT_MS = 5000;
-const MAX_TRIES = 3;
-const RETRY_NEEDS_MS = 60000;
+// One try is stopped at 90 seconds. A busy or slow model is asked again after
+// 5 seconds, and a new try starts only with a minute or more left. Which model
+// is asked next is in _models.js.
+const TIME = {overallMs: 170000, tryMs: 90000, waitMs: 5000, needsMs: 60000};
 
 // The kinds of item, the same keys Counter's New items tabs use. The first four
 // are sorted the way our own data sorts them (classify_format in wave3_lib.py).
@@ -82,7 +76,7 @@ const MESSAGES = {
   too_large: "These files are too large together. Use fewer photos.",
   limit: "The daily limit for reading menus is used up. Try again tomorrow.",
   read_failed: "Something went wrong while reading. Nothing was saved. Try again.",
-  busy: "Google's AI is busy right now. Wait a minute and try again."
+  busy: "The AI is busy right now. Wait a minute and try again."
 };
 
 function reply(status, body){
@@ -154,7 +148,7 @@ const refOf = f => f.stage === "google_http" ? `google_http_${f.status}` : f.sta
    worked, else {fail: {stage, ...}} with what may be logged. A call stopped by
    its timer is "slow" when it used a full try, and "timeout" when the time for
    the whole read ran out. */
-async function askGoogle(files, key, allowed, fullTry){
+async function askGoogle(model, files, key, allowed, fullTry){
   const outOfTime = fullTry ? "slow" : "timeout";
   const stop = new AbortController();
   let timedOut = false;
@@ -162,7 +156,7 @@ async function askGoogle(files, key, allowed, fullTry){
   try {
     let res = null;
     try {
-      res = await fetch(ENDPOINT, {
+      res = await fetch(endpointOf(model), {
         method: "POST",
         headers: {"x-goog-api-key": key, "Content-Type": "application/json"},
         body: JSON.stringify({
@@ -172,7 +166,7 @@ async function askGoogle(files, key, allowed, fullTry){
           generationConfig: {
             responseMimeType: "application/json",
             responseJsonSchema: SCHEMA,
-            thinkingConfig: {thinkingLevel: "LOW"}
+            thinkingConfig: model.thinking
           }
         }),
         signal: stop.signal
@@ -233,33 +227,22 @@ export default {
     if(!filesOk(body.files)) return fail(400, "bad_files");
     if(body.files.reduce((n, f) => n + f.data.length, 0) > MAX_BASE64) return fail(413, "too_large");
 
-    const size = body.files.reduce((n, f) => n + f.data.length, 0), began = Date.now();
-    // Google busy, Google failing inside, or a try stopped at its 90 seconds
-    const busy = f => !!f && (f.stage === "slow" || (f.stage === "google_http" && RETRY_ON.indexOf(f.status) !== -1));
-    let got = null, tries = 0;
-    while(true){
-      const from = Date.now(), left = OVERALL_MS - (from - began);
-      got = await askGoogle(body.files, key, Math.min(left, TRY_MS), left > TRY_MS);
-      tries += 1;
-      if(!got.fail) break;
-      // one line for each try that failed
-      console.error(JSON.stringify(Object.assign({}, got.fail, {try: tries, ms: Date.now() - from, files: {count: body.files.length, base64: size}})));
-      // only a busy or slow Google is asked again, never a 429, and only with enough time left
-      if(!busy(got.fail) || tries >= MAX_TRIES) break;
-      if(OVERALL_MS - (Date.now() - began) - RETRY_WAIT_MS < RETRY_NEEDS_MS) break;
-      await new Promise(done => setTimeout(done, RETRY_WAIT_MS));
-    }
-    const ms = Date.now() - began;
+    const size = body.files.reduce((n, f) => n + f.data.length, 0);
+    // the models are asked in turn; one line is logged for each try that failed
+    const files = {count: body.files.length, base64: size};
+    const asked = await askChain(TIME, (model, allowed, fullTry) => askGoogle(model, body.files, key, allowed, fullTry),
+      (failed, model, tryNumber, tryMs) => console.error(JSON.stringify(Object.assign({}, failed, {model: model.id, try: tryNumber, ms: tryMs, files: files}))));
+    const got = asked.got, tries = asked.tries, ms = asked.ms;
     if(got.fail){
       // the browser is told which stage, never Google's words
-      const error = busy(got.fail) ? "busy" : got.fail.stage === "google_http" && got.fail.status === 429 ? "limit" : "read_failed";
+      const error = isBusy(got.fail) ? "busy" : isLimit(got.fail) ? "limit" : "read_failed";
       return reply(error === "busy" ? 503 : error === "limit" ? 429 : 502, {error: error, message: MESSAGES[error], ref: refOf(got.fail)});
     }
 
     const rows = got.menu.items.map(cleanRow);
     const good = rows.filter(Boolean);
     const items = good.slice(0, MAX_ROWS);
-    console.log(JSON.stringify(Object.assign({ms: ms, files: body.files.length, base64: size, rows: items.length, dropped: rows.length - items.length},
+    console.log(JSON.stringify(Object.assign({model: asked.model.id, ms: ms, files: body.files.length, base64: size, rows: items.length, dropped: rows.length - items.length},
                                              tries > 1 ? {tries: tries} : {})));
     return reply(200, {
       not_a_menu: got.menu.not_a_menu,

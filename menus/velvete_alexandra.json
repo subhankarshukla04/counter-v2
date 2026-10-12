@@ -1,0 +1,18 @@
+{"shop_id": "velvete_alexandra", "rows": [
+{"id": "m54eb85", "name": "Combo Platter", "variant": "", "price": 12.9, "kind": "savoury"},
+{"id": "m790829", "name": "REFRESHING CHICKEN SALAD", "variant": "", "price": 11.9, "kind": "savoury"},
+{"id": "mcd0569", "name": "CHICKEN BREAST STEAK", "variant": "", "price": 18.9, "kind": "savoury"},
+{"id": "mecab1a", "name": "CHICKEN TERIYAKI/GRILLED BEEF", "variant": "", "price": 15.9, "kind": "savoury"},
+{"id": "mfc01cb", "name": "MOCK FISH (SPICY/TOMATO)", "variant": "", "price": 11.9, "kind": "savoury"},
+{"id": "m7536f2", "name": "MOCK PIG TROTTERS W/VINEGAR", "variant": "", "price": 11.9, "kind": "savoury"},
+{"id": "m279848", "name": "SPICY MUSHROOM MEDLEY", "variant": "", "price": 11.9, "kind": "savoury"},
+{"id": "m69b93e", "name": "SWEET & SPICY MOCK CHICKEN", "variant": "", "price": 11.9, "kind": "savoury"},
+{"id": "m841cf7", "name": "PRAWN FRITTER (3 PCS)", "variant": "box of 3", "price": 6.9, "kind": "savoury"},
+{"id": "m0c5dab", "name": "SCALLION LOTUS BITES", "variant": "", "price": 6.9, "kind": "savoury"},
+{"id": "m37c751", "name": "SPICY OTAK ROLL", "variant": "", "price": 6.9, "kind": "savoury"},
+{"id": "me68845", "name": "TAIWANESE TEMPURA", "variant": "", "price": 6.9, "kind": "savoury"},
+{"id": "m05e71e", "name": "JAGGED FRIES", "variant": "", "price": 7.9, "kind": "savoury"},
+{"id": "maa7348", "name": "NACHOS", "variant": "", "price": 7.9, "kind": "savoury"},
+{"id": "me01a85", "name": "PIZZA (5.5-INCH)", "variant": "5.5 inch", "price": 7.9, "kind": "savoury"},
+{"id": "m77788c", "name": "YAM CUBES", "variant": "", "price": 7.9, "kind": "pastry"}
+]}

@@ -5,6 +5,11 @@
 !site_data.json
 !counter_data.json
 !vercel.json
-# the one server function: the folder, then only this file inside it
+# the server functions: the folder, then only these files inside it
 !api
 !api/read-menu.js
+!api/ideas.js
+!api/_models.js
+# each shop's own menu: the folder, then only the .json files inside it
+!menus
+!menus/*.json

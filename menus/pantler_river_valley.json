@@ -1,0 +1,11 @@
+{"shop_id": "pantler_river_valley", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "mbd15bc", "name": "Cafe Latte", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m717af8", "name": "Americano", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "m54956b", "name": "Croissant", "variant": "", "price": 4.0, "kind": "pastry"},
+{"id": "m032e3c", "name": "Pain Au Chocolat", "variant": "", "price": 4.8, "kind": "pastry"},
+{"id": "m1d18c9", "name": "Yatsugatake Catch Cake Slice", "variant": "", "price": 8.5, "kind": "cake"},
+{"id": "md994ac", "name": "Strawberry Shortcake Slice", "variant": "", "price": 9.8, "kind": "cake"},
+{"id": "m50610a", "name": "Nagome Mont Blanc Slice", "variant": "", "price": 10.5, "kind": "cake"}
+]}

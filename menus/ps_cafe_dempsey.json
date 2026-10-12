@@ -1,0 +1,10 @@
+{"shop_id": "ps_cafe_dempsey", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 6.5, "kind": "drink"},
+{"id": "me9e35d", "name": "Caffe Latte", "variant": "", "price": 6.5, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 6.5, "kind": "drink"},
+{"id": "m717af8", "name": "Americano", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m3d011e", "name": "Espresso", "variant": "", "price": 4.5, "kind": "drink"},
+{"id": "mb57d7a", "name": "Double Chocolate Blackout Cake Slice", "variant": "", "price": 16.0, "kind": "cake"},
+{"id": "me8aa9d", "name": "Sticky Date Pudding Slice", "variant": "", "price": 15.0, "kind": "cake"},
+{"id": "mc49475", "name": "Florida Key Lime Pie Slice", "variant": "", "price": 14.0, "kind": "cake"}
+]}

@@ -1,0 +1,10 @@
+{"shop_id": "burnt_ends_bakery_dempsey", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "ma89755", "name": "Latte", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m6737c5", "name": "Long Black", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "m0548f4", "name": "Sourdough Croissant", "variant": "", "price": 5.0, "kind": "pastry"},
+{"id": "m256a00", "name": "Nutella Croissant", "variant": "", "price": 6.5, "kind": "pastry"},
+{"id": "m66baa5", "name": "Milo Dinosaur Cookie", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "mf64afc", "name": "Cinnamon Sticky Bun", "variant": "", "price": 6.0, "kind": "pastry"},
+{"id": "me5ca67", "name": "Nutella Doughnut", "variant": "", "price": 5.5, "kind": "pastry"}
+]}

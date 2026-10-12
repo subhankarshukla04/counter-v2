@@ -1,0 +1,13 @@
+{"shop_id": "equate_coffee_orchard", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "ma89755", "name": "Latte", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "mff89a2", "name": "Black", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "m3d011e", "name": "Espresso", "variant": "", "price": 4.0, "kind": "drink"},
+{"id": "me9e4f6", "name": "Matcha Latte", "variant": "", "price": 6.5, "kind": "drink"},
+{"id": "me9494c", "name": "French Butter Croissant", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "m044d91", "name": "Almond Croissant", "variant": "", "price": 5.8, "kind": "pastry"},
+{"id": "m5a1bff", "name": "Ondeh Ondeh Croissant", "variant": "", "price": 6.8, "kind": "pastry"},
+{"id": "m809cbb", "name": "Fruit Danish", "variant": "", "price": 5.5, "kind": "pastry"},
+{"id": "m3bb1ac", "name": "Cinnamon Roll", "variant": "", "price": 5.2, "kind": "pastry"}
+]}

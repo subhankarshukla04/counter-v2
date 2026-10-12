@@ -1,0 +1,12 @@
+{"shop_id": "da_paolo_gastronomia_holland", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 5.8, "kind": "drink"},
+{"id": "m2eb4c8", "name": "Caffè Latte", "variant": "", "price": 5.8, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 5.8, "kind": "drink"},
+{"id": "m717af8", "name": "Americano", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "m3543db", "name": "Single Espresso", "variant": "", "price": 4.0, "kind": "drink"},
+{"id": "mf2f183", "name": "Italian Croissant (Cornetto)", "variant": "", "price": 4.2, "kind": "pastry"},
+{"id": "m044d91", "name": "Almond Croissant", "variant": "", "price": 5.5, "kind": "pastry"},
+{"id": "ma1adba", "name": "Chocolate Croissant", "variant": "", "price": 4.8, "kind": "pastry"},
+{"id": "m326c1a", "name": "Custard Danish", "variant": "", "price": 5.2, "kind": "pastry"},
+{"id": "m4f3e03", "name": "Classic Tiramisu Slice", "variant": "", "price": 9.5, "kind": "cake"}
+]}

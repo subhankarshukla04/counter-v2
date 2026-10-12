@@ -1,0 +1,8 @@
+{"shop_id": "the_weirdoughs_serangoon", "rows": [
+{"id": "m745ee2", "name": "Classic Croissant", "variant": "", "price": 4.2, "kind": "pastry"},
+{"id": "m99c89d", "name": "Hokkaido Cheesecake Slice", "variant": "", "price": 8.5, "kind": "cake"},
+{"id": "me70c07", "name": "Key Lime Pie Slice", "variant": "", "price": 8.0, "kind": "cake"},
+{"id": "m7d9c56", "name": "Earl Grey Strawberry Tiramisu Slice", "variant": "", "price": 9.0, "kind": "cake"},
+{"id": "m500343", "name": "DAMN Chicken Liver Pate", "variant": "", "price": 12.0, "kind": "savoury"},
+{"id": "m74da14", "name": "Dry Aged Duck Pie", "variant": "", "price": 14.0, "kind": "savoury"}
+]}

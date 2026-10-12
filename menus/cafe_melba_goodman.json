@@ -1,0 +1,11 @@
+{"shop_id": "cafe_melba_goodman", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "ma89755", "name": "Latte", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m6737c5", "name": "Long Black", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "m3543db", "name": "Single Espresso", "variant": "", "price": 4.0, "kind": "drink"},
+{"id": "mdc1a0b", "name": "French Croissant", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "m198316", "name": "Ham & Cheese Croissant", "variant": "", "price": 8.0, "kind": "pastry"},
+{"id": "m6fac8b", "name": "Danish Pastry", "variant": "", "price": 5.0, "kind": "pastry"},
+{"id": "mb1788c", "name": "Carrot Cake Slice", "variant": "", "price": 8.5, "kind": "cake"}
+]}

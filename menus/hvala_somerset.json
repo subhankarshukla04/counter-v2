@@ -1,0 +1,17 @@
+{"shop_id": "hvala_somerset", "rows": [
+{"id": "me9e4f6", "name": "Matcha Latte", "variant": "", "price": 6.8, "kind": "drink"},
+{"id": "mcf8b41", "name": "Hojicha Latte", "variant": "", "price": 6.8, "kind": "drink"},
+{"id": "m2a547e", "name": "Genmaicha Tea", "variant": "", "price": 5.8, "kind": "drink"},
+{"id": "mddc771", "name": "Matcha Petit Gâteau Slice", "variant": "", "price": 9.8, "kind": "cake"},
+{"id": "mbf48b7", "name": "Hojicha Petit Gâteau Slice", "variant": "", "price": 9.8, "kind": "cake"},
+{"id": "me4e26d", "name": "Goma (Black Sesame) Cake Slice", "variant": "", "price": 9.5, "kind": "cake"},
+{"id": "madd88f", "name": "(STORE PICK-UP) Shirocha Yuzu Basque Cheesecake", "variant": "", "price": 98.0, "kind": "cake"},
+{"id": "mc28e40", "name": "(STORE PICK-UP) Chocolate", "variant": "", "price": 90.0, "kind": "drink"},
+{"id": "me73670", "name": "(STORE PICK-UP) Honey Earl Grey Hazelnut", "variant": "", "price": 90.0, "kind": "pastry"},
+{"id": "m65bfbb", "name": "(STORE PICK-UP) Yuzu", "variant": "", "price": 90.0, "kind": "pastry"},
+{"id": "me29415", "name": "(STORE PICK-UP) Goma", "variant": "", "price": 90.0, "kind": "pastry"},
+{"id": "m2965eb", "name": "(STORE PICK-UP) Gelato Pint", "variant": "unspecified", "price": 17.5, "kind": "pastry"},
+{"id": "mcbd3cb", "name": "(STORE PICK-UP) Hvala \"9 Intensities\" Matcha Chocolate Box", "variant": "", "price": 29.0, "kind": "pastry"},
+{"id": "m463069", "name": "(STORE PICK-UP) Matcha Dubai Chewy Chocolate Cookie", "variant": "", "price": 7.8, "kind": "pastry"},
+{"id": "m618bb6", "name": "Genmai (Roasted Brown Rice)", "variant": "100g", "price": 15.0, "kind": "savoury"}
+]}

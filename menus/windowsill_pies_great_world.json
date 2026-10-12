@@ -1,0 +1,23 @@
+{"shop_id": "windowsill_pies_great_world", "rows": [
+{"id": "m41d23d", "name": "Sourdough Egg Tarts - 4's", "variant": "box of 4", "price": 14.0, "kind": "savoury"},
+{"id": "mb37bd9", "name": "Burnt Cheesecake", "variant": "", "price": 82.0, "kind": "cake"},
+{"id": "m080be8", "name": "Cookies & Tartlets Bundle", "variant": "box of 1", "price": 63.5, "kind": "pastry"},
+{"id": "m82fe3e", "name": "*Premium* Parmesan Truffle (Bundle of 3)", "variant": "box of 3", "price": 63.6, "kind": "savoury"},
+{"id": "m851ba4", "name": "*Premium* Parmesan Truffle (Bundle of 2)", "variant": "box of 2", "price": 37.8, "kind": "savoury"},
+{"id": "m8fe0eb", "name": "Signature Bundle of 3", "variant": "box of 3", "price": 44.7, "kind": "pastry"},
+{"id": "mb839ef", "name": "Signature Bundle of 2", "variant": "box of 2", "price": 27.8, "kind": "pastry"},
+{"id": "m4afa26", "name": "Butter Fingers", "variant": "", "price": 14.9, "kind": "pastry"},
+{"id": "m4f0d7b", "name": "Coconut Lime Sable", "variant": "", "price": 14.9, "kind": "pastry"},
+{"id": "mb8d175", "name": "Garlic Rosemary Shortbread", "variant": "whole", "price": 14.9, "kind": "savoury"},
+{"id": "mcce0bb", "name": "*Premium* Parmesan Truffle Shortbread", "variant": "whole", "price": 19.9, "kind": "savoury"},
+{"id": "m51db87", "name": "Brown Pecan Cookies", "variant": "", "price": 14.9, "kind": "pastry"},
+{"id": "mb4a027", "name": "Maple Shortbread", "variant": "whole", "price": 14.9, "kind": "pastry"},
+{"id": "mcab781", "name": "Sourdough Egg Tarts - 16's", "variant": "box of 16", "price": 56.0, "kind": "savoury"},
+{"id": "mcfba9f", "name": "Assorted 10's - Build your own pie! (Choose up to 10 slices)", "variant": "box of 10", "price": 80.0, "kind": "pastry"},
+{"id": "ma559b5", "name": "S'mores Pie", "variant": "9 inch", "price": 77.0, "kind": "pastry"},
+{"id": "mcd3c90", "name": "Strawberry Lemon Meringue Pie", "variant": "9 inch", "price": 74.0, "kind": "pastry"},
+{"id": "me7daee", "name": "Classic Pecan Pie", "variant": "9 inch", "price": 77.0, "kind": "pastry"},
+{"id": "m8115b2", "name": "Banana Almond Brittle Pie", "variant": "9 inch", "price": 72.0, "kind": "pastry"},
+{"id": "md71a6f", "name": "Assorted 10's - Best of Windowsill Pies", "variant": "box of 10", "price": 75.0, "kind": "pastry"},
+{"id": "m3cd0c9", "name": "Apple Frangipane and Raisin Pie", "variant": "9 inch", "price": 74.0, "kind": "pastry"}
+]}

@@ -1,0 +1,9 @@
+{"shop_id": "fika_swedish_cafe", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "ma89755", "name": "Latte", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m26107a", "name": "Brewed Black Coffee", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "mc6ebfa", "name": "Swedish Kladdkaka (Sticky Choc Cake)", "variant": "", "price": 8.9, "kind": "cake"},
+{"id": "m858579", "name": "Apple Crumble Pie Slice with Vanilla Ice Cream", "variant": "", "price": 9.9, "kind": "cake"},
+{"id": "ma650ed", "name": "Swedish Cinnamon Bun (Kanelbulle)", "variant": "", "price": 5.5, "kind": "pastry"}
+]}

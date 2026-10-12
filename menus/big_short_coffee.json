@@ -1,0 +1,8 @@
+{"shop_id": "big_short_coffee", "rows": [
+{"id": "mcbdb26", "name": "black", "variant": "", "price": 5.0, "kind": "pastry"},
+{"id": "m4efe0c", "name": "white", "variant": "", "price": 6.0, "kind": "pastry"},
+{"id": "m2956a1", "name": "chocolate", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m1a2114", "name": "babyccino", "variant": "", "price": 3.0, "kind": "pastry"},
+{"id": "m6e1f86", "name": "mocha", "variant": "iced", "price": 7.0, "kind": "drink"},
+{"id": "mbd1f10", "name": "fresh orange juice", "variant": "iced", "price": 6.0, "kind": "drink"}
+]}

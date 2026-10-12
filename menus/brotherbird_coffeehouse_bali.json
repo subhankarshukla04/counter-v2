@@ -1,0 +1,13 @@
+{"shop_id": "brotherbird_coffeehouse_bali", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "ma89755", "name": "Latte", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "mbaabe0", "name": "Black Coffee", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "m30e4c6", "name": "Original Croissant", "variant": "", "price": 4.0, "kind": "pastry"},
+{"id": "m044d91", "name": "Almond Croissant", "variant": "", "price": 5.5, "kind": "pastry"},
+{"id": "mf59189", "name": "Rocher Croissant", "variant": "", "price": 6.0, "kind": "pastry"},
+{"id": "mefe4ce", "name": "Ham & Cheddar Croissant", "variant": "", "price": 6.0, "kind": "pastry"},
+{"id": "m8f2e6d", "name": "Taro Cruffin", "variant": "", "price": 5.5, "kind": "pastry"},
+{"id": "m91a339", "name": "Lemon Meringue Cruffin", "variant": "", "price": 5.5, "kind": "pastry"},
+{"id": "m3bb1ac", "name": "Cinnamon Roll", "variant": "", "price": 5.0, "kind": "pastry"},
+{"id": "ma137e6", "name": "Choc Chip Mochi Cookie", "variant": "", "price": 4.5, "kind": "pastry"}
+]}

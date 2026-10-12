@@ -3,6 +3,9 @@
   "functions": {
     "api/read-menu.js": {
       "maxDuration": 180
+    },
+    "api/ideas.js": {
+      "maxDuration": 60
     }
   },
   "headers": [
@@ -17,6 +20,15 @@
     },
     {
       "source": "/counter_data.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+        }
+      ]
+    },
+    {
+      "source": "/menus/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

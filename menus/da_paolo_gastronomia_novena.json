@@ -1,0 +1,11 @@
+{"shop_id": "da_paolo_gastronomia_novena", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 5.8, "kind": "drink"},
+{"id": "me9e35d", "name": "Caffe Latte", "variant": "", "price": 5.8, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 5.8, "kind": "drink"},
+{"id": "m717af8", "name": "Americano", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "mf07fc7", "name": "Italian Croissant", "variant": "", "price": 4.2, "kind": "pastry"},
+{"id": "m044d91", "name": "Almond Croissant", "variant": "", "price": 5.5, "kind": "pastry"},
+{"id": "ma1adba", "name": "Chocolate Croissant", "variant": "", "price": 4.8, "kind": "pastry"},
+{"id": "mba707b", "name": "Apricot Danish", "variant": "", "price": 5.2, "kind": "pastry"},
+{"id": "m8a7c19", "name": "Valrhona Chocolate Cake Slice", "variant": "", "price": 8.5, "kind": "cake"}
+]}

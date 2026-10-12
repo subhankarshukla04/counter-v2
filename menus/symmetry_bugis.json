@@ -1,0 +1,10 @@
+{"shop_id": "symmetry_bugis", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "ma89755", "name": "Latte", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m6737c5", "name": "Long Black", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "me4fc36", "name": "Artisan Plain Croissant", "variant": "", "price": 4.8, "kind": "pastry"},
+{"id": "ma1adba", "name": "Chocolate Croissant", "variant": "", "price": 5.5, "kind": "pastry"},
+{"id": "m6b374a", "name": "Berry Danish", "variant": "", "price": 6.0, "kind": "pastry"},
+{"id": "m7be0ba", "name": "Valrhona Chocolate Fudge Cake Slice", "variant": "", "price": 9.5, "kind": "cake"}
+]}

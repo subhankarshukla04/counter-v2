@@ -358,6 +358,30 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 #offers-checked{margin-top:12px}
 .newtable.offers .c-src{width:110px}     /* 10 + the link text + 10 */
 .tag.limited{background:var(--rust-soft); border-color:var(--rust-line); color:var(--rust-ink)}
+/* the AI's mark: one sparkle, in rust, always beside words */
+.ic.ai{display:inline-block; vertical-align:-3px; margin-right:6px; stroke:var(--rust)}
+.btn .ic.ai{margin-right:0}
+/* ---------- Ideas for your shop: at the top of Offers, and on Saved ---------- */
+#ideaspage{margin-bottom:20px}
+#ideaspage > * + *{margin-top:10px}
+#ideaspage h2{font-size:20px}
+.idealist > li{padding:14px 0; border-top:1px solid var(--rule)}
+.idealist > li:last-child{border-bottom:1px solid var(--rule)}
+.idea > * + *{margin-top:8px}
+.ihead{display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px}
+.ititle{font-weight:700; color:var(--ink)}
+.ilines{max-width:520px}
+.ilines li{display:flex; justify-content:space-between; gap:16px; padding:3px 0}
+.ilines li span:first-child{min-width:0; overflow-wrap:anywhere}
+.ilines .num{flex:none; text-align:right; font-variant-numeric:tabular-nums; color:var(--ink)}
+.ilines .sum{margin-top:4px; padding-top:6px; border-top:1px solid var(--rule)}
+.ilines .set{font-weight:600; color:var(--ink)}
+.isaves{color:var(--ink)}
+.iwhy .lbl{font-weight:600; color:var(--ink)}
+.idea .acts{display:flex; flex-wrap:wrap; gap:8px}
+.idea .acts .btn{min-height:36px; padding:0 14px; font-size:14px}
+.ideasacts{display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px}
+.ideasacts .field{flex:0 1 320px; min-width:0}
 /* the price ends well clear of the source link beside it */
 .newtable th.num, .newtable td.num{padding-right:30px}
 .newtable .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
@@ -692,6 +716,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
       </section>
     </div>
     <section class="panel" id="newpage" aria-label="New items" hidden></section>
+    <section class="panel" id="ideaspage" aria-labelledby="ideas-h" hidden></section>
     <section class="panel" id="offerspage" aria-label="Offers" hidden></section>
     <section class="panel" id="savedpage" aria-label="Saved" hidden></section>
   </main>
@@ -724,6 +749,8 @@ const ICON = {
   tick: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
   menu: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`,
   heart: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S4 15.2 4 9.4a4.4 4.4 0 0 1 8-2.5 4.4 4.4 0 0 1 8 2.5c0 5.8-8 11.1-8 11.1z"/></svg>`,
+  // the AI's mark: one sparkle, always beside words
+  ai: `<svg class="ic ai" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3.5l1.8 5.2 5.2 1.8-5.2 1.8L11 17.5l-1.8-5.2L4 10.5l5.2-1.8z"/><path d="M18 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>`,
   heartFull: `<svg class="ic full" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S4 15.2 4 9.4a4.4 4.4 0 0 1 8-2.5 4.4 4.4 0 0 1 8 2.5c0 5.8-8 11.1-8 11.1z"/></svg>`
 };
 
@@ -799,7 +826,8 @@ function shopSaves(write){
   mine.ideas = (Array.isArray(mine.ideas) ? mine.ideas : []).filter(e => e &&
     ((e.kind === "missing" && text(e.item) && (e.cents === null || Number.isFinite(e.cents))) ||
      (e.kind === "new" && text(e.shop) && text(e.item_name)) ||
-     (e.kind === "offer" && text(e.brand_name) && text(e.offer_text))));
+     (e.kind === "offer" && text(e.brand_name) && text(e.offer_text)) ||
+     (e.kind === "ai_idea" && e.idea && typeof e.idea === "object" && text(e.idea.key) && text(e.idea.title) && Array.isArray(e.idea.items))));
   return mine;
 }
 const newKey = (cafe, name) => cafe + "|" + name;       // the same key newScope() uses
@@ -1024,6 +1052,7 @@ function openShop(s, ids, q){
   hide = [...new Set(String(q.get("hide") || "").split(","))].filter(k => D.named_prices[k]);
 
   if(entering){
+    iu.msg = ""; iu.ref = "";
     view = "list"; showAll = false; showHidden = false; closed = false;
     // New items starts on the competitors' items when there are any
     newTab = "all"; chainsOn = false; foldNew(); onlyMine = page === "offers" ? anyMineOffer() : anyMine();
@@ -1069,7 +1098,7 @@ function paint(fit){
   paintFrame();
   paintBand();
   if(page === "new"){ paintNew(); return; }
-  if(page === "offers"){ paintOffers(); return; }
+  if(page === "offers"){ paintIdeas(); paintOffers(); return; }
   if(page === "saved"){ paintSaved(); return; }
   paintList();
   paintDetail(fit);
@@ -1104,6 +1133,7 @@ function paintFrame(){
   byId("cols").hidden = none || page === "new" || page === "saved" || page === "offers";
   byId("newpage").hidden = page !== "new";
   byId("offerspage").hidden = page !== "offers";
+  byId("ideaspage").hidden = page !== "offers";
   byId("savedpage").hidden = page !== "saved";
 }
 
@@ -1410,6 +1440,11 @@ function paintSaved(){
   } else {
     const lacking = ideas.filter(e => e.kind === "missing"), fresh = ideas.filter(e => e.kind === "new");
     if(!ideas.length) html += none("To save one, press Save on Items I do not sell, New items or Offers.");
+    // ideas written by AI come first: each is shown as it was when it was saved
+    const written = ideas.filter(e => e.kind === "ai_idea");
+    if(written.length) html += `<h3 id="saved-ai-h">${ICON.ai}Ideas</h3><ul class="savedrows" id="saved-ai">` + written.map(e =>
+      `<li data-key="${esc(e.idea.key)}"><div class="words idea">${ideaLines(e.idea)}</div>` +
+      acts(`<button type="button" class="btn quiet" data-ai="unsave" data-key="${esc(e.idea.key)}" aria-label="Remove: ${esc(e.idea.title)}">Remove</button>`) + `</li>`).join("") + `</ul>`;
     if(lacking.length) html += `<h3>Items I do not sell</h3><ul class="savedrows" id="saved-missing">` + lacking.map(e => {
       const row = priceRow(e.item), name = itemName(e.item), known = D.named_prices[e.item];
       return `<li data-item="${esc(e.item)}"><div class="words"><p class="name">${esc(name)}</p>` +
@@ -2420,13 +2455,15 @@ const UP_WAIT = 200000;           // milliseconds before the page stops waiting:
 /* a photo's longest side and JPEG quality: the first that fits is sent. Never
    smaller than the last, so small print stays readable. */
 const SHRINK = [[1800, 0.82], [1800, 0.7], [1800, 0.6], [1600, 0.7], [1600, 0.6], [1400, 0.6]];
+/* an error code as it is shown: the server's own code, with the AI company's name left out */
+const refWords = ref => String(ref).replace(/^google_/, "ai_");
 const UP_SAY = {
   bad_code: "That access code is not right.",
   too_large: "These files are too large together. Use fewer photos.",
   bad_files: "We could not use these files. Use up to 6 photos, or one PDF.",
   limit: "The daily limit for reading menus is used up. Try again tomorrow.",
   not_set_up: "Menu reading is not switched on yet.",
-  busy: "Google's AI is busy right now. Wait a minute and try again.",
+  busy: "The AI is busy right now. Wait a minute and try again.",
   read_failed: "Something went wrong while reading. Nothing was saved. Try again.",
   not_a_menu: "We could not find a menu in these files. Try clearer photos.",
   photos_large: "These photos are too large together. Use fewer photos.",
@@ -2538,11 +2575,11 @@ function paintMenuScreen(){
       `<p class="hint">JPG, PNG or WebP photos, up to 6. Or one PDF up to 3 MB.</p></div>` +
     `<p class="say" id="up-filemsg" role="alert"></p>` +
     `<ul class="upfiles" id="up-list" aria-label="Chosen files"></ul>` +
-    `<p id="up-private">Your menu is read by Google's AI. Upload only your menu, nothing private.</p>` +
+    `<p id="up-private">Your menu is read by AI. Upload only your menu, nothing private.</p>` +
     `<p class="say" id="up-msg" role="alert" tabindex="-1"></p>` +
     `<p class="hint" id="up-ref"></p>` +
     `<p class="say" id="up-status" role="status"></p>` +
-    `<div class="upacts"><button type="button" class="btn primary" id="up-read" data-up="read" disabled>Read my menu</button>` +
+    `<div class="upacts"><button type="button" class="btn primary" id="up-read" data-up="read" disabled>${ICON.ai}Read my menu</button>` +
       `<button type="button" class="btn" data-nav="${esc(updating ? mineHome() : address({setup: "place"}))}">Back</button></div>` +
     // opened from "Update my menu": the saved menu can be checked again, and the shop can be taken off this laptop
     (updating ? `<div class="upacts" id="up-update"><button type="button" class="btn" data-up="again">Check my menu again</button>` +
@@ -2632,7 +2669,7 @@ async function readMenu(){
   paintUpState();
   if(screen !== "menu") return;
   upSay("up-msg", got.words || UP_SAY[got.error]);
-  upSay("up-ref", got.ref ? `Error code: ${got.ref}` : "");
+  upSay("up-ref", got.ref ? `Error code: ${refWords(got.ref)}` : "");
   focusOn("#up-msg");
 }
 
@@ -2692,7 +2729,7 @@ function shownRows(){
 const announce = words => upSay("ck-live", words);
 /* how many cafes in the data have a price for a compared item, and the tag that says so */
 const cafesWith = key => (D.named_prices[key] || []).length;
-const cafesWords = key => cafesWith(key) < MIN_OTHERS ? "Too few cafes to compare yet" : `Compared with ${cafesWith(key)} cafes`;
+const cafesWords = key => cafesWith(key) < MIN_OTHERS ? "Too few cafes to compare yet" : "Compared with other cafes";
 const CHECK_TAG = `<span class="tag">Please check</span>`;
 
 /* the lines under the heading, the tabs, the filter button and the bar's words: every count on the page */
@@ -2700,7 +2737,7 @@ function paintCounts(){
   const n = ed.rows.length, m = matchCount(), k = lookCount();
   if(!k) ed.look = false;
   byId("ck-top").innerHTML =
-    `<p id="ck-read">We read ${n === 1 ? "1 item" : `${n} items`} from your menu.</p>` +
+    `<p id="ck-read">${ICON.ai}We read ${n === 1 ? "1 item" : `${n} items`} from your menu.</p>` +
     `<p id="ck-can">${m === 0 ? "None of them can be compared with other cafes yet." : `${m} of them can be compared with other cafes today.`}</p>` +
     (k ? `<p id="ck-look">${k === 1 ? "1 needs a look." : `${k} need a look.`}</p>` : "");
   const searching = fold(ed.find) !== "";
@@ -2755,7 +2792,7 @@ function paintBox(){
     `<h3 id="ck-h-found">Found on your menu (${found.length})</h3><ul id="ck-found">` + found.map(k => {
       const r = picked(k);
       return `<li data-key="${esc(k)}"><span class="words"><span class="mine">${esc(rowWords(r))}</span>` +
-        `<span class="with">Compared with ${esc(itemName(k))} at ${cafesWith(k)} cafes.</span></span>` +
+        `<span class="with">Compared with ${esc(itemName(k))} at other cafes.</span></span>` +
         `<button type="button" class="btn quiet" data-ck="boxchange" data-id="${r.id}" aria-label="Change ${esc(itemName(k))}">Change</button></li>`;
     }).join("") + `</ul>` +
     `<h3 id="ck-h-lacking">Not found on your menu (${lacking.length})</h3>` +
@@ -2896,6 +2933,8 @@ function forgetMine(){
   try { localStorage.removeItem(SHOP_KEY); localStorage.removeItem(MENU_KEY); } catch(e){ /* nothing was kept */ }
   delete saves[MY_ID];
   storeSaves();
+  delete ideasAll[MY_ID];
+  storeIdeas();
   myShop = null; myMenu = null; ed = null; menuLost = false; shopLost = false; updating = false; up.files = [];
   pl.name = ""; pl.postal = ""; pl.results = null; pl.pick = null;
 }
@@ -3188,6 +3227,239 @@ document.addEventListener("change", e => {
   focusOn("#ck-ctl");
 });
 
+/* ---------- Ideas for your shop ----------
+   At the top of Offers. The owner asks, and AI writes 3 ideas from the
+   owner's own menu and what cafes near them offer: which items, what discount,
+   and the words. Every price on the page is worked out here, from the owner's
+   real prices at the moment of drawing. An idea is a bundle (2 or 3 items for
+   one set price) or a price cut (1 to 4 items, lower, on set days and hours).
+   The last set, how many were asked for today and the ideas not wanted are
+   kept in this browser only, for each shop. */
+const IDEAS_KEY = "counter.ideas.v1";
+const IDEAS_A_DAY = 3;            // sets of ideas for one shop in one day
+const AVOID_MAX = 30;             // ideas not wanted that are sent along, newest kept
+const IDEAS_WAIT = 75000;         // milliseconds before the page stops waiting: longer than the server's own 60 seconds
+const IDEA_TYPES = {bundle: "Bundle", price_cut: "Price cut"};
+const IDEA_DAYS = {"weekdays": "Weekdays", "weekends": "Weekends", "every day": "Every day"};
+let ideasAll = {};                // shop_id -> {date, used, ideas, avoid, looked}
+const menuFor = {};               // shop_id -> its menu rows, once loaded; null when it could not be loaded
+const iu = {busy: false, loading: false, msg: "", ref: "", code: ""};
+function loadIdeas(){
+  let kept = null;
+  try { kept = JSON.parse(localStorage.getItem(IDEAS_KEY) || "{}"); } catch(e){ kept = null; }
+  ideasAll = kept && typeof kept === "object" && !Array.isArray(kept) ? kept : {};
+}
+function storeIdeas(){
+  try { localStorage.setItem(IDEAS_KEY, JSON.stringify(ideasAll)); } catch(e){ /* the ideas stay for this visit */ }
+}
+/* this shop's ideas, cleaned, with the day's count started afresh on a new day */
+function shopIdeas(){
+  let mine = ideasAll[shop.shop_id];
+  if(!mine || typeof mine !== "object") mine = ideasAll[shop.shop_id] = {date: "", used: 0, ideas: [], avoid: []};
+  const today = localToday();
+  if(mine.date !== today){ mine.date = today; mine.used = 0; }
+  mine.used = Number.isInteger(mine.used) && mine.used > 0 ? mine.used : 0;
+  const good = e => e && typeof e === "object" && IDEA_TYPES[e.type] && Array.isArray(e.item_ids) && e.item_ids.every(i => typeof i === "string");
+  mine.ideas = (Array.isArray(mine.ideas) ? mine.ideas : []).filter(e => good(e) && typeof e.title === "string" && typeof e.why === "string" && Number.isInteger(e.discount_percent));
+  mine.avoid = (Array.isArray(mine.avoid) ? mine.avoid : []).filter(good).slice(0, AVOID_MAX);
+  return mine;
+}
+const ideaKey = idea => idea.type + "|" + idea.item_ids.slice().sort().join(",") + "|" + idea.discount_percent;
+
+/* ----- the menu the ideas are made from ----- */
+/* a short id for a row of an uploaded menu, from its name and note, so it stays the same while they do */
+function rowId(text, taken){
+  let h = 5381;
+  for(let i = 0; i < text.length; i += 1) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+  let id = "u" + h.toString(36), n = 1;
+  while(taken.has(id)){ n += 1; id = "u" + h.toString(36) + n; }
+  taken.add(id);
+  return id;
+}
+/* the owner's own shop: the rows of the saved menu that have a price */
+function uploadedRows(){
+  const taken = new Set();
+  return (myMenu ? myMenu.rows : []).filter(r => r && typeof r.name === "string" && Number.isFinite(r.cents) && r.cents > 0)
+    .map(r => ({id: rowId(r.name + "|" + (r.variant || ""), taken), name: r.name, variant: r.variant || "", price: r.cents / 100, kind: rowKind(r.kind)}));
+}
+/* a shop in our list: its own file, asked for only when ideas are wanted or there are ideas to draw */
+async function loadShopMenu(id){
+  if(id === MY_ID){ menuFor[id] = uploadedRows(); return; }
+  if(menuFor[id] !== undefined) return;
+  let rows = null;
+  try {
+    const res = await fetch(`menus/${encodeURIComponent(id)}.json`);
+    const data = res.ok ? await res.json() : null;
+    if(data && Array.isArray(data.rows)) rows = data.rows.filter(r => r && typeof r.id === "string" && typeof r.name === "string" && typeof r.price === "number" && isFinite(r.price) && r.price > 0)
+      .map(r => ({id: r.id, name: r.name, variant: typeof r.variant === "string" ? r.variant : "", price: r.price, kind: rowKind(r.kind)}));
+  } catch(e){ rows = null; }
+  menuFor[id] = rows;
+}
+
+/* ----- the sums: whole cents, and the nearest 10 cents with a half going up ----- */
+const offTo10 = (c, percent) => Math.floor((c * (100 - percent) + 500) / 1000) * 10;
+const hourWords = h => h === 12 ? "12pm" : h < 12 ? `${h}am` : `${h - 12}pm`;
+const itemWords = r => r.name + (r.variant ? `, ${r.variant}` : "");
+/* An idea with everything worked out from the menu as it is now, as it is shown and as it is saved.
+   Null when an item is no longer on the menu, or the sums leave nothing to offer. */
+function ideaView(idea, rows){
+  const items = idea.item_ids.map(id => (rows || []).find(r => r.id === id));
+  if(!items.length || items.some(r => !r)) return null;
+  const d = idea.discount_percent;
+  const view = {key: ideaKey(idea), type: idea.type, title: idea.title, why: idea.why, discount_percent: d,
+                items: items.map(r => ({name: r.name, variant: r.variant, cents: cents(r.price)}))};
+  if(idea.type === "bundle"){
+    view.apart_cents = view.items.reduce((t, r) => t + r.cents, 0);
+    view.set_cents = offTo10(view.apart_cents, d);
+    if(view.set_cents <= 0 || view.set_cents >= view.apart_cents) return null;
+    view.saves_cents = view.apart_cents - view.set_cents;
+    view.saves_percent = Math.round(100 * view.saves_cents / view.apart_cents);
+  } else {
+    view.items.forEach(r => { r.new_cents = offTo10(r.cents, d); });
+    if(view.items.some(r => r.new_cents <= 0 || r.new_cents >= r.cents)) return null;
+    view.when = `${IDEA_DAYS[idea.days] || ""}, ${idea.all_day ? "all day" : `${hourWords(idea.start_hour)} to ${hourWords(idea.end_hour)}`}`;
+  }
+  return view;
+}
+const dollars = c => money(c / 100);
+/* the lines of one idea, the same on Offers and on Saved */
+function ideaLines(v){
+  const head = `<p class="ihead"><span class="tag">${IDEA_TYPES[v.type]}</span><span class="ititle">${esc(v.title)}</span></p>`;
+  const row = (words, value, cls) => `<li${cls ? ` class="${cls}"` : ""}><span>${words}</span><span class="num">${value}</span></li>`;
+  const body = v.type === "bundle"
+    ? `<ul class="ilines">` + v.items.map(r => row(esc(itemWords(r)), dollars(r.cents))).join("") +
+        row("Bought apart", dollars(v.apart_cents), "sum") + row("Suggested set price", `<strong>${dollars(v.set_cents)}</strong>`, "set") + `</ul>` +
+      `<p class="isaves">Saves the customer ${dollars(v.saves_cents)}, about ${v.saves_percent}%.</p>`
+    : `<ul class="ilines">` + v.items.map(r => row(esc(itemWords(r)), `${dollars(r.cents)} to ${dollars(r.new_cents)}`)).join("") +
+        row("When", esc(v.when), "sum") + `</ul>` +
+      `<p class="isaves">${v.discount_percent}% off these items.</p>`;
+  return head + body + `<p class="iwhy"><span class="lbl">Why:</span> ${esc(v.why)}</p>`;
+}
+const savedAi = key => shopSaves().ideas.find(e => e.kind === "ai_idea" && e.idea.key === key);
+
+function paintIdeas(){
+  // the owner's own shop: its menu is the saved one, as it is now
+  if(shop.shop_id === MY_ID) menuFor[MY_ID] = uploadedRows();
+  const box = byId("ideaspage"), mine = shopIdeas(), rows = menuFor[shop.shop_id];
+  // ideas kept from before need the menu to be drawn: it is asked for once, and the section is drawn again
+  if(mine.ideas.length && rows === undefined && !iu.loading){
+    iu.loading = true;
+    const id = shop.shop_id;
+    loadShopMenu(id).then(() => { iu.loading = false; if(shop && shop.shop_id === id && page === "offers") paintIdeas(); });
+  }
+  const views = mine.ideas.map(i => ideaView(i, rows)).filter(Boolean);
+  const left = Math.max(0, IDEAS_A_DAY - mine.used), first = mine.used === 0 && !mine.ideas.length;
+  const needCode = loadCode() === "";
+  const looked = mine.looked && views.length ? mine.looked : null;
+  const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  box.innerHTML =
+    `<h2 id="ideas-h" tabindex="-1">${ICON.ai}Ideas for your shop</h2>` +
+    `<p class="muted" id="ideas-says">Written by AI from your menu and what cafes near you offer. Check them before you use them.</p>` +
+    (looked ? `<p class="muted small" id="ideas-looked">Looked at: your menu (${count(looked.n, "item", "items")}), ` +
+      `${count(looked.c, "offer", "offers")} from your competitors, ${count(looked.o, "offer", "offers")} from other cafes.</p>` : "") +
+    (views.length ? `<ul class="idealist" id="ideas-list">` + views.map(v =>
+      `<li class="idea" data-key="${esc(v.key)}">` + ideaLines(v) +
+      `<div class="acts">` + saveBtn(`data-ai="save" data-key="${esc(v.key)}"`, !!savedAi(v.key), "Save", v.title) +
+      `<button type="button" class="btn quiet" data-ai="drop" data-key="${esc(v.key)}" aria-label="Not for me: ${esc(v.title)}">Not for me</button></div></li>`).join("") + `</ul>` : "") +
+    `<p class="say" id="ideas-msg" role="alert" tabindex="-1">${esc(iu.msg)}</p>` +
+    `<p class="hint" id="ideas-ref">${iu.ref ? `Error code: ${esc(refWords(iu.ref))}` : ""}</p>` +
+    `<p class="say" id="ideas-status" role="status">${iu.busy ? "Writing ideas for your shop. This can take up to a minute." : ""}</p>` +
+    (left > 0 ? `<div class="ideasacts">` +
+      (needCode ? `<div class="field"><label for="ideas-code">Access code</label><div class="codeline">` +
+        `<input id="ideas-code" type="password" autocomplete="off" spellcheck="false" value="${esc(iu.code)}">` +
+        `<button type="button" class="btn" data-ai="showcode" aria-controls="ideas-code" aria-pressed="false">Show</button></div>` +
+        `<p class="hint">Your team has this code.</p></div>` : "") +
+      `<button type="button" class="btn" id="ideas-get" data-ai="get"${iu.busy ? " disabled" : ""}>${ICON.ai}${first ? "Get ideas for my shop" : "Give me different ideas"}</button></div>` : "") +
+    (first ? "" : `<p class="muted small" id="ideas-left">${left > 0 ? `${left} of ${IDEAS_A_DAY} left today` : "No more ideas today. Come back tomorrow."}</p>`);
+}
+/* what goes with the menu: the offers running now, the competitors' new items, the usual prices */
+function ideasRequest(rows, mine){
+  const today = localToday(), seen = new Set();
+  const offers = offersLoaded() ? C.offers.filter(r => runningNow(r, today))
+    .map((r, i) => ({id: "o" + (i + 1), cafe: r.brand_name, text: r.offer_text, type: r.promo_type, competitor: isMine(r)})) : [];
+  const fresh = C ? C.launches.filter(isMine).filter(r => { const k = newKey(r.shop, r.item_name); if(seen.has(k)) return false; seen.add(k); return true; })
+    .map(r => ({cafe: r.shop, name: r.item_name, price: r.price})) : [];
+  return {shop_name: shop.shop_name, menu: rows.map(r => ({id: r.id, name: r.name, variant: r.variant, price: r.price, kind: r.kind})),
+          offers: offers, new_items: fresh,
+          market: D.price_table.filter(r => typeof r.median === "number").map(r => ({item: r.display_name, usual_price: r.median})),
+          avoid: mine.avoid.slice(0, AVOID_MAX)};
+}
+async function getIdeas(){
+  if(iu.busy) return;
+  const id = shop.shop_id, mine = shopIdeas();
+  if(IDEAS_A_DAY - mine.used <= 0) return;
+  const field = byId("ideas-code");
+  const code = (loadCode() || (field ? field.value : iu.code) || "").trim();
+  iu.msg = ""; iu.ref = "";
+  if(code === ""){ focusOn("#ideas-code"); return; }
+  iu.busy = true;
+  paintIdeas();
+  const said = (words, ref) => { iu.busy = false; iu.msg = words; iu.ref = ref || ""; if(shop && shop.shop_id === id && page === "offers"){ paintIdeas(); focusOn("#ideas-msg"); } };
+  await loadShopMenu(id);
+  const rows = menuFor[id];
+  if(!rows || rows.length < 2){ said("We do not have enough of your menu to suggest ideas yet."); return; }
+  const request = ideasRequest(rows, mine);
+  const stop = new AbortController(), timer = setTimeout(() => stop.abort(), IDEAS_WAIT);
+  let res = null, data = null;
+  try {
+    res = await fetch("api/ideas", {method: "POST", headers: {"Content-Type": "application/json"},
+                                    body: JSON.stringify(Object.assign({code: code}, request)), signal: stop.signal});
+    data = await res.json();
+  } catch(e){ data = null; }
+  clearTimeout(timer);
+  if(res && res.ok && data && Array.isArray(data.ideas) && data.ideas.length){
+    try { localStorage.setItem(CODE_KEY, code); } catch(e){ /* the code is asked for again next time */ }
+    mine.ideas = data.ideas;
+    mine.used += 1;
+    mine.looked = {n: request.menu.length, c: request.offers.filter(o => o.competitor).length, o: request.offers.filter(o => !o.competitor).length};
+    storeIdeas();
+    iu.busy = false; iu.code = "";
+    if(shop && shop.shop_id === id && page === "offers"){ paintIdeas(); focusOn("#ideas-h"); }
+    return;
+  }
+  const error = data && typeof data.error === "string" ? data.error : "read_failed";
+  const ref = data && typeof data.ref === "string" && /^[a-z0-9_]{1,40}$/.test(data.ref) ? data.ref : "";
+  // a code that is not right is asked for again
+  if(error === "bad_code"){ try { localStorage.removeItem(CODE_KEY); } catch(e){ /* nothing was kept */ } iu.code = ""; }
+  // the daily limit and "no ideas this time" are said in the server's own words
+  const own = (error === "limit" || error === "no_ideas") && typeof data.message === "string" ? data.message : "";
+  said(own || (Object.prototype.hasOwnProperty.call(UP_SAY, error) && ["bad_code", "not_set_up", "busy"].indexOf(error) !== -1 ? UP_SAY[error] : UP_SAY.read_failed), ref);
+}
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-ai]");
+  if(!el || el.disabled || !shop) return;
+  const act = el.dataset.ai, key = el.dataset.key;
+  if(act === "get") getIdeas();
+  else if(act === "showcode"){
+    const field = byId("ideas-code"), hide = field.type === "text";
+    field.type = hide ? "password" : "text";
+    el.textContent = hide ? "Show" : "Hide";
+    el.setAttribute("aria-pressed", String(!hide));
+  }
+  // an idea saved is kept as it is shown now: its items, their prices and the sums do not change later
+  else if(act === "save"){
+    const mine = shopIdeas(), idea = mine.ideas.find(i => ideaKey(i) === key), view = idea ? ideaView(idea, menuFor[shop.shop_id]) : null;
+    if(!view) return;
+    putIdea(x => x.kind === "ai_idea" && x.idea.key === key, savedAi(key) ? null : {kind: "ai_idea", idea: view, at: stamp()});
+    paint();
+    const again = [...document.querySelectorAll('[data-ai="save"]')].find(b => b.dataset.key === key);
+    if(again) again.focus();
+  }
+  // "Not for me": the idea goes, and is sent along as one not to repeat
+  else if(act === "drop"){
+    const mine = shopIdeas(), idea = mine.ideas.find(i => ideaKey(i) === key);
+    if(!idea) return;
+    mine.ideas = mine.ideas.filter(i => i !== idea);
+    mine.avoid = [{type: idea.type, item_ids: idea.item_ids.slice()}].concat(mine.avoid).slice(0, AVOID_MAX);
+    storeIdeas();
+    paintIdeas();
+    focusOn("#ideas-list .btn, #ideas-get, #ideas-h");
+  }
+  // the Saved page: take a saved idea away
+  else if(act === "unsave"){ putIdea(x => x.kind === "ai_idea" && x.idea.key === key, null); paint(); }
+});
+document.addEventListener("input", e => { if(e.target && e.target.id === "ideas-code") iu.code = e.target.value; });
+
 /* ---------- start ---------- */
 // The prices are needed by every page. The new items are needed by one, so
 // when they fail to load that page says so and the others carry on.
@@ -3204,6 +3476,7 @@ Promise.all([
   buildSetup();
   buildLegends();
   loadSaves();
+  loadIdeas();
   myShop = loadShop();
   myMenu = loadMenu();
   route();

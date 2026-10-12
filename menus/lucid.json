@@ -1,0 +1,5 @@
+{"shop_id": "lucid", "rows": [
+{"id": "mbaabe0", "name": "Black Coffee", "variant": "", "price": 4.5, "kind": "drink"},
+{"id": "m30d9f7", "name": "White Coffee", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "m42860e", "name": "Cloud Cake Slice", "variant": "", "price": 9.0, "kind": "cake"}
+]}

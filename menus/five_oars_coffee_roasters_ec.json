@@ -1,0 +1,12 @@
+{"shop_id": "five_oars_coffee_roasters_ec", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "ma89755", "name": "Latte", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 6.0, "kind": "drink"},
+{"id": "m6737c5", "name": "Long Black", "variant": "", "price": 5.0, "kind": "drink"},
+{"id": "m3d011e", "name": "Espresso", "variant": "", "price": 4.5, "kind": "drink"},
+{"id": "me9e4f6", "name": "Matcha Latte", "variant": "", "price": 6.5, "kind": "drink"},
+{"id": "m177c4f", "name": "Classic Butter Croissant", "variant": "", "price": 4.5, "kind": "pastry"},
+{"id": "m044d91", "name": "Almond Croissant", "variant": "", "price": 5.8, "kind": "pastry"},
+{"id": "m032e3c", "name": "Pain Au Chocolat", "variant": "", "price": 5.0, "kind": "pastry"},
+{"id": "m0904ac", "name": "Lemon Loaf Slice", "variant": "", "price": 6.0, "kind": "cake"}
+]}

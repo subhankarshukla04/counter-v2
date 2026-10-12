@@ -1,0 +1,11 @@
+{"shop_id": "crown_bakery_bukit_timah", "rows": [
+{"id": "m22d3bd", "name": "Flat White", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "me9e35d", "name": "Caffe Latte", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "m9dc19e", "name": "Cappuccino", "variant": "", "price": 5.5, "kind": "drink"},
+{"id": "m6737c5", "name": "Long Black", "variant": "", "price": 4.8, "kind": "drink"},
+{"id": "m825af5", "name": "Crown Croissant", "variant": "", "price": 4.0, "kind": "pastry"},
+{"id": "m044d91", "name": "Almond Croissant", "variant": "", "price": 5.2, "kind": "pastry"},
+{"id": "ma1adba", "name": "Chocolate Croissant", "variant": "", "price": 4.8, "kind": "pastry"},
+{"id": "me3f8af", "name": "Apple Danish", "variant": "", "price": 4.8, "kind": "pastry"},
+{"id": "m8511c8", "name": "Crown Signature Sourdough Loaf", "variant": "", "price": 8.8, "kind": "pastry"}
+]}
