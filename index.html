@@ -139,6 +139,8 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .upfiles .name{font-weight:600; color:var(--ink)}
 .upfiles .btn{min-height:36px; padding:0 12px; font-size:13px}
 .upacts{display:flex; flex-wrap:wrap; gap:10px}
+/* Update my menu: the choices, one under the other */
+.upcol{display:flex; flex-direction:column; align-items:flex-start; gap:10px}
 #plmap{height:220px; margin-top:12px}
 #pl-card{max-width:560px}
 #pl-result > * + *{margin-top:16px}
@@ -283,6 +285,9 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 /* the phone's bar and menu button: not on a laptop */
 .mbar{display:none}
 .main{flex:1; min-width:0; padding:28px 32px 48px}
+/* a menu screen opened from "Update my menu" sits beside the sidebar, in the place of the page */
+.app > .stage{flex:1; min-width:0; overflow-x:clip}
+@media (min-width:900px){ .app > .savebar{left:var(--side)} }
 .main > h1{margin-bottom:20px}
 .main > .sub{margin:-12px 0 20px}
 .page-empty{color:var(--ink)}
@@ -306,6 +311,11 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 .savedrows .btn{min-height:36px; padding:0 14px; font-size:14px}
 #savedpage .none p + p{margin-top:4px}
 .main > .sub .under{display:block; margin-top:4px}
+/* one line that says what a change to the menu did */
+.main > .say{margin:-8px 0 20px}
+.savedrows .band{flex:1 1 100%; margin-bottom:0}
+.detail .band{margin-bottom:0}
+#sell-box .field{max-width:200px}
 
 /* ---------- New items: one panel with tabs, two switches and a table ---------- */
 .newbar{display:flex; flex-wrap:wrap; align-items:flex-end; gap:4px 24px; border-bottom:1px solid var(--rule); margin-bottom:8px}
@@ -583,6 +593,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
   .savebar{padding:8px 16px}
   /* the toolbar on a phone: the heading scrolls away, the tabs are one line that slides sideways, and the rest stays */
   #ck-tools{top:-34px}
+  .app #ck-tools{top:26px}        /* under the phone's bar */
   .ckhead h2{flex:1 1 100%; height:30px}
   .ckhead .tabs{flex-wrap:nowrap; overflow-x:auto}
   .findline input{flex:1 1 110px}
@@ -600,7 +611,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
 <div class="setup" id="setup" hidden>
   <header class="topbar">
     <p class="wordmark">Counter</p>
-    <ol class="steps" aria-label="Set-up steps">
+    <ol class="steps" id="steps" aria-label="Set-up steps">
       <li id="step-1"><span class="num">1</span>Your shop</li>
       <li id="step-m" hidden><span class="num">2</span>Your menu</li>
       <li id="step-c" hidden><span class="num">3</span>Check your menu</li>
@@ -682,9 +693,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
       <ul class="nav" aria-labelledby="group-setup">
         <li><a class="line" href="./" data-act="editrivals">
           <span class="navic" id="nav-target" aria-hidden="true"></span><span id="nav-rivals">My competitors</span></a></li>
-        <li><span class="line" role="link" aria-disabled="true" id="nav-update-soon">
-          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>Update my menu<span class="soon">Soon</span></span>
-          <a class="line" href="./" id="nav-update" data-nav="" hidden>
+        <li><a class="line" href="./" id="nav-update" data-nav="">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>Update my menu</a></li>
       </ul>
     </nav>
@@ -693,6 +702,7 @@ html.keys .offscreen:focus-visible + .btn{outline:2px solid var(--ink); outline-
   <main class="main" id="prices">
     <h1 id="page-title">My prices</h1>
     <p class="sub" id="page-sub" hidden></p>
+    <p class="say" id="page-say" role="status" tabindex="-1" hidden></p>
     <div class="band" id="band" hidden></div>
     <p class="page-empty" id="page-empty" hidden></p>
     <div class="cols" id="cols">
@@ -796,6 +806,9 @@ const test = new Map();       // item -> a price in cents tested for an item the
 let showHidden = false;       // whether the "Hidden items" list is open
 let closed = false;           // whether the reader closed the right panel
 let lastShop = "";            // the shop the trial and test prices belong to
+let ask = null;               // {item, cents}: the price the page is asking about, before it becomes the real price
+let sell = null;              // {item, text, msg}: the "I sell this" box, while it is open
+let flash = "";               // one line that says what a change to the menu did
 
 /* ---------- saved things ----------
    The one use of the browser's own storage in Counter, under one key: for
@@ -984,12 +997,19 @@ let screen = "";
 function show(name){
   const fresh = screen !== name;
   screen = name;
-  byId("setup").hidden = name === "prices";
-  byId("app").hidden = name !== "prices";
+  // a menu screen for a shop that is set up shows in the shell, with the sidebar; for a new shop it is a set-up screen
+  const inApp = !!target && (name === "menu" || name === "check" || name === "update");
+  const home = byId(inApp ? "app" : "setup");
+  if(byId("upload").parentNode !== home){ home.appendChild(byId("upload")); home.appendChild(byId("ck-bar")); }
+  byId("setup").hidden = name === "prices" || inApp;
+  byId("app").hidden = name !== "prices" && !inApp;
+  byId("prices").hidden = inApp;
   byId("find").hidden = name !== "find";
   byId("choose").hidden = name !== "choose";
   // a shop that is not in the list has two more steps: its menu, and the check of it
-  const upload = name === "place" || name === "menu" || name === "check";
+  const upload = name === "place" || name === "menu" || name === "check" || name === "update";
+  // a shop that is set up already is past the steps
+  byId("steps").hidden = upload && !!target;
   const flow = upload || (name === "choose" && !!chooser && chooser.shop.shop_id === MY_ID && !chooser.edit);
   byId("upload").hidden = !upload;
   byId("upload").className = name === "check" ? "stage wide check" : "stage";
@@ -1012,11 +1032,20 @@ function route(){
   const q = new URLSearchParams(location.search);
   // the owner's own shop is in the data only while it is the shop that is open
   const own = q.get("shop") === MY_ID;
+  clearOwn();
   setMine(own);
   // its place is stored but its menu is not yet: the menu comes next
-  if(own && myShop && !myMenu){ history.replaceState(null, "", address({setup: "menu"})); chooser = null; showUpload(new URLSearchParams(location.search)); return; }
+  if(own && myShop && !myMenu){ history.replaceState(null, "", address({setup: "menu"})); chooser = null; showUpload(new URLSearchParams(location.search), null); return; }
+  // an address from before "Update my menu" had a screen of its own
+  if(!q.get("shop") && q.get("setup") && q.get("update") === "1" && mineReady()){
+    history.replaceState(null, "", address({setup: q.get("setup"), shop: MY_ID, rivals: myShop.rivals.join(",")}));
+    route();
+    return;
+  }
+  // a listed shop's own changes are in the data only while it is the shop that is open
+  setOwn(q.get("shop"));
   const s = SHOPS.get(q.get("shop")) || null;
-  if(!s && q.get("setup")){ chooser = null; showUpload(q); return; }
+  if(q.get("setup")){ chooser = null; showUpload(q, s); return; }
   if(!s){ chooser = null; showFind(q, own); return; }
   const ids = validRivals(q.get("rivals"), s);
   if(!ids.length){ showChooser(s, null, q); return; }
@@ -1024,16 +1053,9 @@ function route(){
   chooser = null;
   openShop(s, ids, q);
 }
-function openShop(s, ids, q){
-  const asked = q.get("page");
-  const nextPage = Object.prototype.hasOwnProperty.call(PAGE_TITLE, asked) ? asked : "prices";
-  // a new shop, a new page, or a return from set-up starts the page afresh.
-  // A change to the hidden items alone leaves the open tab and item be.
-  const entering = screen !== "prices" || lastShop !== s.shop_id || page !== nextPage;
-  if(lastShop !== s.shop_id){ trial.clear(); test.clear(); }
-  lastShop = s.shop_id;
+/* the open shop: its items, its competitors, the items it does not sell and the ones hidden from that list */
+function setShop(s, ids, q){
   shop = s;
-  page = nextPage;
   // list order: the headings in turn, then anything they do not name
   const known = GROUPS.flatMap(g => g[1]);
   const have = Object.keys(D.named_prices).filter(k => D.named_prices[k].some(r => r.shop_id === s.shop_id));
@@ -1050,9 +1072,20 @@ function openShop(s, ids, q){
     .concat(bySellers(lacking.filter(k => known.indexOf(k) === -1)));
   // hidden items: real item names only, each once
   hide = [...new Set(String(q.get("hide") || "").split(","))].filter(k => D.named_prices[k]);
+}
+function openShop(s, ids, q){
+  const asked = q.get("page");
+  const nextPage = Object.prototype.hasOwnProperty.call(PAGE_TITLE, asked) ? asked : "prices";
+  // a new shop, a new page, or a return from set-up starts the page afresh.
+  // A change to the hidden items alone leaves the open tab and item be.
+  const entering = screen !== "prices" || lastShop !== s.shop_id || page !== nextPage;
+  if(lastShop !== s.shop_id){ trial.clear(); test.clear(); }
+  lastShop = s.shop_id;
+  page = nextPage;
+  setShop(s, ids, q);
 
   if(entering){
-    iu.msg = ""; iu.ref = "";
+    iu.msg = ""; iu.ref = ""; ask = null; sell = null; flash = "";
     view = "list"; showAll = false; showHidden = false; closed = false;
     // New items starts on the competitors' items when there are any
     newTab = "all"; chainsOn = false; foldNew(); onlyMine = page === "offers" ? anyMineOffer() : anyMine();
@@ -1078,13 +1111,11 @@ function openShop(s, ids, q){
     savedTab = named === "ideas" ? "ideas" : named === "menu" ? "tests" : !mine.tests.length && mine.ideas.length ? "ideas" : "tests";
   }
   document.title = `${PAGE_TITLE[page]}, ${s.shop_name} | Counter`;
-  byId("who-name").textContent = s.shop_name;
-  // the owner's own shop shows its street, never a district
-  byId("who-area").textContent = s.shop_id === MY_ID ? (s.street || s.address) : s.district;
-  byId("who-lost").hidden = !(s.shop_id === MY_ID && (menuLost || shopLost));
   show("prices");
   paint(entering);
 }
+/* "Update my menu" for the open shop: its competitors and hidden items are kept in the address */
+const updateHome = () => address({setup: "update", shop: shop.shop_id, rivals: rivals.map(o => o.shop_id).join(","), hide: hide.join(",")});
 const PAGE_TITLE = {prices: "My prices", missing: "Items I do not sell", new: "New items", offers: "Offers", saved: "Saved"};
 function categories(){
   const tally = new Map();
@@ -1106,12 +1137,16 @@ function paint(fit){
 /* the sidebar, the heading, and which panels show */
 function paintFrame(){
   const miss = page === "missing", n = visMissing().length;
+  byId("who-name").textContent = shop.shop_name;
+  // the owner's own shop shows its street, never a district
+  byId("who-area").textContent = shop.shop_id === MY_ID ? (shop.street || shop.address) : shop.district;
+  byId("who-lost").hidden = !((shop.shop_id === MY_ID && (menuLost || shopLost)) || ownLost);
+  byId("nav-update").removeAttribute("aria-current");
   byId("nav-rivals").textContent = `My competitors (${rivals.length})`;
-  // "Update my menu" works for the owner's own shop only
-  const own = shop.shop_id === MY_ID;
-  byId("nav-update").hidden = !own;
-  byId("nav-update-soon").hidden = own;
-  byId("nav-update").dataset.nav = own ? address({setup: "menu", update: "1"}) : "";
+  byId("nav-update").dataset.nav = updateHome();
+  const say = byId("page-say");
+  say.hidden = flash === "";
+  say.textContent = flash;
   byId("nav-missing-words").textContent = `Items I do not sell (${n})`;
   byId("nav-saved-words").textContent = `Saved (${savedCount()})`;
   [["nav-prices", "prices"], ["nav-new", "new"], ["nav-missing", "missing"], ["nav-offers", "offers"], ["nav-saved", "saved"]].forEach(pair => {
@@ -1153,7 +1188,7 @@ function paintList(){
     box.innerHTML = miss ? `<p>You have hidden every item.</p>` + hiddenHtml()
                          : shop.shop_id === MY_ID
                            ? `<p id="mine-none">None of your menu items can be compared yet. Counter compares ${Object.keys(D.named_prices).length} common items today, and more are being added.</p>` +
-                             `<button type="button" class="btn" id="mine-update" data-nav="${esc(address({setup: "menu", update: "1"}))}">Update my menu</button>`
+                             `<button type="button" class="btn" id="mine-update" data-nav="${esc(updateHome())}">Update my menu</button>`
                            : `<p>We have no prices to compare for this shop yet.</p>`;
     return;
   }
@@ -1342,6 +1377,11 @@ function localToday(){
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
+/* the reader's own day for a saved time: "2026-10-12T01:00:00.000Z" -> "2026-10-12" in Singapore */
+const localDay = iso => {
+  const d = new Date(iso);
+  return isNaN(d) ? "" : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 const runningNow = (r, today) => !r.end_date || r.end_date >= today;
 const offersLoaded = () => !!C && Array.isArray(C.offers);
 const anyMineOffer = () => { const today = localToday(); return offersLoaded() && C.offers.some(r => runningNow(r, today) && isMine(r)); };
@@ -1435,7 +1475,10 @@ function paintSaved(){
           `<p data-real>${rec ? `Your price ${money(rec.price)}` : "No price on file now"}</p>` +
           `<p data-tried>Price you tried ${money(e.cents / 100)}</p>` +
           (rec ? `<p class="meaning" data-meaning>${meaningLine(e.item, e.cents)}</p>` : "") + `</div>` +
-          acts((rec ? act("opentest", "Open", `data-item="${esc(e.item)}"`, name) : "") + act("droptest", "Remove", `data-item="${esc(e.item)}"`, name)) + `</li>`;
+          acts((rec ? act("opentest", "Open", `data-item="${esc(e.item)}"`, name) +
+                      act("realask", "Make this my real price", `data-item="${esc(e.item)}" data-cents="${e.cents}"`, name) : "") +
+               act("droptest", "Remove", `data-item="${esc(e.item)}"`, name)) +
+          (rec && ask && ask.item === e.item ? askHtml() : "") + `</li>`;
       }).join("") + `</ul>`;
   } else {
     const lacking = ideas.filter(e => e.kind === "missing"), fresh = ideas.filter(e => e.kind === "new");
@@ -1483,6 +1526,11 @@ function paintSaved(){
   box.innerHTML = html;
 }
 
+/* the question before a tried price becomes the real one, on My prices and on Saved */
+const askHtml = () => `<div class="band" id="real-ask" role="alert" tabindex="-1"><div class="words">` +
+  `<p>Make ${money(ask.cents / 100)} your real price for ${esc(itemName(ask.item))}?</p></div>` +
+  `<button type="button" class="btn" data-act="realyes">Yes, use it</button>` +
+  `<button type="button" class="btn" data-act="realno">Keep my price</button></div>`;
 /* the top of the right panel on My prices: the item, the verdict, the price, the chart's words */
 function paintPricesTop(){
   const k = openItem, rec = mine(k), real = rec.price, v = cur(k), trying = trial.has(k);
@@ -1495,18 +1543,23 @@ function paintPricesTop(){
 
   const listed = rec.listed_price != null && (rec.charges || []).length
     ? `<p class="muted small">Listed ${money(rec.listed_price)}. Includes ${esc(rec.charges.join(" and "))}.</p>` : "";
+  // a price that comes from the owner's own menu says so, with the day it was saved
+  const own = rec.price_basis === "own_menu" && dayMonth(rec.observed_date)
+    ? `<p class="muted small" id="d-own">Updated by you on ${dayMonth(rec.observed_date)}.</p>` : "";
   byId("d-price").innerHTML = trying
     ? `<div class="stepper">` +
         `<button type="button" class="btn sq" data-act="minus" aria-label="Lower the price by ${STEP} cents"${cents(v) <= FLOOR ? " disabled" : ""}>${ICON.minus}</button>` +
         `<span class="bigprice" id="d-big" aria-live="polite">${money(v)}</span>` +
         `<button type="button" class="btn sq" data-act="plus" aria-label="Raise the price by ${STEP} cents">${ICON.plus}</button></div>` +
-      `<p>Your real price is ${money(real)}.</p>` +
+      `<p>Your real price is ${money(real)}.</p>` + own +
       `<button type="button" class="btn" data-act="reset">Go back to my real price</button>` +
       // a price that differs from the real one can be saved. The button reads
       // "Saved" only while the saved price is the one on screen.
-      (changed(k) ? " " + saveBtn(`data-act="savetest"`, !!savedTest(k) && savedTest(k).cents === trial.get(k), "Save this test", itemName(k)) : "")
+      (changed(k) ? " " + saveBtn(`data-act="savetest"`, !!savedTest(k) && savedTest(k).cents === trial.get(k), "Save this test", itemName(k)) +
+                    ` <button type="button" class="btn quiet" data-act="realask" data-item="${esc(k)}" data-cents="${trial.get(k)}">Make this my real price</button>` +
+                    (ask && ask.item === k ? askHtml() : "") : "")
     : `<div class="d-price"><span class="bigprice" id="d-big">${money(v)}</span>` +
-      `<button type="button" class="btn primary" data-act="try">Try a different price</button></div>` + listed;
+      `<button type="button" class="btn primary" data-act="try">Try a different price</button></div>` + own + listed;
 
   const verdict = byId("d-verdict");
   verdict.hidden = !c.enough;
@@ -1532,6 +1585,7 @@ function paintMissingTop(){
     `<div class="title"><p class="label" id="d-name" tabindex="-1">${esc(itemName(k))}</p></div>` +
     // "Saved" only while the save matches what is on screen: the same price, or none on both sides
     saveBtn(`data-act="savemissing"`, !!savedMissing(k) && savedMissing(k).cents === (test.has(k) ? test.get(k) : null), "Save", itemName(k)) +
+    `<button type="button" class="btn" data-act="sell" aria-expanded="${!!sell && sell.item === k}">I sell this</button>` +
     `<button type="button" class="btn" data-act="close">${ICON.close}Close</button>`;
 
   const verdict = byId("d-verdict");
@@ -1546,7 +1600,13 @@ function paintMissingTop(){
           `<span class="bigprice" id="d-big" aria-live="polite">${money(v)}</span>` +
           `<button type="button" class="btn sq" data-act="plus" aria-label="Raise the price by ${STEP} cents">${ICON.plus}</button></div>` +
         `<p>This is only a test. It does not add the item to your menu.</p>` +
-        `<button type="button" class="btn" data-act="reset">Clear the price</button>`) + `</div>`;
+        `<button type="button" class="btn" data-act="reset">Clear the price</button>`) + `</div>` +
+    // "I sell this": the owner's own price for it, and the item goes onto the menu
+    (sell && sell.item === k ? `<div class="askprice" id="sell-box"><div class="field mini"><label for="sell-price">Your price</label>` +
+      `<input id="sell-price" type="text" inputmode="decimal" autocomplete="off" value="${esc(sell.text)}"${sell.msg ? ` aria-invalid="true"` : ""}></div>` +
+      `<p class="say" id="sell-msg" role="alert">${esc(sell.msg)}</p>` +
+      `<div class="upacts"><button type="button" class="btn" data-act="selladd">Add to my menu</button>` +
+      `<button type="button" class="btn" data-act="sellcancel">Cancel</button></div></div>` : "");
 
   byId("d-compare").innerHTML = !c.enough ? `<p>Not enough cafes to compare.</p>` :
     `<p class="title">What cafes charge. One dot is one cafe.</p>` +
@@ -1882,7 +1942,20 @@ document.addEventListener("click", e => {
   }
   if(!shop) return;
   const k = openItem, miss = page === "missing", bag = miss ? test : trial;
-  if(act === "tab"){ tab = el.dataset.tab; paintList(); focusOn(`[data-act="tab"][aria-selected="true"]`); }
+  // the question about a real price is answered at once or it is gone
+  const asked = ask;
+  ask = null;
+  if(act === "realask"){ ask = {item: el.dataset.item, cents: Number(el.dataset.cents)}; paint(); focusOn("#real-ask"); }
+  else if(act === "realno"){ paint(); const again = [...document.querySelectorAll('[data-act="realask"]')].find(b => !asked || b.dataset.item === asked.item); if(again) again.focus(); }
+  else if(act === "realyes"){ if(asked) makeReal(asked.item, asked.cents); else paint(); }
+  else if(act === "sell"){ sell = sell && sell.item === k ? null : {item: k, text: test.has(k) ? centsText(test.get(k)) : "", msg: ""}; paint(); focusOn(sell ? "#sell-price" : `[data-act="sell"]`); }
+  else if(act === "sellcancel"){ sell = null; paint(); focusOn(`[data-act="sell"]`); }
+  else if(act === "selladd"){
+    const c = sell ? priceCents(sell.text) : null;
+    if(c !== null) sellThis(k, c);
+    else { if(sell) sell.msg = UP_SAY.price_form; paint(); focusOn("#sell-price"); }
+  }
+  else if(act === "tab"){ tab = el.dataset.tab; paintList(); focusOn(`[data-act="tab"][aria-selected="true"]`); }
   else if(act === "open"){ openItem = el.dataset.item; closed = false; paint(true); focusOn("#d-name"); }
   else if(act === "close"){ openItem = null; closed = true; paint(); focusOn(`[data-go="${k}"]`); }
   // a price to try: the shop's own on My prices, the usual price for an item it does not sell
@@ -1980,6 +2053,14 @@ document.addEventListener("click", e => {
   route();
 });
 window.addEventListener("popstate", route);
+// the "I sell this" price is kept as it is typed; Enter adds the item
+document.addEventListener("input", e => { if(sell && e.target && e.target.id === "sell-price") sell.text = e.target.value; });
+document.addEventListener("keydown", e => {
+  if(e.key !== "Enter" || !e.target || e.target.id !== "sell-price") return;
+  e.preventDefault();
+  const add = document.querySelector('[data-act="selladd"]');
+  if(add) add.click();
+});
 // which way the reader is working, so the focus mark shows for keys only
 document.addEventListener("keydown", () => document.documentElement.classList.add("keys"), true);
 document.addEventListener("pointerdown", () => document.documentElement.classList.remove("keys"), true);
@@ -2580,15 +2661,41 @@ function paintMenuScreen(){
     `<p class="hint" id="up-ref"></p>` +
     `<p class="say" id="up-status" role="status"></p>` +
     `<div class="upacts"><button type="button" class="btn primary" id="up-read" data-up="read" disabled>${ICON.ai}Read my menu</button>` +
-      `<button type="button" class="btn" data-nav="${esc(updating ? mineHome() : address({setup: "place"}))}">Back</button></div>` +
-    // opened from "Update my menu": the saved menu can be checked again, and the shop can be taken off this laptop
-    (updating ? `<div class="upacts" id="up-update"><button type="button" class="btn" data-up="again">Check my menu again</button>` +
-        `<button type="button" class="btn quiet" data-up="askremove">Remove my shop from this laptop</button></div>` +
-      `<div class="band" id="up-confirm" role="alert" tabindex="-1" hidden><div class="words">` +
-        `<p>Remove ${esc(myShop.shop_name)} and its menu from this laptop?</p></div>` +
-        `<button type="button" class="btn" data-up="remove">Yes, remove it</button>` +
-        `<button type="button" class="btn" data-up="keepshop">Keep it</button></div>` : "") + `</div>`;
+      `<button type="button" class="btn" data-nav="${esc(upAddr(target ? "update" : "place"))}">Back</button></div></div>`;
   paintFiles();
+}
+/* ----- the Update my menu screen: what can be done with the menu of a shop that is set up ----- */
+function paintUpdate(){
+  const own = target.shop_id === MY_ID, changed = !own && !!menuOf(target.shop_id), name = esc(target.shop_name);
+  const question = (id, words, yes, yesWords, no, noWords) => `<div class="band" id="${id}" role="alert" tabindex="-1" hidden><div class="words">` +
+    `<p>${words}</p></div><button type="button" class="btn" data-up="${yes}">${yesWords}</button>` +
+    `<button type="button" class="btn" data-up="${no}">${noWords}</button></div>`;
+  byId("upload-body").innerHTML =
+    `<h1 tabindex="-1">Update my menu</h1>` +
+    `<p class="sub">Change the menu Counter uses for your shop. Your changes stay on this laptop.</p>` +
+    `<div class="up"><div class="upcol" id="up-choices">` +
+      `<button type="button" class="btn" data-up="again">Check my menu</button>` +
+      `<button type="button" class="btn" data-nav="${esc(upAddr("menu"))}">Upload a new menu</button>` +
+      (own ? `<button type="button" class="btn quiet" data-up="askremove">Remove my shop from this laptop</button>` : "") +
+      (changed ? `<button type="button" class="btn quiet" data-up="askdata">Use our data again</button>` : "") +
+      `<button type="button" class="btn" data-nav="${esc(upHome())}">Back</button></div>` +
+    `<p class="say" id="up-msg" role="alert" tabindex="-1"></p>` +
+    (own ? question("up-confirm", `Remove ${name} and its menu from this laptop?`, "remove", "Yes, remove it", "keepshop", "Keep it") : "") +
+    (changed ? question("up-data", `Go back to the prices we collected for ${name}? Your changes will be removed.`, "usedata", "Yes, use your data", "keepdata", "Keep my changes") : "") +
+    `</div>`;
+}
+/* "Check my menu": the menu the shop has now. A listed shop with no changes of its own starts from its menu file. */
+async function checkAgain(){
+  const id = targetId();
+  if(id !== MY_ID && !menuOf(id)){
+    await loadFile(id);
+    if(screen !== "update" || targetId() !== id) return;
+  }
+  ed = startRows();
+  if(!ed){ upSay("up-msg", "We could not load your menu. Try again."); focusOn("#up-msg"); return; }
+  ed.owner = id;
+  history.pushState(null, "", upAddr("check"));
+  route();
 }
 /* add what was chosen, one at a time, until the limit: 6 photos, or one PDF alone */
 async function addFiles(chosen){
@@ -2651,6 +2758,7 @@ async function sendMenu(){
 }
 async function readMenu(){
   if(up.busy || up.adding) return;
+  const id = targetId(), next = upAddr("check");
   up.busy = true;
   upSay("up-msg", "");
   upSay("up-ref", "");
@@ -2663,7 +2771,9 @@ async function readMenu(){
     try { localStorage.setItem(CODE_KEY, String(up.code).trim()); } catch(e){ /* the code is asked for again next time */ }
     up.files = [];                             // the files are not kept after the read
     ed = fromRead(got.items);
-    go({setup: "check", update: updating ? "1" : ""});
+    ed.owner = id;
+    history.pushState(null, "", next);
+    route();
     return;
   }
   paintUpState();
@@ -2699,11 +2809,42 @@ function fromRead(items){
   });
   const pick = {};
   comparedKeys().forEach(k => { const r = pickRow(k, rows); pick[k] = r ? r.id : null; });
-  return Object.assign({rows: rows, pick: pick, next: rows.length + 1}, freshView());
+  return Object.assign({rows: rows, pick: pick, next: rows.length + 1, read: true}, freshView());
+}
+/* A listed shop's menu file as rows to check. Which row is each compared item
+   is the same rule as for a menu that was read: nineTag(), then the cheapest.
+   Then the prices we hold come first, so that nothing changes until the owner
+   changes it: where the rule finds no row at the price in our data, another
+   row the rule allows at that price is used, or the item gets a row of its
+   own at that price; an item our data has no price for is left unmatched. */
+const FILE_HEAD = "Our menu data";
+function fromFile(id){
+  const rows = fileRows[id].map((r, i) => (
+    {id: i + 1, fid: r.id, name: r.name.trim(), section: FILE_HEAD, variant: r.variant, price: readPrice(r.price), kind: r.kind,
+     flag: false, looked: false, added: false}));
+  const e = Object.assign({rows: rows, pick: {}, next: rows.length + 1}, freshView());
+  const keys = comparedKeys();
+  keys.forEach(k => { const r = pickRow(k, rows); e.pick[k] = r ? r.id : null; });
+  keys.forEach(k => {
+    const rec = dataRecord(k, id), want = rec ? cents(rec.price) : null;
+    const have = e.pick[k] == null ? null : rows.find(r => r.id === e.pick[k]);
+    if((have ? priceCents(have.price) : null) === want) return;
+    e.pick[k] = null;
+    if(want === null) return;
+    let r = rows.find(x => priceCents(x.price) === want && nineTag(x.name, x.variant) === k && !keys.some(o => e.pick[o] === x.id));
+    if(!r){
+      r = {id: e.next, name: itemName(k), section: FILE_HEAD, variant: "", price: centsText(want), kind: rowKind(priceRow(k).format),
+           flag: false, looked: false, added: false};
+      e.next += 1;
+      rows.push(r);
+    }
+    e.pick[k] = r.id;
+  });
+  return e;
 }
 function fromSaved(menu){
   const rows = menu.rows.filter(r => r && typeof r.name === "string").map((r, i) => (
-    {id: i + 1, name: r.name, section: String(r.section || ""), variant: String(r.variant || ""),
+    {id: i + 1, fid: typeof r.id === "string" ? r.id : "", name: r.name, section: String(r.section || ""), variant: String(r.variant || ""),
      price: Number.isFinite(r.cents) ? centsText(r.cents) : "", kind: rowKind(r.kind), flag: false, looked: false, added: false}));
   const pick = {};
   comparedKeys().forEach(k => {
@@ -2718,8 +2859,9 @@ function fromSaved(menu){
 const needsLook = r => r.flag && !(r.looked && priceCents(r.price) !== null);
 const matchCount = () => comparedKeys().filter(k => picked(k)).length;
 const lookCount = () => ed.rows.filter(needsLook).length;
-const nameOr = r => r.name.trim() || "new item";
-const rowWords = r => r.name.trim() + (r.variant ? `, ${r.variant}` : "") + (priceCents(r.price) !== null ? ` ${money(priceCents(r.price) / 100)}` : "");
+/* a name starts with a capital on screen; the text that is kept is not changed */
+const nameOr = r => capital(r.name.trim()) || "new item";
+const rowWords = r => capital(r.name.trim()) + (r.variant ? `, ${r.variant}` : "") + (priceCents(r.price) !== null ? ` ${money(priceCents(r.price) / 100)}` : "");
 /* the rows the tab, the search and the filter leave. Text in the search looks in every kind. */
 function shownRows(){
   const q = fold(ed.find);
@@ -2737,7 +2879,9 @@ function paintCounts(){
   const n = ed.rows.length, m = matchCount(), k = lookCount();
   if(!k) ed.look = false;
   byId("ck-top").innerHTML =
-    `<p id="ck-read">${ICON.ai}We read ${n === 1 ? "1 item" : `${n} items`} from your menu.</p>` +
+    // a listed shop's menu that was not read just now is the one we hold: no AI wrote it here
+    `<p id="ck-read">` + (target && target.shop_id !== MY_ID && !ed.read ? "This is the menu we hold for your shop. Fix anything that is wrong."
+                                                                        : `${ICON.ai}We read ${n === 1 ? "1 item" : `${n} items`} from your menu.`) + `</p>` +
     `<p id="ck-can">${m === 0 ? "None of them can be compared with other cafes yet." : `${m} of them can be compared with other cafes today.`}</p>` +
     (k ? `<p id="ck-look">${k === 1 ? "1 needs a look." : `${k} need a look.`}</p>` : "");
   const searching = fold(ed.find) !== "";
@@ -2762,7 +2906,7 @@ function paintMenuList(){
       return `<tr class="ghead"><th colspan="4" scope="colgroup">${esc(h || NO_HEAD)}</th></tr>` + mine.map(r => {
         const key = matchOf(r.id), name = esc(nameOr(r)), bad = badPrice(r.price), open = ed.open === r.id;
         return `<tr class="mrow" data-row="${r.id}"><td class="c-name"><div class="namecell">` +
-          `<input type="text" autocomplete="off" maxlength="200" data-name="${r.id}" value="${esc(r.name)}" aria-label="Item name: ${name}"` +
+          `<input type="text" autocomplete="off" maxlength="200" data-name="${r.id}" value="${esc(capital(r.name))}" aria-label="Item name: ${name}"` +
             `${r.name.trim() === "" ? ` class="open"` : ""}>` +
           // a row the owner added says which kind it is; a row that was read already has one
           (r.added ? `<label class="kindpick">Category<select data-kind="${r.id}">` + NEW_TYPES.map(t =>
@@ -2850,7 +2994,7 @@ function paintCheck(){
     `<aside class="panel" id="ck-box" aria-labelledby="ck-h-box"></aside></div>`;
   byId("ck-bar").innerHTML =
     `<p class="say" id="ck-msg" role="alert" tabindex="-1"></p>` +
-    `<button type="button" class="btn" data-nav="${esc(address({setup: "menu", update: updating ? "1" : ""}))}">Back</button>` +
+    `<button type="button" class="btn" data-nav="${esc(upAddr(target && !ed.read ? "update" : "menu"))}">Back</button>` +
     `<span class="status" id="ck-status" role="status"></span>` +
     `<button type="button" class="btn primary" data-ck="save">This is right. Save my menu</button>`;
   paintCounts();
@@ -2869,19 +3013,130 @@ function saveMenu(){
     goToRow(stuck.id, `[data-price="${stuck.id}"]`);
     return;
   }
-  const compared = {};
-  keys.forEach(k => { const r = picked(k); if(r && r.name.trim() !== "") compared[k] = {name: r.name.trim(), variant: r.variant, cents: priceCents(r.price)}; });
-  myMenu = {saved_at: stamp(),
-            rows: ed.rows.filter(r => r.name.trim() !== "").map(r => (
-              {name: r.name.trim(), section: r.section, variant: r.variant, cents: priceCents(r.price), kind: r.kind})),
-            compared: compared};
-  try { localStorage.setItem(MENU_KEY, JSON.stringify(myMenu)); menuLost = false; } catch(e){ menuLost = true; }
+  keepMenu(targetId(), menuOfEd(ed));
   // what was not saved is not kept either: a row left without a name goes, and the view starts afresh
   ed.rows = ed.rows.filter(r => r.name.trim() !== "");
   Object.assign(ed, freshView());
   // a new shop chooses its competitors next; an update goes back to My prices with the ones it has
-  go({shop: MY_ID, rivals: updating && myShop ? myShop.rivals.join(",") : ""});
+  go({shop: targetId(), rivals: target ? upKeep.rivals : "", hide: target ? upKeep.hide : ""});
 }
+/* the rows being checked as a menu to keep: the same shape for every shop. A row that came from our menu file keeps its id. */
+function menuOfEd(e){
+  const compared = {};
+  comparedKeys().forEach(k => {
+    const r = e.pick[k] == null ? null : e.rows.find(x => x.id === e.pick[k]);
+    if(r && r.name.trim() !== "") compared[k] = {name: r.name.trim(), variant: r.variant, cents: priceCents(r.price)};
+  });
+  return {saved_at: stamp(),
+          rows: e.rows.filter(r => r.name.trim() !== "").map(r => Object.assign(
+            {name: r.name.trim(), section: r.section, variant: r.variant, cents: priceCents(r.price), kind: r.kind}, r.fid ? {id: r.fid} : {})),
+          compared: compared};
+}
+/* keep a menu: the owner's own shop under its own key, a listed shop under the key for every listed shop */
+function keepMenu(id, menu){
+  menu.saved_at = stamp();
+  if(id === MY_ID){
+    myMenu = menu;
+    try { localStorage.setItem(MENU_KEY, JSON.stringify(myMenu)); menuLost = false; } catch(e){ menuLost = true; }
+  } else { ownAll[id] = menu; storeOwn(); }
+}
+
+/* ----- a listed shop's own changes -----
+   A shop in our list can check its menu, upload a new one, add an item or
+   make a tried price its real one. What it keeps is one menu for each shop,
+   in this browser only, in the same shape as the owner's own shop's menu.
+   While that shop is the open shop its price records follow that menu: a
+   compared item with a price replaces the price in our data, an item that is
+   not compared has no record, and an item our data did not have gets one. A
+   price that is the same as in our data leaves our record as it is. For any
+   other shop the data is exactly as it was loaded. */
+const OWN_KEY = "counter.ownmenu.v1";
+let ownAll = {};              // shop_id -> its saved menu
+let ownLost = false;          // true when the browser would not keep it
+let ownOn = null;             // {id, was: {item: the records as loaded}} while one shop's changes are in the data
+const fileRows = {};          // shop_id -> the rows of its menu file, once loaded; null when it could not be loaded
+function loadOwn(){
+  let kept = null;
+  try { kept = JSON.parse(localStorage.getItem(OWN_KEY) || "{}"); } catch(e){ kept = null; }
+  ownAll = kept && typeof kept === "object" && !Array.isArray(kept) ? kept : {};
+}
+function storeOwn(){
+  try { localStorage.setItem(OWN_KEY, JSON.stringify(ownAll)); ownLost = false; } catch(e){ ownLost = true; }
+}
+const goodMenu = m => !!m && typeof m === "object" && Array.isArray(m.rows) && !!m.compared && typeof m.compared === "object";
+/* the menu a shop keeps in this browser, or null */
+const menuOf = id => id === MY_ID ? myMenu : goodMenu(ownAll[id]) ? ownAll[id] : null;
+/* a shop's record for an item as our data has it, whatever is in the data now */
+const dataRecord = (k, id) => (ownOn && ownOn.id === id && ownOn.was[k] ? ownOn.was[k] : D.named_prices[k]).find(r => r.shop_id === id);
+function clearOwn(){
+  if(!ownOn) return;
+  Object.keys(ownOn.was).forEach(k => { D.named_prices[k] = ownOn.was[k]; });
+  ownOn = null;
+}
+function setOwn(id){
+  clearOwn();
+  const s = id === MY_ID ? null : SHOPS.get(id), menu = s ? menuOf(id) : null;
+  if(!menu) return;
+  ownOn = {id: id, was: {}};
+  const day = localDay(menu.saved_at);
+  Object.keys(D.named_prices).forEach(k => {
+    const all = D.named_prices[k], old = all.find(r => r.shop_id === id), c = menu.compared[k];
+    const now = c && Number.isFinite(c.cents) ? c.cents : null;
+    if(old ? now === cents(old.price) : now === null) return;
+    ownOn.was[k] = all;
+    const rec = now === null ? null : {shop_id: id, shop_name: s.shop_name, district: s.district, address: s.address, lat: s.lat, lng: s.lng,
+      price: now / 100, price_basis: "own_menu", observed_date: day, source_url: null, listed_price: null, charges: []};
+    D.named_prices[k] = old ? all.map(r => r === old ? rec : r).filter(Boolean) : all.concat(rec);
+  });
+}
+/* a shop's menu file: asked for once, when its menu is to be checked or changed, or ideas are wanted */
+async function loadFile(id){
+  if(fileRows[id]) return;
+  if(id === MY_ID){ fileRows[id] = null; return; }
+  let rows = null;
+  try {
+    const res = await fetch(`menus/${encodeURIComponent(id)}.json`);
+    const data = res.ok ? await res.json() : null;
+    if(data && Array.isArray(data.rows)) rows = data.rows.filter(r => r && typeof r.id === "string" && typeof r.name === "string" && r.name.trim() !== "")
+      .map(r => ({id: r.id, name: r.name, variant: typeof r.variant === "string" ? r.variant : "",
+                  price: typeof r.price === "number" && isFinite(r.price) ? r.price : null, kind: rowKind(r.kind)}));
+  } catch(e){ rows = null; }
+  fileRows[id] = rows;
+}
+/* the menu a shop has now, as a copy that can be changed: the one it keeps, or for a listed shop its menu file */
+async function currentMenu(id){
+  const kept = menuOf(id);
+  if(kept) return JSON.parse(JSON.stringify(kept));
+  if(id === MY_ID) return null;
+  await loadFile(id);
+  return fileRows[id] && fileRows[id].length ? menuOfEd(fromFile(id)) : null;
+}
+/* one compared item at one price: its own row takes the price, or it gets a row under "Added by you" */
+function setItem(menu, k, c){
+  const old = menu.compared[k];
+  const row = old ? menu.rows.find(r => r.name === old.name && String(r.variant || "") === String(old.variant || "") && r.cents === old.cents) : null;
+  if(row){ row.cents = c; old.cents = c; return; }
+  const name = itemName(k);
+  menu.rows.push({name: name, section: ADDED_HEAD, variant: "", cents: c, kind: rowKind(priceRow(k).format)});
+  menu.compared[k] = {name: name, variant: "", cents: c};
+}
+/* change the open shop's menu from one of its pages, then draw the page from the menu as it is now */
+async function changeMenu(change, words){
+  const id = shop.shop_id, menu = await currentMenu(id);
+  if(!shop || shop.shop_id !== id) return;
+  if(!menu){ flash = "We could not load your menu. Try again."; paint(); focusOn("#page-say"); return; }
+  change(menu);
+  keepMenu(id, menu);
+  if(ed && ed.owner === id) ed = null;      // a menu being checked is older than this one now
+  ask = null; sell = null; flash = words;
+  route();
+  focusOn("#page-say");
+}
+/* "I sell this": the item goes onto the menu at the owner's price */
+const sellThis = (k, c) => changeMenu(menu => { setItem(menu, k, c); test.delete(k); }, `${itemName(k)} is now on your menu at ${money(c / 100)}.`);
+/* "Make this my real price": the price is set, and the trial and the saved test for it are done with */
+const makeReal = (k, c) => changeMenu(menu => { setItem(menu, k, c); trial.delete(k); putTest(k, null); },
+                                      `Your real price for ${itemName(k)} is now ${money(c / 100)}.`);
 
 /* ----- the owner's own shop -----
    A shop that is not in our list: its place comes from its postal code and its
@@ -2893,7 +3148,6 @@ const MY_ID = "my_shop";
 const SHOP_KEY = "counter.myshop.v1";
 let myShop = null;            // the stored shop: its name, its place and its chosen competitors
 let shopLost = false;         // true when the browser would not keep it
-let updating = false;         // the menu screens were opened from "Update my menu"
 function loadShop(){
   let kept = null;
   try { kept = JSON.parse(localStorage.getItem(SHOP_KEY) || "null"); } catch(e){ kept = null; }
@@ -2925,7 +3179,7 @@ function setMine(on){
                 address: myShop.address, lat: myShop.lat, lng: myShop.lng};
   const keys = Object.keys(myMenu.compared).filter(k => D.named_prices[k] && myMenu.compared[k] && Number.isFinite(myMenu.compared[k].cents));
   keys.forEach(k => D.named_prices[k].push(Object.assign({}, base, {
-    price: myMenu.compared[k].cents / 100, price_basis: "own_menu", observed_date: String(myMenu.saved_at || "").slice(0, 10),
+    price: myMenu.compared[k].cents / 100, price_basis: "own_menu", observed_date: localDay(myMenu.saved_at),
     source_url: null, listed_price: null, charges: []})));
   SHOPS.set(MY_ID, Object.assign({}, base, {street: myShop.street, price_count: keys.length, items: keys}));
 }
@@ -2935,7 +3189,7 @@ function forgetMine(){
   storeSaves();
   delete ideasAll[MY_ID];
   storeIdeas();
-  myShop = null; myMenu = null; ed = null; menuLost = false; shopLost = false; updating = false; up.files = [];
+  myShop = null; myMenu = null; ed = null; menuLost = false; shopLost = false; up.files = [];
   pl.name = ""; pl.postal = ""; pl.results = null; pl.pick = null;
 }
 
@@ -3044,21 +3298,47 @@ function keepPlace(){
   go({setup: "menu"});
 }
 
-const UP_TITLE = {place: "Add your shop", menu: "Your menu", check: "Check your menu"};
-function showUpload(q){
+const UP_TITLE = {place: "Add your shop", menu: "Your menu", check: "Check your menu", update: "Update my menu"};
+let target = null;            // the shop whose menu is being updated: null while a new shop is being added
+let upKeep = {rivals: "", hide: ""};      // what to carry back to the shop's pages
+let upFor = "";               // the shop the chosen files belong to
+const targetId = () => target ? target.shop_id : MY_ID;
+/* a menu screen's address: a shop that is set up keeps itself, its competitors and its hidden items in it */
+const upAddr = name => target ? address({setup: name, shop: target.shop_id, rivals: upKeep.rivals, hide: upKeep.hide}) : address({setup: name});
+const upHome = () => address({shop: target.shop_id, rivals: upKeep.rivals, hide: upKeep.hide});
+/* the rows Check your menu starts from when nothing was just read: the menu the shop keeps, or its menu file once loaded */
+function startRows(){
+  const id = targetId(), kept = menuOf(id);
+  if(kept) return fromSaved(kept);
+  return target && id !== MY_ID && fileRows[id] && fileRows[id].length ? fromFile(id) : null;
+}
+function showUpload(q, s){
   shop = null;
+  target = s || null;
+  // a shop that is set up keeps its sidebar: its competitors and its counts are worked out as on its pages
+  if(target) setShop(target, validRivals(q.get("rivals"), target), q);
+  upKeep = {rivals: q.get("rivals") || "", hide: q.get("hide") || ""};
+  // a menu being checked, and the files chosen, belong to one shop
+  if(ed && ed.owner !== targetId()) ed = null;
+  if(upFor !== targetId()){ upFor = targetId(); up.files = []; }
   const asked = q.get("setup");
   let name = Object.prototype.hasOwnProperty.call(UP_TITLE, asked) ? asked : "place";
-  // the menu belongs to a shop: with no shop stored, the shop comes first
-  if(name !== "place" && !myShop) name = "place";
-  updating = name !== "place" && q.get("update") === "1" && mineReady();
-  // with nothing just read, the saved menu is what there is to check
-  if(name === "check" && !ed && myMenu) ed = fromSaved(myMenu);
-  if(name === "check" && !ed) name = "menu";
-  if(name !== asked) history.replaceState(null, "", address({setup: name, update: updating ? "1" : ""}));
+  // a shop that is set up starts at "Update my menu"; with no shop stored, the shop comes first
+  if(target && name === "place") name = "update";
+  if(!target && (name === "update" || !myShop)) name = "place";
+  // with nothing just read, the menu the shop has now is what there is to check
+  if(name === "check" && !ed){ ed = startRows(); if(ed) ed.owner = targetId(); }
+  if(name === "check" && !ed) name = target ? "update" : "menu";
+  if(name !== asked) history.replaceState(null, "", upAddr(name));
   document.title = `${UP_TITLE[name]} | Counter`;
-  if(name === "place") paintPlace(); else if(name === "menu") paintMenuScreen(); else paintCheck();
+  if(name === "place") paintPlace(); else if(name === "menu") paintMenuScreen(); else if(name === "update") paintUpdate(); else paintCheck();
   show(name);
+  if(target){
+    paintFrame();
+    document.querySelectorAll("#sidenav [aria-current]").forEach(a => a.removeAttribute("aria-current"));
+    byId("nav-update").setAttribute("aria-current", "page");
+    byId("mbar-page").textContent = UP_TITLE.update;
+  }
   slideIn(byId("upload-body"));
   focusOn("#upload-body h1");
 }
@@ -3093,10 +3373,20 @@ document.addEventListener("click", e => {
     focusOn(`#up-list [data-up="dropfile"], label[for="up-file"]`);
   }
   else if(act === "read") readMenu();
-  else if(act === "again"){ ed = fromSaved(myMenu); go({setup: "check", update: "1"}); }
+  else if(act === "again") checkAgain();
   else if(act === "askremove"){ byId("up-confirm").hidden = false; focusOn("#up-confirm"); }
   else if(act === "keepshop"){ byId("up-confirm").hidden = true; focusOn(`[data-up="askremove"]`); }
   else if(act === "remove"){ forgetMine(); go({}); }
+  // a listed shop goes back to the prices in our data: its own menu is taken out of this browser
+  else if(act === "askdata"){ byId("up-data").hidden = false; focusOn("#up-data"); }
+  else if(act === "keepdata"){ byId("up-data").hidden = true; focusOn(`[data-up="askdata"]`); }
+  else if(act === "usedata" && target){
+    delete ownAll[target.shop_id];
+    storeOwn();
+    ed = null;
+    history.pushState(null, "", upHome());
+    route();
+  }
 });
 /* what a press does on Check your menu */
 const shownWords = () => { const n = shownRows().length; return n === 1 ? "1 item shown." : `${n} items shown.`; };
@@ -3242,7 +3532,6 @@ const IDEAS_WAIT = 75000;         // milliseconds before the page stops waiting:
 const IDEA_TYPES = {bundle: "Bundle", price_cut: "Price cut"};
 const IDEA_DAYS = {"weekdays": "Weekdays", "weekends": "Weekends", "every day": "Every day"};
 let ideasAll = {};                // shop_id -> {date, used, ideas, avoid, looked}
-const menuFor = {};               // shop_id -> its menu rows, once loaded; null when it could not be loaded
 const iu = {busy: false, loading: false, msg: "", ref: "", code: ""};
 function loadIdeas(){
   let kept = null;
@@ -3276,30 +3565,32 @@ function rowId(text, taken){
   taken.add(id);
   return id;
 }
-/* the owner's own shop: the rows of the saved menu that have a price */
-function uploadedRows(){
-  const taken = new Set();
-  return (myMenu ? myMenu.rows : []).filter(r => r && typeof r.name === "string" && Number.isFinite(r.cents) && r.cents > 0)
-    .map(r => ({id: rowId(r.name + "|" + (r.variant || ""), taken), name: r.name, variant: r.variant || "", price: r.cents / 100, kind: rowKind(r.kind)}));
+/* a menu kept in this browser: its rows that have a price. A row that came from our menu file keeps that id. */
+function uploadedRows(menu){
+  const taken = new Set(menu.rows.map(r => r && r.id).filter(i => typeof i === "string" && i !== ""));
+  const given = new Set();
+  return menu.rows.filter(r => r && typeof r.name === "string" && Number.isFinite(r.cents) && r.cents > 0).map(r => {
+    const own = typeof r.id === "string" && r.id !== "" && !given.has(r.id);
+    if(own) given.add(r.id);
+    return {id: own ? r.id : rowId(r.name + "|" + (r.variant || ""), taken), name: r.name, variant: r.variant || "", price: r.cents / 100, kind: rowKind(r.kind)};
+  });
 }
-/* a shop in our list: its own file, asked for only when ideas are wanted or there are ideas to draw */
-async function loadShopMenu(id){
-  if(id === MY_ID){ menuFor[id] = uploadedRows(); return; }
-  if(menuFor[id] !== undefined) return;
-  let rows = null;
-  try {
-    const res = await fetch(`menus/${encodeURIComponent(id)}.json`);
-    const data = res.ok ? await res.json() : null;
-    if(data && Array.isArray(data.rows)) rows = data.rows.filter(r => r && typeof r.id === "string" && typeof r.name === "string" && typeof r.price === "number" && isFinite(r.price) && r.price > 0)
-      .map(r => ({id: r.id, name: r.name, variant: typeof r.variant === "string" ? r.variant : "", price: r.price, kind: rowKind(r.kind)}));
-  } catch(e){ rows = null; }
-  menuFor[id] = rows;
+/* The menu ideas are made from: the one the shop keeps in this browser, or for
+   a listed shop with no changes its menu file. Undefined while that file has
+   not been asked for, null when it could not be loaded. */
+function ideaRows(id){
+  const kept = menuOf(id);
+  if(kept) return uploadedRows(kept);
+  return fileRows[id] ? fileRows[id].filter(r => r.price !== null && r.price > 0) : fileRows[id];
 }
 
-/* ----- the sums: whole cents, and the nearest 10 cents with a half going up ----- */
+/* ----- the sums: whole cents. A set price goes to the nearest 10 cents, with a half going up.
+   A cut price goes down to the 10 cents, so the percent that is stated is always met or beaten. ----- */
 const offTo10 = (c, percent) => Math.floor((c * (100 - percent) + 500) / 1000) * 10;
+const cutTo10 = (c, percent) => Math.floor(c * (100 - percent) / 1000) * 10;
 const hourWords = h => h === 12 ? "12pm" : h < 12 ? `${h}am` : `${h - 12}pm`;
-const itemWords = r => r.name + (r.variant ? `, ${r.variant}` : "");
+/* an item's name starts with a capital on screen; the text that is kept is not changed */
+const itemWords = r => capital(r.name + (r.variant ? `, ${r.variant}` : ""));
 /* An idea with everything worked out from the menu as it is now, as it is shown and as it is saved.
    Null when an item is no longer on the menu, or the sums leave nothing to offer. */
 function ideaView(idea, rows){
@@ -3315,7 +3606,7 @@ function ideaView(idea, rows){
     view.saves_cents = view.apart_cents - view.set_cents;
     view.saves_percent = Math.round(100 * view.saves_cents / view.apart_cents);
   } else {
-    view.items.forEach(r => { r.new_cents = offTo10(r.cents, d); });
+    view.items.forEach(r => { r.new_cents = cutTo10(r.cents, d); });
     if(view.items.some(r => r.new_cents <= 0 || r.new_cents >= r.cents)) return null;
     view.when = `${IDEA_DAYS[idea.days] || ""}, ${idea.all_day ? "all day" : `${hourWords(idea.start_hour)} to ${hourWords(idea.end_hour)}`}`;
   }
@@ -3333,19 +3624,18 @@ function ideaLines(v){
     : `<ul class="ilines">` + v.items.map(r => row(esc(itemWords(r)), `${dollars(r.cents)} to ${dollars(r.new_cents)}`)).join("") +
         row("When", esc(v.when), "sum") + `</ul>` +
       `<p class="isaves">${v.discount_percent}% off these items.</p>`;
-  return head + body + `<p class="iwhy"><span class="lbl">Why:</span> ${esc(v.why)}</p>`;
+  // an idea that came with no reason has no "Why:" line
+  return head + body + (v.why ? `<p class="iwhy"><span class="lbl">Why:</span> ${esc(v.why)}</p>` : "");
 }
 const savedAi = key => shopSaves().ideas.find(e => e.kind === "ai_idea" && e.idea.key === key);
 
 function paintIdeas(){
-  // the owner's own shop: its menu is the saved one, as it is now
-  if(shop.shop_id === MY_ID) menuFor[MY_ID] = uploadedRows();
-  const box = byId("ideaspage"), mine = shopIdeas(), rows = menuFor[shop.shop_id];
+  const box = byId("ideaspage"), mine = shopIdeas(), rows = ideaRows(shop.shop_id);
   // ideas kept from before need the menu to be drawn: it is asked for once, and the section is drawn again
   if(mine.ideas.length && rows === undefined && !iu.loading){
     iu.loading = true;
     const id = shop.shop_id;
-    loadShopMenu(id).then(() => { iu.loading = false; if(shop && shop.shop_id === id && page === "offers") paintIdeas(); });
+    loadFile(id).then(() => { iu.loading = false; if(shop && shop.shop_id === id && page === "offers") paintIdeas(); });
   }
   const views = mine.ideas.map(i => ideaView(i, rows)).filter(Boolean);
   const left = Math.max(0, IDEAS_A_DAY - mine.used), first = mine.used === 0 && !mine.ideas.length;
@@ -3395,8 +3685,8 @@ async function getIdeas(){
   iu.busy = true;
   paintIdeas();
   const said = (words, ref) => { iu.busy = false; iu.msg = words; iu.ref = ref || ""; if(shop && shop.shop_id === id && page === "offers"){ paintIdeas(); focusOn("#ideas-msg"); } };
-  await loadShopMenu(id);
-  const rows = menuFor[id];
+  if(!menuOf(id)) await loadFile(id);
+  const rows = ideaRows(id);
   if(!rows || rows.length < 2){ said("We do not have enough of your menu to suggest ideas yet."); return; }
   const request = ideasRequest(rows, mine);
   const stop = new AbortController(), timer = setTimeout(() => stop.abort(), IDEAS_WAIT);
@@ -3438,7 +3728,7 @@ document.addEventListener("click", e => {
   }
   // an idea saved is kept as it is shown now: its items, their prices and the sums do not change later
   else if(act === "save"){
-    const mine = shopIdeas(), idea = mine.ideas.find(i => ideaKey(i) === key), view = idea ? ideaView(idea, menuFor[shop.shop_id]) : null;
+    const mine = shopIdeas(), idea = mine.ideas.find(i => ideaKey(i) === key), view = idea ? ideaView(idea, ideaRows(shop.shop_id)) : null;
     if(!view) return;
     putIdea(x => x.kind === "ai_idea" && x.idea.key === key, savedAi(key) ? null : {kind: "ai_idea", idea: view, at: stamp()});
     paint();
@@ -3477,6 +3767,7 @@ Promise.all([
   buildLegends();
   loadSaves();
   loadIdeas();
+  loadOwn();
   myShop = loadShop();
   myMenu = loadMenu();
   route();

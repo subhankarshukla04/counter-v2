@@ -5,8 +5,10 @@
    Each model has its own daily limit on the free tier, so when one is used up
    (429) the next is asked at once. A model that is busy (503), fails inside
    (500) or is stopped for being slow is asked once more after a short wait,
-   and then the next model is asked. Any other failure stops there. All the
-   tries share the caller's one timer. */
+   and then the next model is asked. A model that Google says is not found,
+   not available, not supported or not allowed for this key (400 or 404) is
+   left out and the next is asked at once. Any other failure stops there. All
+   the tries share the caller's one timer. */
 export const MODELS = [
   // Gemini 3 models take a thinking level; "LOW" is the lowest gemini-3.8-flash allows
   {id: "gemini-3.8-flash", thinking: {thinkingLevel: "LOW"}},
@@ -18,6 +20,14 @@ export const endpointOf = model => `https://generativelanguage.googleapis.com/v1
 
 const RETRY_ON = [500, 503];
 export const isLimit = f => !!f && f.stage === "google_http" && f.status === 429;
+/* Google's own words for a model that cannot be asked at all. A 404 on the model's address is that by itself.
+   A 400 counts only when its words are about the model, so a 400 about the request still stops. */
+const GONE_WORDS = /not found|not available|unavailable|not supported|unsupported|not allowed|not permitted|no longer available|does not have access|not enabled/i;
+export const isGone = f => {
+  if(!f || f.stage !== "google_http" || (f.status !== 400 && f.status !== 404)) return false;
+  const words = `${f.google_status || ""} ${f.google_message || ""}`;
+  return f.status === 404 ? /NOT_FOUND/.test(words) || GONE_WORDS.test(words) : /model/i.test(words) && GONE_WORDS.test(words);
+};
 export const isBusy = f => !!f && (f.stage === "slow" || (f.stage === "google_http" && RETRY_ON.indexOf(f.status) !== -1));
 
 /* Ask the models in turn.
@@ -38,7 +48,7 @@ export async function askChain(rule, askOnce, onFail){
       tries += 1;
       if(!got.fail) return done();
       onFail(got.fail, model, tries, Date.now() - from);
-      if(isLimit(got.fail)) break;                 // used up for today: the next model, at once
+      if(isLimit(got.fail) || isGone(got.fail)) break;   // used up for today, or not there to ask: the next model, at once
       if(!isBusy(got.fail)) return done();         // anything else stops here
       if(round === 1) break;                       // busy twice: the next model
       if(left() - rule.waitMs < rule.needsMs) return done();

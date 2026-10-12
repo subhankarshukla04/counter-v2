@@ -1,9 +1,10 @@
 /* Counter: ideas for a shop. One POST with the owner's menu and what cafes
    near them offer; Google's model picks items, a discount and the words for
-   3 ideas; every idea is checked here before it goes back. The model never
-   does the sums: the page works out every price from the owner's own prices.
-   Nothing is stored. One line is logged for each try, and it never holds the
-   key, the access code, a header, the request or anything of the menu. */
+   3 ideas; every idea is repaired here before it goes back, and is dropped
+   only when too few of its items are on the menu. The model never does the
+   sums: the page works out every price from the owner's own prices. Nothing
+   is stored. One line is logged for each try, and it never holds the key,
+   the access code, a header, the request or anything of the menu. */
 import { createHash, timingSafeEqual } from "node:crypto";
 import { MODELS, endpointOf, askChain, isBusy, isLimit } from "./_models.js";
 
@@ -25,13 +26,16 @@ const ITEMS_IN = {bundle: [2, 3], price_cut: [1, 4]};
 const TIME = {overallMs: 55000, tryMs: 40000, waitMs: 5000, needsMs: 8000};
 
 const INSTRUCTION = [
-  "You help a small cafe or bakery owner in Singapore decide on new bundles and price cuts. Write 3 ideas.",
-  "Each idea is a \"bundle\" (2 or 3 items from the owner's menu sold together) or a \"price_cut\" (1 to 4 items from the owner's menu at a lower price on set days and hours).",
+  "You help a small cafe or bakery owner in Singapore. Suggest 3 different, plausible ideas.",
+  "Each idea is a \"bundle\" (2 or 3 items from their menu sold together) or a \"price_cut\" (1 to 4 items from their menu, cheaper on set days and hours).",
+  "Ideas can come from their menu alone. If an offer from a nearby cafe fits an idea, you may mention it in \"why\", describing it only with what that offer's text says. Not every idea needs to mention another cafe.",
   "Use only item ids from the owner's menu.",
+  "Speak to the owner as \"you\" and \"your\".",
+  "Do not write prices in the title or in \"why\".",
   "Choose a discount_percent from 5 to 30.",
   "For a price_cut, choose days (\"weekdays\", \"weekends\" or \"every day\") and either set all_day to true, or set all_day to false with a start_hour and an end_hour from 7 to 22, the end after the start. For a bundle, set days, all_day, start_hour and end_hour to null.",
-  "Write a short title in plain words, at most 40 characters, and a \"why\" of one or two plain sentences, at most 220 characters, about what cafes near them do and how this idea fits the owner's menu.",
-  "In \"why\", you may name a cafe only if it appears in the offers or new items given, and list every cafe you name in cafes_named. Never write any price or any dollar amount in \"why\" or the title.",
+  "Write a short title in plain words, at most 40 characters, and a \"why\" of one or two plain sentences, at most 220 characters.",
+  "List every cafe you name in cafes_named, or leave it empty.",
   "Do not repeat any idea in \"avoid\". Make the 3 ideas different from each other.",
   "In the data: \"menu\" is the owner's own menu; \"offers\" are offers other cafes run now, and competitor is true for the cafes the owner competes with; \"new_items\" are items those competitors added; \"market\" is the usual price other cafes charge for common items; \"avoid\" lists ideas the owner has already seen."
 ].join("\n");
@@ -132,56 +136,86 @@ const googleRequest = (clean, model) => ({
   }
 });
 
-const PRICE_WORDS = /\$|\d\s*dollars?/i;       // a price, or a number of dollars
-/* One idea as the model gave it -> {idea} in a known shape, or {reason} for dropping it. */
-function checkIdea(raw, clean, taken){
-  if(!raw || typeof raw !== "object") return {reason: "not an idea"};
-  if(TYPES.indexOf(raw.type) === -1) return {reason: "unknown type"};
-  const ids = raw.item_ids;
-  if(!Array.isArray(ids) || !ids.every(i => typeof i === "string")) return {reason: "item ids missing"};
-  const known = new Set(clean.menu.map(r => r.id));
-  if(!ids.every(i => known.has(i))) return {reason: "an item is not on the menu"};
-  if(new Set(ids).size !== ids.length) return {reason: "an item repeats"};
-  const span = ITEMS_IN[raw.type];
-  if(ids.length < span[0] || ids.length > span[1]) return {reason: `a ${raw.type} needs ${span[0]} to ${span[1]} items`};
-  const d = raw.discount_percent;
-  if(!Number.isInteger(d) || d < DISCOUNT_MIN || d > DISCOUNT_MAX) return {reason: "discount outside 5 to 30"};
+/* ---------- repairing ----------
+   The owner must always get ideas, so an idea is put right, not thrown away.
+   Only two things take content out: an item id that is not on the menu sent
+   goes from its idea, and an idea goes when that leaves a bundle with fewer
+   than 2 items or a price cut with none. A repeat of another idea goes only
+   while 3 ideas or more are left without it. Each repair and each drop is
+   counted under a short code, for the log: never any of the words. */
+const KEEP_AT_LEAST = 3;
+const DISCOUNT_DEFAULT = 10;      // when the model gave no number at all
+const count = (bag, code) => { bag[code] = (bag[code] || 0) + 1; };
+/* cut at the last whole word within the limit */
+function cutWords(words, max){
+  if(words.length <= max) return words;
+  const head = words.slice(0, max);
+  if(/\s/.test(words.charAt(max))) return head.trimEnd();
+  const at = head.search(/\s+\S*$/);
+  return at > 0 ? head.slice(0, at).trimEnd() : head;
+}
+/* One idea as the model gave it -> {idea} put right, or {drop: code}. */
+function repairIdea(raw, clean, repairs){
+  if(!raw || typeof raw !== "object") return {drop: "not_an_idea"};
+  const names = new Map(clean.menu.map(r => [r.id, r.name]));
+  const given = Array.isArray(raw.item_ids) ? raw.item_ids : [];
+  let ids = [];
+  given.forEach(i => {
+    if(typeof i !== "string" || !names.has(i)){ count(repairs, "unknown_item"); return; }
+    if(ids.indexOf(i) !== -1){ count(repairs, "repeated_item"); return; }
+    ids.push(i);
+  });
+  // a type that is not one of ours: a price cut when it names days or has one item, else a bundle
+  let type = raw.type;
+  if(TYPES.indexOf(type) === -1){ type = DAYS.indexOf(raw.days) !== -1 || ids.length < ITEMS_IN.bundle[0] ? "price_cut" : "bundle"; count(repairs, "type_set"); }
+  const span = ITEMS_IN[type];
+  if(ids.length < span[0]) return {drop: "too_few_items"};
+  if(ids.length > span[1]){ ids = ids.slice(0, span[1]); count(repairs, "items_cut"); }
+  const asked = typeof raw.discount_percent === "number" && Number.isFinite(raw.discount_percent) ? raw.discount_percent : null;
+  const d = asked === null ? DISCOUNT_DEFAULT : Math.min(DISCOUNT_MAX, Math.max(DISCOUNT_MIN, Math.round(asked)));
+  if(d !== asked) count(repairs, "discount_moved");
   let days = null, allDay = null, start = null, end = null;
-  if(raw.type === "price_cut"){
-    if(DAYS.indexOf(raw.days) === -1) return {reason: "bad days"};
+  if(type === "price_cut"){
     days = raw.days;
+    if(DAYS.indexOf(days) === -1){ days = "every day"; count(repairs, "days_set"); }
     allDay = raw.all_day === true;
     if(!allDay){
       start = raw.start_hour; end = raw.end_hour;
-      if(!Number.isInteger(start) || !Number.isInteger(end) || start < HOUR_MIN || end > HOUR_MAX || end <= start) return {reason: "bad hours"};
+      if(!Number.isInteger(start) || !Number.isInteger(end) || start < HOUR_MIN || end > HOUR_MAX || end <= start){
+        allDay = true; start = null; end = null; count(repairs, "hours_set");
+      }
     }
   }
-  const title = typeof raw.title === "string" ? raw.title.trim() : "", why = typeof raw.why === "string" ? raw.why.trim() : "";
-  if(title === "" || title.length > TITLE_MAX) return {reason: "title empty or too long"};
-  if(why === "" || why.length > WHY_MAX) return {reason: "why empty or too long"};
-  if(PRICE_WORDS.test(title) || PRICE_WORDS.test(why)) return {reason: "a price in the words"};
-  const cafes = new Set(clean.offers.map(o => o.cafe.toLowerCase()).concat(clean.new_items.map(n => n.cafe.toLowerCase())));
-  const named = Array.isArray(raw.cafes_named) ? raw.cafes_named : null;
-  if(!named || !named.every(c => typeof c === "string" && c.trim() !== "")) return {reason: "cafes_named missing"};
-  for(const c of named){
-    if(!cafes.has(c.trim().toLowerCase())) return {reason: "names a cafe that was not given"};
-    if(why.toLowerCase().indexOf(c.trim().toLowerCase()) === -1) return {reason: "lists a cafe the why does not name"};
-  }
-  const key = idKey(raw.type, ids);
-  if(clean.avoid.some(a => idKey(a.type, a.item_ids) === key)) return {reason: "repeats an idea to avoid"};
-  if(taken.has(key)) return {reason: "repeats another idea in the reply"};
-  taken.add(key);
-  return {idea: {type: raw.type, title: title, item_ids: ids.slice(), discount_percent: d, days: days, all_day: allDay,
-                 start_hour: start, end_hour: end, why: why, cafes_named: named.map(c => c.trim())}};
+  let title = typeof raw.title === "string" ? raw.title.trim() : "", why = typeof raw.why === "string" ? raw.why.trim() : "";
+  if(title === ""){ title = ids.map(i => names.get(i)).join(" and "); count(repairs, "title_set"); }
+  if(title.length > TITLE_MAX){ title = cutWords(title, TITLE_MAX); count(repairs, "title_cut"); }
+  if(why.length > WHY_MAX){ why = cutWords(why, WHY_MAX); count(repairs, "why_cut"); }
+  if(why === "") count(repairs, "why_empty");
+  // a dollar amount in the words is left as written, and the cafes named are not checked
+  const named = Array.isArray(raw.cafes_named) ? raw.cafes_named.filter(c => typeof c === "string" && c.trim() !== "").map(c => c.trim()) : [];
+  return {idea: {type: type, title: title, item_ids: ids, discount_percent: d, days: days, all_day: allDay,
+                 start_hour: start, end_hour: end, why: why, cafes_named: named}};
 }
-/* every idea of a reply: the ones that may be shown, and why each of the others was dropped */
+/* Every idea of a reply: the ones to show, each put right; where each of the
+   others went; and the counts of repairs and drops by code. */
 function validateIdeas(ideas, clean){
-  const taken = new Set(), kept = [], dropped = [];
+  const repairs = {}, drops = {}, dropped = [], made = [];
   (Array.isArray(ideas) ? ideas : []).forEach((raw, i) => {
-    const got = checkIdea(raw, clean, taken);
-    if(got.idea) kept.push(got.idea); else dropped.push({index: i, reason: got.reason});
+    const got = repairIdea(raw, clean, repairs);
+    if(got.idea) made.push({index: i, idea: got.idea, key: idKey(got.idea.type, got.idea.item_ids)});
+    else { dropped.push({index: i, reason: got.drop}); count(drops, got.drop); }
   });
-  return {kept: kept, dropped: dropped};
+  // a repeat of an idea to avoid, or of an earlier idea here: the last goes first, and only while 3 or more stay
+  const avoid = new Set(clean.avoid.map(a => idKey(a.type, a.item_ids))), seen = new Set();
+  made.forEach(m => { m.repeat = avoid.has(m.key) || seen.has(m.key); seen.add(m.key); });
+  let left = made.length;
+  for(let i = made.length - 1; i >= 0; i -= 1){
+    if(!made[i].repeat) continue;
+    if(left - 1 < KEEP_AT_LEAST){ count(repairs, "repeat_kept"); continue; }
+    made[i].gone = true; left -= 1;
+    dropped.push({index: made[i].index, reason: "repeat"}); count(drops, "repeat");
+  }
+  return {kept: made.filter(m => !m.gone).map(m => m.idea), dropped: dropped, repairs: repairs, drops: drops};
 }
 
 /* ---------- what is logged ----------
@@ -273,21 +307,30 @@ export default {
     const clean = raw.length > MAX_BODY ? null : cleanRequest(body);
     if(!clean) return fail(400, "bad_request");
 
-    // the models are asked in turn; one line is logged for each try that failed
-    const asked = await askChain(TIME, (model, allowed, fullTry) => askGoogle(model, clean, key, allowed, fullTry),
-      (failed, model, tryNumber, tryMs) => console.error(JSON.stringify(Object.assign({what: "ideas"}, failed, {model: model.id, try: tryNumber, ms: tryMs, menu_rows: clean.menu.length}))));
-    const got = asked.got, tries = asked.tries, ms = asked.ms;
-    if(got.fail){
-      // the browser is told which stage, never Google's words
-      const error = isBusy(got.fail) ? "busy" : isLimit(got.fail) ? "limit" : "read_failed";
-      return reply(error === "busy" ? 503 : error === "limit" ? 429 : 502, {error: error, message: MESSAGES[error], ref: refOf(got.fail)});
+    // The models are asked in turn; one line is logged for each try that failed.
+    // A reply with no idea left after repairing is asked for once more, with
+    // the same request, in the time that is left.
+    const began = Date.now();
+    let checked = null;
+    for(let ask = 1; ask <= 2; ask += 1){
+      const rule = Object.assign({}, TIME, {overallMs: TIME.overallMs - (Date.now() - began)});
+      if(ask > 1 && rule.overallMs < TIME.needsMs) break;
+      const asked = await askChain(rule, (model, allowed, fullTry) => askGoogle(model, clean, key, allowed, fullTry),
+        (failed, model, tryNumber, tryMs) => console.error(JSON.stringify(Object.assign({what: "ideas"}, failed, {model: model.id, ask: ask, try: tryNumber, ms: tryMs, menu_rows: clean.menu.length}))));
+      const got = asked.got;
+      if(got.fail){
+        // the browser is told which stage, never Google's words
+        const error = isBusy(got.fail) ? "busy" : isLimit(got.fail) ? "limit" : "read_failed";
+        return reply(error === "busy" ? 503 : error === "limit" ? 429 : 502, {error: error, message: MESSAGES[error], ref: refOf(got.fail)});
+      }
+      checked = validateIdeas(got.ideas, clean);
+      // counts by code only: no words of an idea, an item or a cafe
+      console.log(JSON.stringify(Object.assign({what: "ideas", model: asked.model.id, ask: ask, ms: asked.ms}, got.usage,
+        {menu_rows: clean.menu.length, ideas: checked.kept.length, dropped: checked.dropped.length, repairs: checked.repairs, drops: checked.drops},
+        asked.tries > 1 ? {tries: asked.tries} : {})));
+      if(checked.kept.length) return reply(200, {ideas: checked.kept, dropped: checked.dropped.length});
     }
-
-    const checked = validateIdeas(got.ideas, clean);
-    console.log(JSON.stringify(Object.assign({what: "ideas", model: asked.model.id, ms: ms}, got.usage, {menu_rows: clean.menu.length, ideas: checked.kept.length, dropped: checked.dropped.length},
-                                             tries > 1 ? {tries: tries} : {})));
-    if(!checked.kept.length) return reply(502, {error: "no_ideas", message: MESSAGES.no_ideas, ref: "no_ideas"});
-    return reply(200, {ideas: checked.kept, dropped: checked.dropped.length});
+    return reply(502, {error: "no_ideas", message: MESSAGES.no_ideas, ref: "no_ideas"});
   },
   // for the test script outside the repo: the same instruction, request and checks, with nothing copied
   ENDPOINT: endpointOf(MODELS[0]), INSTRUCTION, SCHEMA, cleanRequest, promptText, googleRequest, validateIdeas
