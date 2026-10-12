@@ -1658,7 +1658,7 @@ function mailHtml(place){
   const head = place === "alerts" ? "h2" : "p";
   if(email) return `<div class="mailbox done ${place}"><p class="mailsaid">${ICON.tick}<span>We'll email <b>${esc(email)}</b> when something changes.</span></p></div>`;
   if(place === "prices" && mine.off) return "";
-  return `<div class="mailbox ${place}"><${head} class="mailh">Get these by email</${head}><p class="mailwords">${mailWords()}</p>` +
+  return `<div class="mailbox ${place}"><${head} class="mailh">${place === "alerts" ? "Get these by email" : "Hear when they change a price"}</${head}><p class="mailwords">${mailWords()}</p>` +
     `<form class="mailform" data-place="${place}" novalidate>` +
     `<input type="email" class="mailin" autocomplete="email" inputmode="email" placeholder="you@yourcafe.com" aria-label="Your email" value="${esc(mailDraft)}">` +
     `<button type="submit" class="btn primary">Email me</button>` +
